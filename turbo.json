@@ -1,0 +1,48 @@
+{
+	"$schema": "https://turborepo.com/schema.json",
+	"ui": "tui",
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"]
+		},
+		"typecheck": {
+			"dependsOn": ["^typecheck"]
+		},
+		"test": {
+			"dependsOn": ["^build"],
+			"inputs": ["src/**", "test/**", "tests/**", "__tests__/**", "*.config.*"]
+		},
+		"dev": {
+			"dependsOn": ["^dev"],
+			"cache": false,
+			"persistent": false
+		},
+		"up": {
+			"cache": false,
+			"persistent": true,
+			"passThroughEnv": [
+				"NODE_ENV",
+				"PORT",
+				"API_*",
+				"DATABASE_KG_URL",
+				"DATABASE_TIMESCALE_URL",
+				"SURREAL_*",
+				"REDIS_URL",
+				"OPENAI_API_KEY",
+				"ANTHROPIC_API_KEY",
+				"GOOGLE_GENERATIVE_AI_API_KEY",
+				"SPOTIFY_*",
+				"GITHUB_TOKEN",
+				"ETHERSCAN_API_KEY",
+				"BRANDFETCH_API_KEY"
+			]
+		},
+		"lint": { "dependsOn": ["^lint"] },
+		"format": { "dependsOn": ["^format"] },
+		"check": { "dependsOn": ["^check"] },
+		"check:write": { "dependsOn": ["^check:write"] },
+		"clean": { "cache": false }
+	}
+}

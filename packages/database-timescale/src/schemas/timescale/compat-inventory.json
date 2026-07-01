@@ -1,0 +1,39 @@
+{
+	"continuousAggregates": [
+		"position_change_daily",
+		"position_change_hourly",
+		"share_price_stats_daily",
+		"share_price_stats_hourly",
+		"signal_daily",
+		"signal_hourly"
+	],
+	"functions": [
+		"get_pnl_leaderboard_period",
+		"refresh_period_leaderboard_cache",
+		"refresh_position_cumulative_hourly"
+	],
+	"hypertables": [
+		"account_pnl_snapshot",
+		"deposited_events",
+		"event_store",
+		"position_change",
+		"position_cumulative_hourly",
+		"redeemed_events",
+		"share_price_changed_events",
+		"share_price_history",
+		"signal",
+		"stats_history",
+		"term_market_cap_history"
+	],
+	"jobs": ["refresh_period_leaderboard_cache", "refresh_position_cumulative_hourly"],
+	"materializedViews": [
+		"position_change_daily",
+		"position_change_hourly",
+		"share_price_stats_daily",
+		"share_price_stats_hourly",
+		"signal_daily",
+		"signal_hourly"
+	],
+	"types": ["pnl_leaderboard_entry"],
+	"views": ["leaderboard_current"]
+}

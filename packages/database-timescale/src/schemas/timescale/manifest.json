@@ -1,0 +1,1953 @@
+{
+	"tables": [
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "first_seen_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_seen_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "account_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "account_label",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "account_image",
+					"notNull": false,
+					"type": "text"
+				}
+			],
+			"name": "account",
+			"primaryKey": ["account_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "unrealized_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "current_equity_value",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "account_pnl_snapshot",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "unrealized_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "current_equity_value",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "winning_positions",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "losing_positions",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "last_recomputed_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "source_watermark",
+					"notNull": true,
+					"type": "bigint"
+				}
+			],
+			"name": "account_pnl_state",
+			"primaryKey": ["account_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_position_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "active_position_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_volume",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "first_position_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_activity_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "account_stats",
+			"primaryKey": ["account_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "opened_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "active_vault_position",
+			"primaryKey": ["term_id", "curve_id", "account_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "creator",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "atom_data",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "atom_wallet",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "term_id_hex",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "atom_created_events",
+			"primaryKey": ["transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sender_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "receiver_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "vault_type",
+					"notNull": false,
+					"type": "integer"
+				},
+				{
+					"name": "assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets_after_fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "deposit_fact",
+			"primaryKey": ["event_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "sender",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "receiver",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets_after_fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "vault_type",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "term_id_hex",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "deposited_events",
+			"primaryKey": ["block_timestamp", "transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "reason",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "first_marked_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_marked_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "dirty_account",
+			"primaryKey": ["account_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "first_marked_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_marked_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "dirty_vault",
+			"primaryKey": ["term_id", "curve_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "event_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "event",
+			"primaryKey": ["event_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigserial"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "event_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "event_data",
+					"notNull": true,
+					"type": "jsonb"
+				},
+				{
+					"name": "term_id",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "entity_id",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "is_canonical",
+					"notNull": true,
+					"type": "boolean"
+				},
+				{
+					"name": "ingested_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "event_store",
+			"primaryKey": ["block_timestamp", "sequence_number"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sender_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "amount",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "epoch",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "fee_transfer_fact",
+			"primaryKey": ["event_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "cache_version",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "period",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sort_key",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "rank",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "account_label",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "account_image",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "total_pnl_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_pnl_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "unrealized_pnl_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "unrealized_pnl_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "pnl_pct",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl_pct",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "unrealized_pnl_pct",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "pnl_change_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "pnl_change_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_position_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "active_position_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "winning_positions",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "losing_positions",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "win_rate",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_volume_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_volume_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "current_equity_value_raw",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "current_equity_value_formatted",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "best_trade_pnl_raw",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "best_trade_pnl_formatted",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "worst_trade_pnl_raw",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "worst_trade_pnl_formatted",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "redeemable_assets_raw",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "redeemable_assets_formatted",
+					"notNull": false,
+					"type": "numeric"
+				},
+				{
+					"name": "first_position_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_activity_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "computed_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "leaderboard_cache",
+			"primaryKey": ["cache_version", "period", "sort_key", "rank"]
+		},
+		{
+			"columns": [
+				{
+					"name": "period",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sort_key",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "active_version",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "leaderboard_cache_version",
+			"primaryKey": ["period", "sort_key"]
+		},
+		{
+			"columns": [
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits_value",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares_acquired",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "cost_basis",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "realized_pnl",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "opened_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "closed_at",
+					"notNull": false,
+					"type": "timestamptz"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "version",
+					"notNull": true,
+					"type": "integer"
+				}
+			],
+			"name": "position",
+			"primaryKey": ["account_id", "term_id", "curve_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "event_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "shares_delta",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets_in",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets_out",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "execution_price",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "position_change",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "bucket",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "cumulative_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "cumulative_assets_in",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "cumulative_assets_out",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "cumulative_shares_in",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "cumulative_shares_out",
+					"notNull": true,
+					"type": "numeric"
+				}
+			],
+			"name": "position_cumulative_hourly",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "predicate_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "object_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "triple_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "predicate_object_summary",
+			"primaryKey": ["predicate_id", "object_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "checkpoint_key",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "projection_name",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sink_name",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "last_sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "last_block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "created_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "last_updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "projection_checkpoints",
+			"primaryKey": ["checkpoint_key"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "epoch",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "sender",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "amount",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				}
+			],
+			"name": "protocol_fee_accrued_events",
+			"primaryKey": ["transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "sender",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "receiver",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "vault_type",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "term_id_hex",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "redeemed_events",
+			"primaryKey": ["block_timestamp", "transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "sender_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "receiver_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "vault_type",
+					"notNull": false,
+					"type": "integer"
+				},
+				{
+					"name": "shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "redemption_fact",
+			"primaryKey": ["event_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "share_price",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "vault_type",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "term_id_hex",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "share_price_changed_events",
+			"primaryKey": ["block_timestamp", "transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "share_price",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "share_price_history",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "event_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "account_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "signal_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "delta",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "signal",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "id",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "total_atoms",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_triples",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_accounts",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_deposits_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_redemptions_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_deposit_volume",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemption_volume",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "stats",
+			"primaryKey": ["id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "total_atoms",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_triples",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_accounts",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_deposits_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_redemptions_count",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "total_deposit_volume",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemption_volume",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_fees",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "stats_history",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "subject_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "predicate_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "triple_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "subject_predicate_summary",
+			"primaryKey": ["subject_id", "predicate_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "creator",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "atom_data",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "atom_data_hex",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "subject_id",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "predicate_id",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "object_id",
+					"notNull": false,
+					"type": "text"
+				},
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "term",
+			"primaryKey": ["term_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_holder_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "ts",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "event_id",
+					"notNull": false,
+					"type": "text"
+				}
+			],
+			"name": "term_market_cap_history",
+			"primaryKey": []
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_type",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_holder_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "term_summary",
+			"primaryKey": ["term_id"]
+		},
+		{
+			"columns": [
+				{
+					"name": "block_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "block_timestamp",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "block_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "transaction_hash",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "log_index",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "creator",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "subject_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "predicate_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "object_id",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "sequence_number",
+					"notNull": true,
+					"type": "bigint"
+				},
+				{
+					"name": "term_id_hex",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "subject_id_hex",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "predicate_id_hex",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "object_id_hex",
+					"notNull": true,
+					"type": "text"
+				}
+			],
+			"name": "triple_created_events",
+			"primaryKey": ["transaction_hash", "log_index"]
+		},
+		{
+			"columns": [
+				{
+					"name": "term_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "curve_id",
+					"notNull": true,
+					"type": "text"
+				},
+				{
+					"name": "total_shares",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "current_share_price",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_assets",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_deposits",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "total_redemptions",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "market_cap",
+					"notNull": true,
+					"type": "numeric"
+				},
+				{
+					"name": "holder_count",
+					"notNull": true,
+					"type": "integer"
+				},
+				{
+					"name": "created_at",
+					"notNull": true,
+					"type": "timestamptz"
+				},
+				{
+					"name": "updated_at",
+					"notNull": true,
+					"type": "timestamptz"
+				}
+			],
+			"name": "vault",
+			"primaryKey": ["term_id", "curve_id"]
+		}
+	]
+}

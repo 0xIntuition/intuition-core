@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Lockfiles (using bun.lock)
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Build outputs
+dist
+build
+out/
+.output
+.cache/
+**/tsconfig.tsbuildinfo
+
+# Environment files — never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Rust
+target/
+
+# Testing
+coverage
+test-results/
+
+# Tooling
+.turbo
+.vercel
+
+# Database / datastore volumes
+*.db
+*.db-*
+.data/
+
+# Logs
+npm-debug.log*
+**/logs/
+
+# OS / editor
+.DS_Store
+.DS_Store?
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json

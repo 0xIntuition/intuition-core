@@ -1,0 +1,38 @@
+{
+	"name": "@0xintuition/database-kg",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"exports": {
+		".": "./src/index.ts",
+		"./client": "./src/client.ts",
+		"./client-env": "./src/client-env.ts",
+		"./schema": "./src/schema.ts"
+	},
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"with-env": "dotenv -e ../../.env --",
+		"db:generate": "bun with-env drizzle-kit generate",
+		"db:migrate": "bun with-env bun src/migrate.ts",
+		"db:push": "bun with-env drizzle-kit push",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"drizzle-orm": "0.45.1",
+		"postgres": "^3.4.7"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"@types/node": "^22.18.10",
+		"dotenv-cli": "^10.0.0",
+		"drizzle-kit": "^0.31.8",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,46 @@
+# Intuition Core — the "one button".
+#
+#   docker compose up
+#
+# Brings up the four datastores, waits for them to be healthy, then runs a
+# one-shot `migrate` job that applies the schema (drizzle DDL + TimescaleDB
+# hypertables) before any long-running service starts. Backend services
+# (indexer, workers, api) are layered on here as they land.
+#
+# Datastores-only (no migrate/services):
+#   docker compose -f docker-compose.datastores.yml up
+#
+# NOTE: the `migrate` service below is the reference orchestration and has not
+# yet been validated against a live Docker daemon (unavailable in the build
+# environment it was authored in). The migration runner itself is exercised via
+# `bun --filter @0xintuition/database-kg run db:migrate`.
+
+name: intuition-core
+
+include:
+  - docker-compose.datastores.yml
+
+services:
+  # One-shot schema migration. Runs after the datastores are healthy and exits 0
+  # before services depending on it start. Uses the kg connection over the
+  # compose network (service DNS name `postgres-kg`), so no .env is needed here.
+  migrate:
+    image: oven/bun:1
+    working_dir: /repo
+    environment:
+      # Container-network DSN — `postgres-kg` resolves to the datastore service.
+      DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
+    volumes:
+      - .:/repo
+      # Mask host node_modules so a clean Linux install happens in-container.
+      - /repo/node_modules
+    depends_on:
+      postgres-kg:
+        condition: service_healthy
+    # Call the runner directly (not the with-env wrapper): the DSN is already in
+    # the container environment, so no dotenv file is required.
+    command: >
+      sh -c "bun install --frozen-lockfile &&
+             cd packages/database-kg &&
+             bun src/migrate.ts"
+    restart: "no"

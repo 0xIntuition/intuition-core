@@ -1,0 +1,2431 @@
+{
+  "id": "350021b5-8102-4ca1-8f09-e1b0b028dc1d",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "kg.account_stats": {
+      "name": "account_stats",
+      "schema": "kg",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_node_count": {
+          "name": "created_node_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "created_triple_count": {
+          "name": "created_triple_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "deposit_count": {
+          "name": "deposit_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "withdrawal_count": {
+          "name": "withdrawal_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "last_deposit_at": {
+          "name": "last_deposit_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_withdrawal_at": {
+          "name": "last_withdrawal_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_stats_account_id_accounts_id_fk": {
+          "name": "account_stats_account_id_accounts_id_fk",
+          "tableFrom": "account_stats",
+          "tableTo": "accounts",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kg.accounts": {
+      "name": "accounts",
+      "schema": "kg",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_accounts_last_seen_at": {
+          "name": "idx_accounts_last_seen_at",
+          "columns": [
+            {
+              "expression": "last_seen_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_accounts_deleted_at": {
+          "name": "idx_accounts_deleted_at",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kg.adjacency": {
+      "name": "adjacency",
+      "schema": "kg",
+      "columns": {
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "direction": {
+          "name": "direction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_id": {
+          "name": "predicate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_type": {
+          "name": "predicate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "neighbor_id": {
+          "name": "neighbor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "neighbor_type": {
+          "name": "neighbor_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "triple_id": {
+          "name": "triple_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_weight": {
+          "name": "market_weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "social_weight": {
+          "name": "social_weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_adjacency_source_ref": {
+          "name": "idx_adjacency_source_ref",
+          "columns": [
+            {
+              "expression": "source_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_adjacency_predicate_ref": {
+          "name": "idx_adjacency_predicate_ref",
+          "columns": [
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_adjacency_neighbor_ref": {
+          "name": "idx_adjacency_neighbor_ref",
+          "columns": [
+            {
+              "expression": "neighbor_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "neighbor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "adjacency_triple_id_triples_id_fk": {
+          "name": "adjacency_triple_id_triples_id_fk",
+          "tableFrom": "adjacency",
+          "tableTo": "triples",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "triple_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "adjacency_pkey": {
+          "name": "adjacency_pkey",
+          "columns": [
+            "source_id",
+            "source_type",
+            "direction",
+            "predicate_id",
+            "predicate_type",
+            "neighbor_id",
+            "neighbor_type",
+            "triple_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_adjacency_source_type": {
+          "name": "chk_adjacency_source_type",
+          "value": "\"kg\".\"adjacency\".\"source_type\" IN ('node', 'triple')"
+        },
+        "chk_adjacency_predicate_type": {
+          "name": "chk_adjacency_predicate_type",
+          "value": "\"kg\".\"adjacency\".\"predicate_type\" IN ('node', 'triple')"
+        },
+        "chk_adjacency_neighbor_type": {
+          "name": "chk_adjacency_neighbor_type",
+          "value": "\"kg\".\"adjacency\".\"neighbor_type\" IN ('node', 'triple')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.artifacts": {
+      "name": "artifacts",
+      "schema": "kg",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "node_id": {
+          "name": "node_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artifact_kind": {
+          "name": "artifact_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artifact_version": {
+          "name": "artifact_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_uri": {
+          "name": "source_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_hash": {
+          "name": "source_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "extracted": {
+          "name": "extracted",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "error": {
+          "name": "error",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_account_id": {
+          "name": "created_by_account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_artifacts_node_id": {
+          "name": "idx_artifacts_node_id",
+          "columns": [
+            {
+              "expression": "node_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_artifacts_created_by_account_id": {
+          "name": "idx_artifacts_created_by_account_id",
+          "columns": [
+            {
+              "expression": "created_by_account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_artifacts_kind_version_status": {
+          "name": "idx_artifacts_kind_version_status",
+          "columns": [
+            {
+              "expression": "artifact_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "artifact_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_artifacts_kind_source_hash": {
+          "name": "idx_artifacts_kind_source_hash",
+          "columns": [
+            {
+              "expression": "artifact_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artifacts_node_id_nodes_id_fk": {
+          "name": "artifacts_node_id_nodes_id_fk",
+          "tableFrom": "artifacts",
+          "tableTo": "nodes",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "artifacts_created_by_account_id_accounts_id_fk": {
+          "name": "artifacts_created_by_account_id_accounts_id_fk",
+          "tableFrom": "artifacts",
+          "tableTo": "accounts",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "created_by_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kg.events": {
+      "name": "events",
+      "schema": "kg",
+      "columns": {
+        "event_time": {
+          "name": "event_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entity_kind": {
+          "name": "entity_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification_type": {
+          "name": "classification_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_onchain": {
+          "name": "is_onchain",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "block_number": {
+          "name": "block_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tx_hash": {
+          "name": "tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_kg_events_entity": {
+          "name": "idx_kg_events_entity",
+          "columns": [
+            {
+              "expression": "entity_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_kg_events_actor": {
+          "name": "idx_kg_events_actor",
+          "columns": [
+            {
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_kg_events_type": {
+          "name": "idx_kg_events_type",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "kg_events_pkey": {
+          "name": "kg_events_pkey",
+          "columns": [
+            "event_time",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_kg_events_entity_kind": {
+          "name": "chk_kg_events_entity_kind",
+          "value": "\"kg\".\"events\".\"entity_kind\" IN ('node', 'triple', 'predicate', 'artifact')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.node_urls": {
+      "name": "node_urls",
+      "schema": "kg",
+      "columns": {
+        "node_id": {
+          "name": "node_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artifact_id": {
+          "name": "artifact_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_node_urls_node_domain": {
+          "name": "idx_node_urls_node_domain",
+          "columns": [
+            {
+              "expression": "node_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "domain",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_node_urls_domain": {
+          "name": "idx_node_urls_domain",
+          "columns": [
+            {
+              "expression": "domain",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_node_urls_one_primary_per_node": {
+          "name": "idx_node_urls_one_primary_per_node",
+          "columns": [
+            {
+              "expression": "node_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"kg\".\"node_urls\".\"is_primary\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "node_urls_node_id_nodes_id_fk": {
+          "name": "node_urls_node_id_nodes_id_fk",
+          "tableFrom": "node_urls",
+          "tableTo": "nodes",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "node_urls_artifact_id_artifacts_id_fk": {
+          "name": "node_urls_artifact_id_artifacts_id_fk",
+          "tableFrom": "node_urls",
+          "tableTo": "artifacts",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "artifact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "node_urls_pkey": {
+          "name": "node_urls_pkey",
+          "columns": [
+            "node_id",
+            "url"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_node_urls_url_nonempty": {
+          "name": "chk_node_urls_url_nonempty",
+          "value": "\"kg\".\"node_urls\".\"url\" <> ''"
+        },
+        "chk_node_urls_domain_nonempty": {
+          "name": "chk_node_urls_domain_nonempty",
+          "value": "\"kg\".\"node_urls\".\"domain\" <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.node_stats": {
+      "name": "node_stats",
+      "schema": "kg",
+      "columns": {
+        "node_id": {
+          "name": "node_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "in_degree": {
+          "name": "in_degree",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "out_degree": {
+          "name": "out_degree",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "neighbor_kind_counts": {
+          "name": "neighbor_kind_counts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "predicate_counts": {
+          "name": "predicate_counts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "node_stats_node_id_nodes_id_fk": {
+          "name": "node_stats_node_id_nodes_id_fk",
+          "tableFrom": "node_stats",
+          "tableTo": "nodes",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kg.nodes": {
+      "name": "nodes",
+      "schema": "kg",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "is_onchain": {
+          "name": "is_onchain",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'public'"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw_type": {
+          "name": "raw_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_hex": {
+          "name": "data_hex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_resolved": {
+          "name": "data_resolved",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "parse_attempts": {
+          "name": "parse_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "parse_status": {
+          "name": "parse_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "parse_started_at": {
+          "name": "parse_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parse_lease_expires_at": {
+          "name": "parse_lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parsed_at": {
+          "name": "parsed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parse_error": {
+          "name": "parse_error",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parse_result": {
+          "name": "parse_result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classification_attempts": {
+          "name": "classification_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "classification_status": {
+          "name": "classification_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "classification_started_at": {
+          "name": "classification_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classification_lease_expires_at": {
+          "name": "classification_lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classified_at": {
+          "name": "classified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classification_error": {
+          "name": "classification_error",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classification_result": {
+          "name": "classification_result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classification_type": {
+          "name": "classification_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Unknown'"
+        },
+        "enrichment_attempts": {
+          "name": "enrichment_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "enrichment_status": {
+          "name": "enrichment_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "enrichment_started_at": {
+          "name": "enrichment_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enrichment_lease_expires_at": {
+          "name": "enrichment_lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enriched_at": {
+          "name": "enriched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enrichment_error": {
+          "name": "enrichment_error",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "processing_meta": {
+          "name": "processing_meta",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "search_text": {
+          "name": "search_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        }
+      },
+      "indexes": {
+        "idx_nodes_status_visibility_created_at": {
+          "name": "idx_nodes_status_visibility_created_at",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "visibility",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_visibility": {
+          "name": "idx_nodes_visibility",
+          "columns": [
+            {
+              "expression": "visibility",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_raw_type_data_hex": {
+          "name": "idx_nodes_raw_type_data_hex",
+          "columns": [
+            {
+              "expression": "raw_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "data_hex",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_classification_type": {
+          "name": "idx_nodes_classification_type",
+          "columns": [
+            {
+              "expression": "classification_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_created_by_created_at": {
+          "name": "idx_nodes_created_by_created_at",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_data_hex": {
+          "name": "idx_nodes_data_hex",
+          "columns": [
+            {
+              "expression": "data_hex",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_parse_recovery": {
+          "name": "idx_nodes_parse_recovery",
+          "columns": [
+            {
+              "expression": "parse_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parse_lease_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_classification_recovery": {
+          "name": "idx_nodes_classification_recovery",
+          "columns": [
+            {
+              "expression": "classification_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "classification_lease_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_enrichment_recovery": {
+          "name": "idx_nodes_enrichment_recovery",
+          "columns": [
+            {
+              "expression": "enrichment_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "enrichment_lease_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_nodes_processing_statuses": {
+          "name": "idx_nodes_processing_statuses",
+          "columns": [
+            {
+              "expression": "parse_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "classification_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "enrichment_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "nodes_created_by_accounts_id_fk": {
+          "name": "nodes_created_by_accounts_id_fk",
+          "tableFrom": "nodes",
+          "tableTo": "accounts",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_nodes_visibility": {
+          "name": "chk_nodes_visibility",
+          "value": "\"kg\".\"nodes\".\"visibility\" IN ('public', 'unlisted')"
+        },
+        "chk_nodes_status": {
+          "name": "chk_nodes_status",
+          "value": "\"kg\".\"nodes\".\"status\" IN ('active', 'draft')"
+        },
+        "chk_nodes_raw_type": {
+          "name": "chk_nodes_raw_type",
+          "value": "\"kg\".\"nodes\".\"raw_type\" IN ('string', 'json', 'http_uri', 'ipfs_uri')"
+        },
+        "chk_nodes_parse_status": {
+          "name": "chk_nodes_parse_status",
+          "value": "\"kg\".\"nodes\".\"parse_status\" IN ('pending', 'processing', 'completed', 'failed', 'skipped')"
+        },
+        "chk_nodes_classification_status": {
+          "name": "chk_nodes_classification_status",
+          "value": "\"kg\".\"nodes\".\"classification_status\" IN ('pending', 'processing', 'completed', 'failed', 'skipped')"
+        },
+        "chk_nodes_enrichment_status": {
+          "name": "chk_nodes_enrichment_status",
+          "value": "\"kg\".\"nodes\".\"enrichment_status\" IN ('pending', 'processing', 'completed', 'failed', 'skipped')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.predicate_stats": {
+      "name": "predicate_stats",
+      "schema": "kg",
+      "columns": {
+        "predicate_id": {
+          "name": "predicate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_type": {
+          "name": "predicate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "triple_count": {
+          "name": "triple_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distinct_subject_count": {
+          "name": "distinct_subject_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distinct_object_count": {
+          "name": "distinct_object_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avg_out_degree": {
+          "name": "avg_out_degree",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg_in_degree": {
+          "name": "avg_in_degree",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "selectivity_score": {
+          "name": "selectivity_score",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "predicate_stats_pkey": {
+          "name": "predicate_stats_pkey",
+          "columns": [
+            "predicate_type",
+            "predicate_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_predicate_stats_predicate_type": {
+          "name": "chk_predicate_stats_predicate_type",
+          "value": "\"kg\".\"predicate_stats\".\"predicate_type\" IN ('node', 'triple')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.predicates": {
+      "name": "predicates",
+      "schema": "kg",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inverse_predicate_id": {
+          "name": "inverse_predicate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_transitive": {
+          "name": "is_transitive",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_symmetric": {
+          "name": "is_symmetric",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_hierarchical": {
+          "name": "is_hierarchical",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_social": {
+          "name": "is_social",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_market": {
+          "name": "is_market",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "predicates_slug_unique": {
+          "name": "predicates_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kg.triple_pattern_stats": {
+      "name": "triple_pattern_stats",
+      "schema": "kg",
+      "columns": {
+        "subject_kind": {
+          "name": "subject_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_id": {
+          "name": "predicate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_type": {
+          "name": "predicate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "object_kind": {
+          "name": "object_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "triple_count": {
+          "name": "triple_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distinct_subject_count": {
+          "name": "distinct_subject_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distinct_object_count": {
+          "name": "distinct_object_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selectivity_score": {
+          "name": "selectivity_score",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "triple_pattern_stats_pkey": {
+          "name": "triple_pattern_stats_pkey",
+          "columns": [
+            "subject_kind",
+            "predicate_type",
+            "predicate_id",
+            "object_kind"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_triple_pattern_stats_predicate_type": {
+          "name": "chk_triple_pattern_stats_predicate_type",
+          "value": "\"kg\".\"triple_pattern_stats\".\"predicate_type\" IN ('node', 'triple')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kg.triples": {
+      "name": "triples",
+      "schema": "kg",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "is_onchain": {
+          "name": "is_onchain",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'public'"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_id": {
+          "name": "subject_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_type": {
+          "name": "subject_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "predicate_id": {
+          "name": "predicate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "predicate_type": {
+          "name": "predicate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "object_id": {
+          "name": "object_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_type": {
+          "name": "object_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'node'"
+        },
+        "is_counter_triple": {
+          "name": "is_counter_triple",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "sibling_triple_id": {
+          "name": "sibling_triple_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "edge_kind": {
+          "name": "edge_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'claim'"
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_uri": {
+          "name": "source_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "numeric(6, 5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inferred": {
+          "name": "inferred",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "provenance": {
+          "name": "provenance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "idx_triples_spo": {
+          "name": "idx_triples_spo",
+          "columns": [
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_sop": {
+          "name": "idx_triples_sop",
+          "columns": [
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_pso": {
+          "name": "idx_triples_pso",
+          "columns": [
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_pos": {
+          "name": "idx_triples_pos",
+          "columns": [
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_osp": {
+          "name": "idx_triples_osp",
+          "columns": [
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_ops": {
+          "name": "idx_triples_ops",
+          "columns": [
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_subject_ref": {
+          "name": "idx_triples_subject_ref",
+          "columns": [
+            {
+              "expression": "subject_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_predicate_ref": {
+          "name": "idx_triples_predicate_ref",
+          "columns": [
+            {
+              "expression": "predicate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "predicate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_object_ref": {
+          "name": "idx_triples_object_ref",
+          "columns": [
+            {
+              "expression": "object_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_status_visibility_created_at": {
+          "name": "idx_triples_status_visibility_created_at",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "visibility",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_sibling_triple_id": {
+          "name": "idx_triples_sibling_triple_id",
+          "columns": [
+            {
+              "expression": "sibling_triple_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_counter_triple": {
+          "name": "idx_triples_counter_triple",
+          "columns": [
+            {
+              "expression": "is_counter_triple",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_created_by_created_at": {
+          "name": "idx_triples_created_by_created_at",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_edge_kind_status_created_at": {
+          "name": "idx_triples_edge_kind_status_created_at",
+          "columns": [
+            {
+              "expression": "edge_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_source_uri": {
+          "name": "idx_triples_source_uri",
+          "columns": [
+            {
+              "expression": "source_uri",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_triples_confidence_desc": {
+          "name": "idx_triples_confidence_desc",
+          "columns": [
+            {
+              "expression": "confidence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "triples_created_by_accounts_id_fk": {
+          "name": "triples_created_by_accounts_id_fk",
+          "tableFrom": "triples",
+          "tableTo": "accounts",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "triples_sibling_triple_id_triples_id_fk": {
+          "name": "triples_sibling_triple_id_triples_id_fk",
+          "tableFrom": "triples",
+          "tableTo": "triples",
+          "schemaTo": "kg",
+          "columnsFrom": [
+            "sibling_triple_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_triples_visibility": {
+          "name": "chk_triples_visibility",
+          "value": "\"kg\".\"triples\".\"visibility\" IN ('public', 'unlisted')"
+        },
+        "chk_triples_status": {
+          "name": "chk_triples_status",
+          "value": "\"kg\".\"triples\".\"status\" IN ('active', 'draft')"
+        },
+        "chk_triples_subject_type": {
+          "name": "chk_triples_subject_type",
+          "value": "\"kg\".\"triples\".\"subject_type\" IN ('node', 'triple')"
+        },
+        "chk_triples_predicate_type": {
+          "name": "chk_triples_predicate_type",
+          "value": "\"kg\".\"triples\".\"predicate_type\" IN ('node', 'triple')"
+        },
+        "chk_triples_object_type": {
+          "name": "chk_triples_object_type",
+          "value": "\"kg\".\"triples\".\"object_type\" IN ('node', 'triple')"
+        },
+        "chk_triples_counter_sibling_required": {
+          "name": "chk_triples_counter_sibling_required",
+          "value": "\"kg\".\"triples\".\"is_counter_triple\" = false OR \"kg\".\"triples\".\"sibling_triple_id\" IS NOT NULL"
+        },
+        "chk_triples_sibling_not_self": {
+          "name": "chk_triples_sibling_not_self",
+          "value": "\"kg\".\"triples\".\"sibling_triple_id\" IS NULL OR \"kg\".\"triples\".\"sibling_triple_id\" <> \"kg\".\"triples\".\"id\""
+        },
+        "chk_triples_confidence_range": {
+          "name": "chk_triples_confidence_range",
+          "value": "\"kg\".\"triples\".\"confidence\" IS NULL OR (\"kg\".\"triples\".\"confidence\" >= 0 AND \"kg\".\"triples\".\"confidence\" <= 1)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "kg": "kg"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

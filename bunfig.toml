@@ -1,0 +1,4 @@
+[install]
+# Refuse to install package versions published less than 14 days ago.
+# Defense-in-depth against supply-chain attacks using compromised credentials.
+minimumReleaseAge = 1209600

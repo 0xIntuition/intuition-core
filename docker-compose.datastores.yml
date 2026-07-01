@@ -1,0 +1,84 @@
+# Intuition Core — datastores only.
+#
+#   docker compose -f docker-compose.datastores.yml up -d
+#
+# Brings up the four datastores the backend runs on, with healthchecks so
+# dependent services can wait on them. Connection strings match .env.example.
+# This is the minimal-tier foundation; services are layered on top in the
+# full docker-compose.yml.
+
+name: intuition-core
+
+services:
+  # PostgreSQL knowledge graph — atoms, triples, accounts, predicates.
+  #
+  # Uses the timescaledb-ha image (TimescaleDB + pgvector + PostGIS) rather than
+  # plain Postgres because the KG schema needs BOTH: `kg.events` is a TimescaleDB
+  # hypertable (with an `events_hourly` continuous aggregate), and the Search
+  # tier adds pgvector embedding columns. One image covers both.
+  postgres-kg:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: intuition
+      POSTGRES_PASSWORD: intuition
+      POSTGRES_DB: intuition_kg
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_kg_data:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intuition -d intuition_kg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # TimescaleDB — event store hypertable, markets, positions, leaderboards.
+  # The -ha image bundles TimescaleDB + pgvector + PostGIS.
+  timescale:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: intuition
+      POSTGRES_PASSWORD: intuition
+      POSTGRES_DB: intuition_timescale
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale_data:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intuition -d intuition_timescale"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # SurrealDB — atom/triple graph read model.
+  surrealdb:
+    image: surrealdb/surrealdb:v2
+    command: start --user root --pass root --bind 0.0.0.0:8000 rocksdb:/data/surreal.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - surreal_data:/data
+    healthcheck:
+      test: ["CMD", "/surreal", "isready", "--conn", "http://localhost:8000"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Redis — indexer leader election.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_kg_data:
+  timescale_data:
+  surreal_data:
+  redis_data:
