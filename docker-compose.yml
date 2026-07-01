@@ -9,11 +9,6 @@
 #
 # Datastores-only (no migrate/services):
 #   docker compose -f docker-compose.datastores.yml up
-#
-# NOTE: the `migrate` service below is the reference orchestration and has not
-# yet been validated against a live Docker daemon (unavailable in the build
-# environment it was authored in). The migration runner itself is exercised via
-# `bun --filter @0xintuition/database-kg run db:migrate`.
 
 name: intuition-core
 

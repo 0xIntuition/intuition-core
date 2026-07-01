@@ -4,6 +4,85 @@ Reverse-chronological. Companion to `intuition-core-open-source-spec.md`.
 
 ---
 
+## 2026-07-01 — Tests green (incl. vs dev DBs) + `events_hourly` ships (parallel session)
+
+Ran concurrently with the "one button" validation below (two sessions worked the repo at once —
+changes reconciled, merged state re-verified: migrate idempotent, 12 tables + cagg present).
+
+### Done
+- **Shipped the deferred `kg.events_hourly` continuous aggregate** —
+  `migrations/post/0002_events_hourly.sql`. Definition read from the **live dev DB** and mirrored
+  exactly: hourly `time_bucket` by `entity_kind`+`event_type`, `materialized_only=true`, refresh
+  policy every 15min over a 3h window, `if_not_exists` throughout (post files re-run every migrate).
+  Verified live on local postgres-kg: insert → `refresh_continuous_aggregate` → rollup row returned.
+  Note: `kg.events.id` is `text NOT NULL` with no default **on dev too** — worker-supplied
+  deterministic event IDs, not a lost bigserial.
+- **timescale tests: 5-fail → 9/9 green.** (a) Parser tests read migration SQL from the private
+  monorepo's `backend/migrations/` — vendored the two fixtures into `tests/fixtures/migrations/`
+  (secret-scanned). (b) DB-backed tests threw at module load without `DATABASE_TIMESCALE_URL` — now
+  `describe.skip` cleanly: hermetic by default, opt-in via env. (c) **Real verifier bug**:
+  `verifyTimescaleSchema` scanned every live table in `public` and crashed on column types outside
+  its normalizer (`inet` on an admin table Core doesn't own). Now scopes the scan to the manifest's
+  33 tables (curated-subset semantics: extra live tables aren't drift) and reports unknown live
+  column types as drift instead of throwing.
+- **Verified against the dev databases** (the copied-over `.env`): all 9 tests pass live, including
+  the e2e hypertable/cagg queries against real indexed data. The drift verifier passing proves the
+  checked-in manifest matches dev **exactly** for all 33 tables. Dev KG (PG 17.5, `kg` schema live,
+  14 tables = Core's 12 + `account_auth_links` + `events_hourly`), dev Timescale, and SurrealDB
+  testnet-dev (`/health` 200) all reachable.
+- **Env plumbing**: `turbo.json` `test` task now declares `DATABASE_KG_URL`/`DATABASE_TIMESCALE_URL`
+  (Turbo v2 strict mode stripped them). Gotcha: bun's auto-loaded root `.env` does NOT reliably reach
+  turbo-spawned package tasks — `set -a; source .env; set +a` first when running DB tests.
+- Manifest-staleness worry from 06-30 resolved: `manifest.json` matches `layout.ts` exactly (33/33);
+  it was never stale table-wise. `compat-inventory.json` still unregenerated (harmless).
+- The "no space left" below was real, not phantom: the timescaledb-ha pulls filled the host to 100%
+  and the Docker VM went read-only. Recovered via Docker Desktop restart + `docker builder prune -af`
+  (33.6 GB reclaimed). Host disk remains tight — cleanup outside this repo advisable.
+
+---
+
+## 2026-07-01 — Live validation: the "one button" works end-to-end ✅
+
+Docker available. Ran the migrate path live and **verified against a real database**. (A Docker
+crash/restart mid-session caused some transient flakiness — a phantom "no space left," a half-init
+postgres volume — resolved by `docker compose down -v` + a clean re-run.)
+
+### Verified live (queried the running DB)
+- `docker compose up migrate` → **exit 0**: bun install in-container, drizzle DDL applied, post
+  migration applied (timescaledb extension + hypertable).
+- **12 KG tables** created (nodes, triples, accounts, predicates, artifacts, node_urls, adjacency,
+  events + account/node/predicate/triple_pattern stats).
+- **`kg.events` is a real TimescaleDB hypertable** (1 time dimension) — the custom post-migration works.
+- **6 hexastore permutation indexes** on triples; **3 worker-recovery indexes** on nodes; **55 indexes,
+  125 constraints** total in the `kg` schema.
+- All four datastores healthy: postgres-kg, timescale, redis, surrealdb.
+
+### Fixed this session
+- **Self-referential delimiter bug** in the migration runner: the post-SQL *comment* contained the
+  literal `--> statement-breakpoint`, and `splitStatements` split on it as a substring → a statement
+  starting with a backtick → `syntax error at position 1`. Fixed the splitter to match the marker only
+  on its own line (`/^[ \t]*-->[ \t]*statement-breakpoint[ \t]*$/m`) and reworded the comment.
+- **SurrealDB `Exited(1)`** on a fresh named volume: the image's default non-root user can't create the
+  RocksDB dir. Added `user: root` to the datastores compose (local dev datastore). Now healthy.
+
+### Environment note
+- Host disk was critically low at one point (228 MB free on `/`); recovered to ~10 GB after the Docker
+  restart. Worth watching — the timescaledb-ha image is large.
+
+### Not yet in the repo (answering "limit the indexer to a few blocks")
+The **indexer is not extracted yet** — `rindexer-ingestion` (Rust) still lives only in `alpha`. When we
+bring it over, bounded indexing is env/config-driven: `MULTIVAULT_START_BLOCK` already exists, and
+rindexer's contract config takes an **end block** too — so we expose `START_BLOCK`/`END_BLOCK` to index
+a small window (e.g. a few hundred blocks) instead of the full history. That's the cheap-test path.
+
+### Next
+1. **Extract the indexer** (Rust: `rindexer-ingestion` + `shared` + vendored `curves` crate; Cargo
+   workspace; scrub hardcoded RPC/keys) with a bounded START/END block for cheap local runs — then
+   `docker compose up` indexes a handful of events into the schema we just validated.
+2. Or **`services/api`** first (read-only REST over the graph) — the piece the community touches first.
+
+---
+
 ## 2026-06-30 — Migration system: schema actually stands up (the "one button", step 2)
 
 Built the migration system for the KG. **Verified offline** (Docker daemon was unavailable: daemon

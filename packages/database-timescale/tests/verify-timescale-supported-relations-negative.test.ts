@@ -2,16 +2,17 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import postgres from 'postgres';
 import { verifySupportedTimescaleRelations } from '../src/timescale-verification';
 
-if (!process.env.DATABASE_TIMESCALE_URL) {
-	throw new Error('Missing DATABASE_TIMESCALE_URL');
-}
+// Requires a live TimescaleDB with the schema applied; skipped when unset.
+const databaseUrl = process.env.DATABASE_TIMESCALE_URL?.trim();
+const describeWithDb = databaseUrl ? describe : describe.skip;
 
-const sql = postgres(process.env.DATABASE_TIMESCALE_URL, {
+// postgres() connects lazily, so a placeholder URL is never dialed when skipped.
+const sql = postgres(databaseUrl ?? 'postgres://skipped/skipped', {
 	max: 1,
 	prepare: false,
 });
 
-describe('verifySupportedTimescaleRelations', () => {
+describeWithDb('verifySupportedTimescaleRelations', () => {
 	it('reports schema drift when a supported materialized view column changes', async () => {
 		await sql`BEGIN`;
 

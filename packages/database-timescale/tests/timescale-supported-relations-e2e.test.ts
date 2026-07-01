@@ -5,10 +5,22 @@ import {
 	listSharePriceStatsHourlyRows,
 } from '../src/actions';
 
-const connection = createEnvTimescaleConnection();
+// Requires a live TimescaleDB with indexed data; skipped when unset.
+const databaseUrl = process.env.DATABASE_TIMESCALE_URL?.trim();
+const describeWithDb = databaseUrl ? describe : describe.skip;
 
-describe('supported Timescale relations end to end', () => {
+const connection = databaseUrl ? createEnvTimescaleConnection() : undefined;
+
+function requireConnection() {
+	if (!connection) {
+		throw new Error('Missing DATABASE_TIMESCALE_URL');
+	}
+	return connection;
+}
+
+describeWithDb('supported Timescale relations end to end', () => {
 	it('queries the position_change hypertable through the action helper and respects filters', async () => {
+		const connection = requireConnection();
 		const rows = await listPositionChangeRows(connection.db, { limit: 5 });
 
 		expect(rows.length).toBeGreaterThan(0);
@@ -34,6 +46,7 @@ describe('supported Timescale relations end to end', () => {
 	}, 30_000);
 
 	it('queries the share_price_stats_hourly materialized view through the action helper and respects filters', async () => {
+		const connection = requireConnection();
 		const rows = await listSharePriceStatsHourlyRows(connection.db, { limit: 5 });
 
 		expect(rows.length).toBeGreaterThan(0);
@@ -59,5 +72,5 @@ describe('supported Timescale relations end to end', () => {
 });
 
 afterAll(async () => {
-	await connection.close();
+	await connection?.close();
 });

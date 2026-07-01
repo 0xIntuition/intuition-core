@@ -46,8 +46,11 @@ async function hasTimescale(client: postgres.Sql): Promise<boolean> {
 }
 
 function splitStatements(sql: string): string[] {
+	// Split only on a breakpoint that occupies its own line (drizzle's
+	// convention), so the marker can appear inside a comment without splitting
+	// mid-statement. Then drop chunks that are entirely comments/whitespace.
 	return sql
-		.split('--> statement-breakpoint')
+		.split(/^[ \t]*-->[ \t]*statement-breakpoint[ \t]*$/m)
 		.map((s) => s.trim())
 		.filter((s) => s.length > 0 && !s.split('\n').every((line) => line.trim().startsWith('--')));
 }

@@ -53,6 +53,9 @@ services:
   # SurrealDB — atom/triple graph read model.
   surrealdb:
     image: surrealdb/surrealdb:v2
+    # The image's default non-root user can't create the RocksDB directory on a
+    # fresh named volume (root-owned). Local dev datastore, so run as root.
+    user: root
     command: start --user root --pass root --bind 0.0.0.0:8000 rocksdb:/data/surreal.db
     ports:
       - "8000:8000"

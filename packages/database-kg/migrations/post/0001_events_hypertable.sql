@@ -1,9 +1,9 @@
 -- Custom TimescaleDB migration for kg.events.
 --
 -- Applied AFTER the drizzle-generated table DDL (drizzle/) by src/migrate.ts.
--- Statements are separated by `--> statement-breakpoint` and run one at a time
--- in autocommit, matching drizzle's convention and respecting TimescaleDB DDL
--- transaction rules.
+-- The runner splits on standalone statement-breakpoint marker lines and runs
+-- each statement one at a time in autocommit, matching drizzle's convention and
+-- respecting TimescaleDB DDL transaction rules.
 --
 -- Requires the `timescaledb` extension, which is preloaded in the
 -- timescale/timescaledb-ha image used for the postgres-kg datastore. On a plain

@@ -5,9 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { parseTimescaleMigrations } from '../src/timescale-generation/parser';
 
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
-const packageDirectory = path.resolve(testsDirectory, '..');
-const repositoryRoot = path.resolve(packageDirectory, '../..');
-const migrationsDirectory = path.join(repositoryRoot, 'backend', 'migrations');
+const migrationsDirectory = path.join(testsDirectory, 'fixtures', 'migrations');
 
 describe('parseTimescaleMigrations', () => {
 	it('applies DO-wrapped ALTER TABLE SET NOT NULL statements from migration 024', async () => {

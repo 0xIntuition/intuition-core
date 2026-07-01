@@ -25,7 +25,16 @@ type PrimaryKeyRow = {
 	table_name: string;
 };
 
-type LiveRelation = ManifestRelation;
+// Live columns keep a plain-string type so engine types outside SupportedColumnType
+// (inet, uuid, …) surface as reported drift instead of crashing normalization.
+type LiveColumn = Omit<ManifestColumn, 'type'> & {
+	type: string;
+};
+
+type LiveRelation = {
+	columns: LiveColumn[];
+	name: string;
+};
 
 type LiveTable = LiveRelation & {
 	primaryKey: string[];
@@ -48,6 +57,11 @@ export function loadExpectedSupportedRelationManifest(): ManifestRelation[] {
 export async function verifyTimescaleSchema(sql: Sql): Promise<string[]> {
 	const manifest = await loadExpectedTimescaleManifest();
 
+	// Core's manifest is a curated subset of the protocol tables; a live database
+	// (shared dev, or a node running extra services) may hold tables Core does not
+	// own. Only the manifest's tables are verified — anything else is not drift.
+	const manifestTableNames = manifest.tables.map((table) => table.name);
+
 	const liveColumns = await sql<LiveColumnRow[]>`
 		SELECT
 			columns.table_name,
@@ -63,6 +77,7 @@ export async function verifyTimescaleSchema(sql: Sql): Promise<string[]> {
 			AND tables.table_name = columns.table_name
 		WHERE columns.table_schema = 'public'
 			AND tables.table_type = 'BASE TABLE'
+			AND columns.table_name = ANY(${manifestTableNames})
 		ORDER BY columns.table_name, columns.ordinal_position
 	`;
 
@@ -77,6 +92,7 @@ export async function verifyTimescaleSchema(sql: Sql): Promise<string[]> {
 			AND key_usage.table_schema = constraints.table_schema
 		WHERE constraints.table_schema = 'public'
 			AND constraints.constraint_type = 'PRIMARY KEY'
+			AND key_usage.table_name = ANY(${manifestTableNames})
 		ORDER BY key_usage.table_name, key_usage.ordinal_position
 	`;
 
@@ -154,7 +170,7 @@ function buildLiveRelations(columns: LiveColumnRow[]): LiveRelation[] {
 	return [...relationMap.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function normalizeLiveColumn(column: LiveColumnRow): ManifestColumn {
+function normalizeLiveColumn(column: LiveColumnRow): LiveColumn {
 	return {
 		name: column.column_name,
 		notNull: column.is_nullable === 'NO',
@@ -164,7 +180,7 @@ function normalizeLiveColumn(column: LiveColumnRow): ManifestColumn {
 	};
 }
 
-function normalizeLiveColumnType(column: LiveColumnRow): ManifestColumn['type'] {
+function normalizeLiveColumnType(column: LiveColumnRow): string {
 	if (column.udt_name === 'jsonb') {
 		return 'jsonb';
 	}
@@ -173,22 +189,8 @@ function normalizeLiveColumnType(column: LiveColumnRow): ManifestColumn['type'] 
 		return 'timestamptz';
 	}
 
-	switch (column.data_type) {
-		case 'bigint':
-			return 'bigint';
-		case 'boolean':
-			return 'boolean';
-		case 'integer':
-			return 'integer';
-		case 'numeric':
-			return 'numeric';
-		case 'text':
-			return 'text';
-		default:
-			throw new Error(
-				`Unsupported live column type for ${column.table_name}.${column.column_name}: ${column.data_type}`
-			);
-	}
+	// Types outside SupportedColumnType flow through and surface as reported drift.
+	return column.data_type;
 }
 
 function compareTables(expectedTables: ManifestTable[], liveTables: LiveTable[]): string[] {

@@ -12,7 +12,8 @@
 		},
 		"test": {
 			"dependsOn": ["^build"],
-			"inputs": ["src/**", "test/**", "tests/**", "__tests__/**", "*.config.*"]
+			"inputs": ["src/**", "test/**", "tests/**", "__tests__/**", "*.config.*"],
+			"env": ["DATABASE_KG_URL", "DATABASE_TIMESCALE_URL"]
 		},
 		"dev": {
 			"dependsOn": ["^dev"],
