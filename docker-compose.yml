@@ -146,10 +146,53 @@ services:
       workers-parse:
         condition: service_started
 
+  # ── Local devnet (profile: devnet) ──────────────────────────────────────────
+  # A fully self-contained chain: anvil + the real Intuition contracts.
+  #
+  #   docker compose --profile devnet up -d anvil devnet-deploy
+  #
+  # Then point the indexer at it in .env (see docs/local-devnet.md):
+  #   INTUITION_RPC_URL=http://anvil:8545 · CHAIN_ID=31337
+  #   MULTIVAULT_CONTRACT_ADDRESS=0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
+  #   MULTIVAULT_START_BLOCK=0
+  # and run:  docker compose --profile devnet --profile indexing up
+
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:stable
+    profiles: [devnet]
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--state", "/data/anvil-state.json"]
+    ports:
+      - "8545:8545"
+    volumes:
+      - anvil_data:/data
+    healthcheck:
+      test: ["CMD", "cast", "chain-id", "--rpc-url", "http://localhost:8545"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  # One-shot: clone contracts (pinned ref) → forge build → deploy → verify
+  # AtomCreated fires. Idempotent — skips deploy when MultiVault already has
+  # code on the anvil chain (state persists on the anvil_data volume).
+  devnet-deploy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.devnet
+    profiles: [devnet]
+    environment:
+      RPC_URL: http://anvil:8545
+    volumes:
+      - devnet_contracts:/devnet/contracts-v2
+    depends_on:
+      anvil:
+        condition: service_healthy
+    restart: "no"
+
   # ── Indexing tier (profile: indexing) ──────────────────────────────────────
   # Needs chain config in .env (INTUITION_RPC_URL, CHAIN_ID,
   # MULTIVAULT_CONTRACT_ADDRESS, MULTIVAULT_START_BLOCK). Optional
   # MULTIVAULT_END_BLOCK bounds the range for cheap test runs.
+  # For a self-contained local chain instead, see the devnet profile above.
   #
   #   docker compose --profile indexing up
 
@@ -199,3 +242,7 @@ services:
         condition: service_completed_successfully
       migrate:
         condition: service_completed_successfully
+
+volumes:
+  anvil_data:
+  devnet_contracts:

@@ -158,6 +158,7 @@ Capabilities are opt-in; the floor is free.
 | --- | --- | --- |
 | **Minimal** (`docker compose up`) | databases + workers + api + atom-services | **none** |
 | **+ Indexing** (`--profile indexing`) | indexer + projections | none — public RPC |
+| **+ Local devnet** (`--profile devnet`) | [Anvil + the real contracts](./docs/local-devnet.md) — index your own chain, fully offline | none |
 | **+ Rich enrichment** | provider plugins | optional keys (Spotify, Etherscan, …) |
 | **+ Search** *(coming)* | embeddings | OpenAI or pluggable provider |
 

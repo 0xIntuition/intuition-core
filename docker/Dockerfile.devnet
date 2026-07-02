@@ -1,0 +1,25 @@
+# Devnet contracts deployer — clones intuition-contracts-v2 (pinned ref),
+# builds with foundry, deploys the full system to the anvil service, runs the
+# createAtoms acceptance test. One-shot; idempotent across restarts.
+# Build context: repo root.
+
+FROM oven/bun:1
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Foundry (forge / cast / anvil)
+RUN curl -L https://foundry.paradigm.xyz | bash \
+    && /root/.foundry/bin/foundryup
+ENV PATH="/root/.foundry/bin:${PATH}"
+
+WORKDIR /devnet
+COPY devnet/devnet-deploy.sh devnet/setup.sh ./
+
+# The contracts clone + build cache live on a volume (compose mounts /devnet)
+# so re-runs skip the ~40s cold build.
+ENV CONTRACTS_DIR=/devnet/contracts-v2
+CMD ["bash", "setup.sh"]
