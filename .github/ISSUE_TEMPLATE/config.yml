@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/0xIntuition/intuition-core/security/advisories/new
+    about: Please report vulnerabilities privately — see SECURITY.md. Do not open a public issue.
+  - name: Community — Discord
+    url: https://discord.gg/0xintuition
+    about: Questions, setup help, and showing off what you built.

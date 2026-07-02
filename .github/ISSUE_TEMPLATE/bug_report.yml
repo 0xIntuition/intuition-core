@@ -1,0 +1,56 @@
+name: Bug report
+description: Something broken in Intuition Core
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, check [docs/troubleshooting.md](../../docs/troubleshooting.md) —
+        it covers the most common failure modes (timezone/tzdata corruption,
+        chain env at runtime, port conflicts, 401s on writes).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - query api (services/api)
+        - workers — parse/classify/enrich (services/workers)
+        - atom-services — /v1/classify, /v1/enrich (services/atom-services)
+        - indexer / projections (crates/)
+        - database schemas / migrations (packages/database-*, migrations/)
+        - atom intelligence packages (packages/atom-*)
+        - docker compose / setup
+        - docs
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps — ideally starting from `docker compose up`.
+      placeholder: |
+        1. cp example.env .env && docker compose up
+        2. curl -X POST localhost:3000/api/atoms …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: Relevant `docker compose logs <service>` output or command output. Redact any API keys.
+      render: shell
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "macOS 15 / arm64 · Docker 27 · Bun 1.3.x"
+    validations:
+      required: true

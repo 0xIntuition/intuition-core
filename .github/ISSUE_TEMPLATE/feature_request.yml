@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose an improvement or new capability
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Note: changes touching **deterministic IDs, classification output,
+        predicate keys, or database schema** are identity-sensitive and need
+        design discussion before any code — this issue is the right place.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that Core doesn't support today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you'd like it to work. API sketches welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - new classification/enrichment plugin (consider publishing your own package first!)
+        - API endpoint / query capability
+        - indexer / projections
+        - operations (compose, config, deployment)
+        - other
+    validations:
+      required: true

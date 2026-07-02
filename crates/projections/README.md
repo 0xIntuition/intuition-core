@@ -2,7 +2,7 @@
 
 The projections service is a long-running Rust binary that continuously reads blockchain events from a PostgreSQL event store, transforms them into derived state, and writes results to PostgreSQL (with TimescaleDB) and SurrealDB. It is the bridge between the raw event log (populated by the rindexer ingestion pipeline) and the queryable read models that power the Intuition API.
 
-For the current entity-to-database target matrix and the query patterns behind each storage decision, see [`../../docs/data-storage-mapping.md`](../../docs/data-storage-mapping.md).
+For how projection outputs map onto the datastores, see [`docs/architecture.md`](../../docs/architecture.md).
 
 ## Table of Contents
 
@@ -214,7 +214,7 @@ Key guarantees:
 - **`uses_typed_events() -> bool`** returns `true` on every migrated projection so the worker knows to call the typed entry point directly, skipping the shim.
 - **Exhaustive classification** via `ErrorClass` and `ProjectionError::classify()` (no `_ =>` wildcard) forces a control-flow decision at compile time whenever a new error variant is added.
 
-See [`crates/shared/src/parsed_event.rs`](../shared/src/parsed_event.rs) for the full sealed-newtype definitions and [`docs/projection-timeseries-design.md`](../../docs/projection-timeseries-design.md) Design Principle #9 ("Parse once, type-check everywhere") for the rationale.
+See [`crates/shared/src/parsed_event.rs`](../shared/src/parsed_event.rs) for the full sealed-newtype definitions and the "Parse once, type-check everywhere" design principle: events are decoded into sealed types exactly once at ingestion.
 
 ### Projection Trait (SurrealDB)
 

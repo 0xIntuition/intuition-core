@@ -1,153 +1,202 @@
 <div align="center">
-  <h1>Intuition Core</h1>
-  <p><strong>The open backend, in a box.</strong></p>
-  <p>A self-hosted indexer, atom intelligence pipeline, two Postgres databases, and one query API —<br/>run your own shard of the world's knowledge graph.</p>
+
+# Intuition Core
+
+**The open backend, in a box.**
+
+Run your own shard of the world's knowledge graph — a self-hosted indexer,
+atom intelligence pipeline, and query API, stood up with one command.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Runtime: Bun](https://img.shields.io/badge/runtime-Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![Indexer: Rust](https://img.shields.io/badge/indexer-Rust-B7410E?logo=rust&logoColor=white)](./crates)
+[![Language: TypeScript](https://img.shields.io/badge/language-TypeScript-3178C6?logo=typescript&logoColor=white)](./packages)
+[![Databases: Postgres + TimescaleDB](https://img.shields.io/badge/databases-Postgres%20%2B%20TimescaleDB-336791?logo=postgresql&logoColor=white)](./docs/architecture.md)
+
+[Quick start](#quick-start) ·
+[How it works](#how-it-works) ·
+[API](#the-query-api) ·
+[Docs](./docs) ·
+[Contributing](./CONTRIBUTING.md)
+
 </div>
 
 ---
 
-Intuition Core is the whole backend that runs the Intuition knowledge graph, open-source and
-self-hostable. Index anything into **atoms** and **triples** with deterministic IDs, classify and
-enrich it, keep it local and private, and publish onchain only when a record earns a market.
+The data was always permissionless. **Core makes the machinery permissionless
+too.** Until now, the indexer that turns the chain into a queryable graph, the
+pipeline that classifies and enriches it, and the API everyone reads it through
+ran in one place. Core hands you the whole machine:
 
-The data was always permissionless. Core makes the **machinery** permissionless too: point the
-indexer at the chain and reconstruct the graph yourself — verify, don't trust.
+- **Index anything** into atoms and triples with **deterministic IDs** — the ID
+  you derive locally is the exact ID the protocol registers onchain. Publishing
+  is a state change, not a migration.
+- **Classify URLs** with 17 built-in plugins (GitHub, Spotify, Wikipedia, X, …)
+  and a [plugin API](./docs/writing-a-classification-plugin.md) for domains we
+  will never staff.
+- **Enrich atoms** with metadata from public sources — OpenGraph, JSON-LD,
+  Wikipedia, Wikidata — **no API keys required**.
+- **Verify, don't trust** — point the indexer at the chain and reconstruct the
+  graph yourself.
 
-## What's in the box
-
-```
-  chain ──► indexer ──► projections ──► [ Postgres-KG · TimescaleDB · Redis ]
-                                              │
-                              workers (parse → classify → enrich)
-                                              │
-                                         query API  ◄── you read the graph you built
-```
-
-| Layer | What it is | Language | Where |
-| --- | --- | --- | --- |
-| **indexer** | decode MultiVault chain events → event store | Rust | `crates/rindexer-ingestion` |
-| **projections** | event workers → typed read models + graph | Rust | `crates/projections` |
-| **workers** | parse → classify → enrich pipeline | TypeScript | `services/workers` |
-| **api** | auth-free, read-only REST over the graph | TypeScript | `services/api` |
-| **atom intelligence** | parser · 17 classification plugins · enrichment · rules | TypeScript | `packages/atom-*` |
-| **data layer** | KG + TimescaleDB schemas, versioned migrations | TypeScript/SQL | `packages/database-*`, `migrations/` |
+The minimal stack needs **zero paid accounts**, including chain indexing (the
+Intuition testnet RPC is public and keyless).
 
 ## Quick start
 
+> Prerequisites: [Docker](https://docs.docker.com/get-docker/) and
+> [Bun](https://bun.sh) ≥ 1.3.
+
 ```bash
-# Prerequisites: Docker + Bun (>= 1.3). Rust only if you build the crates natively.
+git clone https://github.com/0xIntuition/intuition-core && cd intuition-core
 cp example.env .env
 bun install
 
-# One button: datastores → schema migrations → workers → query API.
-docker compose up            # postgres-kg, timescale, redis, migrations, workers, api
-
-curl localhost:3000/health
-curl "localhost:3000/api/atoms?limit=5"
+docker compose up        # databases → migrations → seeds → workers → API
 ```
 
-### Index the chain
-
-Set the chain config in `.env` (a public RPC endpoint works — no API key needed
-for the Intuition testnet), then start the indexing tier:
+**Create your first atom** (mint a key once, then post anything — a URL,
+string, or JSON):
 
 ```bash
-# .env
-#   INTUITION_RPC_URL=https://testnet.rpc.intuition.systems/http
-#   CHAIN_ID=13579
-#   MULTIVAULT_CONTRACT_ADDRESS=0x...
-#   MULTIVAULT_START_BLOCK=...
-#   MULTIVAULT_END_BLOCK=        # optional: bound the range for a cheap test run
+cd services/api && bun run keys:create -- --name me --account 0xYourWallet
+# → ik_… (printed once — store it)
 
+curl -X POST localhost:3000/api/atoms \
+  -H "Authorization: Bearer ik_…" -H 'Content-Type: application/json' \
+  -d '{"input":"https://github.com/oven-sh/bun"}'
+```
+
+```json
+{ "data": { "id": "0x951d18ba…", "created": true, "createdBy": "0xYourWallet" } }
+```
+
+Seconds later the workers have parsed, classified, and enriched it:
+
+```bash
+curl localhost:3000/api/atoms/0x951d18ba…
+# → "classificationType": "SoftwareSourceCode",
+#   parse/classify/enrich: "completed", artifacts: opengraph · favicon · github-repo
+```
+
+**Or skip the database entirely** — stateless classify/enrich over HTTP:
+
+```bash
+curl -X POST localhost:4010/v1/classify -H 'Content-Type: application/json' \
+  -d '{"input":"https://github.com/vercel/next.js"}'
+# → { "domain": "github", "subtype": "repo", "confidence": 0.97 }
+```
+
+**Index the chain** — add the chain config to `.env`
+([details](./docs/run-your-own-node.md#5-index-the-chain)), then:
+
+```bash
 docker compose --profile indexing up
 ```
 
-Chain events flow into the TimescaleDB event store, projections fan them out into
-typed read models and the graph, and the API serves what you indexed.
+A bounded test window (`MULTIVAULT_END_BLOCK`) indexes 2,000 blocks of real
+events in under a second once synced — atoms land in your graph, classified and
+queryable, with full market read models alongside.
 
-## Query API
+Full walkthrough: **[docs/run-your-own-node.md](./docs/run-your-own-node.md)**.
 
-Reads are open; writes are gated by operator-minted API keys and attributed to
-the key's account (`API_AUTH=open|public-read|gated`). Only `active` + `public`
-records are served.
+## How it works
 
-| Endpoint | What it does |
+```
+                     ┌──────────────────────────────────────────────┐
+   Intuition chain   │  indexer (Rust) — decode MultiVault events   │──► TimescaleDB
+   (any MultiVault)  └──────────────────┬───────────────────────────┘    event store
+                                        ▼
+                     ┌──────────────────────────────────────────────┐
+                     │  projections (Rust) — ~20 checkpointed       │──► market read models
+                     │  workers; core_entities → atoms into the KG ─┼──► Postgres-KG
+                     └──────────────────────────────────────────────┘         ▲
+   POST /api/atoms ────────────────────────────────────────────────────────────┤
+                     ┌──────────────────────────────────────────────┐          │
+                     │  workers (Bun) — parse → classify → enrich   │──────────┘
+                     └──────────────────────────────────────────────┘
+                     ┌──────────────────────────────────────────────┐
+                     │  api (Hono) — query the graph you built      │◄── Postgres-KG
+                     └──────────────────────────────────────────────┘
+```
+
+| Component | Where | What it does |
+| --- | --- | --- |
+| **indexer** | `crates/rindexer-ingestion` | chain events → append-only event store (bounded ranges supported) |
+| **projections** | `crates/projections` | events → vaults, positions, signals + atoms/triples into the KG |
+| **workers** | `services/workers` | lease-based parse → classify → enrich over every new atom |
+| **api** | `services/api` | REST reads + key-gated, attributed writes |
+| **atom-services** | `services/atom-services` | stateless `POST /v1/classify` · `/v1/enrich` · `/v1/process` |
+| **atom intelligence** | `packages/atom-*` | the parser, 17 classification plugins, enrichment adapters, rules engine |
+| **data layer** | `packages/database-*`, `migrations/` | schemas + versioned, auto-applied migrations |
+
+Deep dive: **[docs/architecture.md](./docs/architecture.md)**.
+
+## The query API
+
+Reads are open. Writes need an operator-minted API key and are **attributed to
+the key's account** (`created_by`). Three modes via `API_AUTH`:
+`public-read` (default) · `gated` · `open`.
+
+| Endpoint | | 
 | --- | --- |
-| `GET /health` | liveness + database reachability |
-| `POST /api/atoms` 🔑 | create an atom from any URL/string/JSON — deterministic ID, idempotent, `created_by` attributed |
-| `GET /api/atoms` | atoms; filters: `classification_type`, `q`, `limit`, `offset` |
-| `GET /api/atoms/:id` | one atom |
-| `GET /api/atoms/:id/triples` | every triple touching an atom, any position |
-| `POST /api/triples` 🔑 | create a claim between terms — deterministic ID, idempotent, attributed |
-| `GET /api/triples` | triples; filters: `subject_id`, `predicate_id`, `object_id` |
-| `GET /api/triples/:id` | one triple |
-| `GET /api/predicates` | the predicate registry (14 baseline predicates seeded) |
-| `GET /api/stats` | atom / triple / account / predicate counts |
+| `POST /api/atoms` 🔑 | any URL/string/JSON → deterministic, idempotent atom |
+| `POST /api/triples` 🔑 | claim between terms → deterministic, idempotent triple |
+| `GET /api/atoms` · `/api/atoms/:id` | list (filter/search) and fetch atoms |
+| `GET /api/atoms/:id/triples` | every triple touching an atom, any position (hexastore) |
+| `GET /api/triples` · `/api/triples/:id` | filter by subject / predicate / object |
+| `GET /api/predicates` · `/api/stats` · `/health` | registry, counts, liveness |
 
-Mint keys with `bun run keys:create -- --name partner --account 0x…` (hashes
-only are stored). Stateless classify/enrich lives on `atom-services` (`:4010`):
-`POST /v1/classify`, `/v1/enrich`, `/v1/process`.
+Requests, responses, and error shapes: **[docs/api-reference.md](./docs/api-reference.md)**.
 
-**Docs:** [run-your-own-node](./docs/run-your-own-node.md) ·
-[architecture](./docs/architecture.md) · [configuration](./docs/configuration.md) ·
-[troubleshooting](./docs/troubleshooting.md)
+## Configuration tiers
 
-## Migrations
-
-Two migration systems, both applied automatically by `docker compose up`:
-
-- **KG (Postgres):** Drizzle-generated SQL in `packages/database-kg/drizzle/` plus custom
-  TimescaleDB post-migrations (hypertable + continuous aggregates). `bun run db:generate` /
-  `bun run db:migrate` from the package.
-- **Event store (TimescaleDB):** sequential SQL in `migrations/timescale/`, tracked in a
-  `schema_migrations` table so each file applies exactly once.
-
-## Tiered configuration
-
-The minimal tier needs **zero paid accounts**. Capabilities are opt-in.
+Capabilities are opt-in; the floor is free.
 
 | Tier | Adds | Paid accounts |
 | --- | --- | --- |
-| **Minimal** | datastores + workers + api | **none** |
-| **+ Indexing** | `--profile indexing`: indexer + projections | none (public RPC works) |
-| **+ Rich enrichment** | provider plugins | optional per-provider keys (Spotify, GitHub, Etherscan, …) |
-| **+ Search** | embeddings *(coming)* | OpenAI *or* a pluggable provider |
-| **+ Feed** | recommendation service *(coming)* | none (TimescaleDB only) |
+| **Minimal** (`docker compose up`) | databases + workers + api + atom-services | **none** |
+| **+ Indexing** (`--profile indexing`) | indexer + projections | none — public RPC |
+| **+ Rich enrichment** | provider plugins | optional keys (Spotify, Etherscan, …) |
+| **+ Search** *(coming)* | embeddings | OpenAI or pluggable provider |
+
+Every variable: **[docs/configuration.md](./docs/configuration.md)**.
 
 ## Repository layout
 
 ```
 intuition-core/
-├─ crates/          # Rust: shared, rindexer-ingestion, projections, curves
-├─ packages/        # TypeScript libraries: atom-* intelligence, database schemas, types
-├─ services/        # deployable TypeScript services: api, workers, atom-services
-├─ migrations/      # event-store SQL migrations (TimescaleDB)
-├─ docker/          # per-service Dockerfiles
-├─ tooling/         # shared build config
-├─ docker-compose.yml              # the one button
-└─ docker-compose.datastores.yml   # datastores only
+├─ crates/          Rust — shared · rindexer-ingestion · projections · curves
+├─ packages/        TypeScript libraries — atom-* intelligence · database schemas · types
+├─ services/        deployable services — api · workers · atom-services
+├─ migrations/      event-store SQL migrations (TimescaleDB)
+├─ docker/          per-service Dockerfiles
+├─ docs/            guides — start with run-your-own-node.md
+└─ docker-compose.yml           ← the one button
 ```
 
 ## Development
 
 ```bash
-bun install               # Bun only — enforced by preinstall
-bun run typecheck         # all workspaces
-bun run test              # bun:test suites
-bunx @biomejs/biome check .
-cargo check --workspace   # the Rust crates
+bun install                    # Bun only — enforced by preinstall
+bun run typecheck              # all workspaces
+bun run test                   # bun:test suites (14 packages)
+bunx @biomejs/biome check .    # lint + format
+cargo check --workspace        # the Rust crates
+node scripts/guard-supply-chain-policy.mjs
 ```
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the ground rules — notably that
-deterministic IDs, classification output, and schema are identity-sensitive
-surfaces with required review.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) first — especially the parts about
+**deterministic IDs being identity-sensitive** and the enforced auth boundary.
+Something broken? [docs/troubleshooting.md](./docs/troubleshooting.md) covers
+the failure modes we've actually hit.
 
-## Boundaries
+## What stays out
 
-Core is the **open, auth-free backend**. Authentication, billing, and the social product layer stay
-in Intuition's private monorepo — a Biome lint rule enforces that they are never imported here. The
-API exposes the graph read surface; bring your own front end.
+Core is the open, auth-free backend. User authentication, billing, and the
+social product layer live in Intuition's private monorepo — a lint rule fails
+CI if they're ever imported here. Bring your own front end; the graph is yours.
 
 ## License
 
-MIT © Intuition Systems
+MIT © [Intuition Systems](https://intuition.systems)

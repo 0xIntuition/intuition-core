@@ -2,6 +2,11 @@
 
 Thanks for helping build the open backend of the Intuition knowledge graph.
 
+New here? Start with [docs/run-your-own-node.md](./docs/run-your-own-node.md)
+to get a working stack, and [docs/architecture.md](./docs/architecture.md) for
+how the pieces fit. Want to add domain coverage? The highest-leverage
+contribution is a [classification plugin](./docs/writing-a-classification-plugin.md).
+
 ## Ground rules
 
 - **Issue first.** For anything touching public APIs, database schemas, deterministic IDs, classification slugs, or predicate keys, open an issue and agree on scope before writing code. Small fixes (docs, typos, obvious bugs) can go straight to a PR.
