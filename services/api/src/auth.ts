@@ -17,6 +17,8 @@ export type ApiKeyIdentity = {
 	name: string;
 	accountId: string;
 	canWrite: boolean;
+	/** Per-key rpm override; null → global default, 0 → unlimited. */
+	rateLimitRpm: number | null;
 };
 
 export const API_KEY_PREFIX = 'ik_';
@@ -45,6 +47,7 @@ export async function resolveApiKey(db: KgDb, token: string): Promise<ApiKeyIden
 			name: apiKeys.name,
 			accountId: apiKeys.accountId,
 			canWrite: apiKeys.canWrite,
+			rateLimitRpm: apiKeys.rateLimitRpm,
 		})
 		.from(apiKeys)
 		.where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))

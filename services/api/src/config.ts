@@ -12,6 +12,11 @@ export type ApiConfig = {
 	 * - `open`: nothing requires a key (local dev); writes are unattributed.
 	 */
 	authMode: ApiAuthMode;
+	/**
+	 * Default requests-per-minute per caller (API key, or IP for anonymous
+	 * reads). 0 disables rate limiting. Keys can carry their own override.
+	 */
+	rateLimitRpm: number;
 };
 
 function parseAuthMode(raw: string | undefined): ApiAuthMode {
@@ -36,5 +41,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 			.map((s) => s.trim())
 			.filter(Boolean),
 		authMode: parseAuthMode(env.API_AUTH),
+		rateLimitRpm: Number.parseInt(env.API_RATE_LIMIT_RPM ?? '120', 10),
 	};
 }

@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { type ApiKeyIdentity, bearerToken, resolveApiKey } from './auth';
 import type { ApiConfig } from './config';
+import { createRateLimiter } from './rate-limit';
 
 type AppEnv = {
 	Variables: {
@@ -97,6 +98,34 @@ export function createApp(config: ApiConfig) {
 	app.use('*', async (c, next) => {
 		if (config.authMode === 'gated' && c.req.path !== '/health' && !c.get('apiKey')) {
 			return c.json({ error: 'api_key_required' }, 401);
+		}
+		return next();
+	});
+
+	// Rate limiting: per API key when presented, per client IP otherwise. The
+	// effective limit is the key's own override when set, else the global
+	// default. 0 (either level) means unlimited.
+	const limiter = createRateLimiter();
+	app.use('*', async (c, next) => {
+		if (c.req.path === '/health') {
+			return next();
+		}
+
+		const identity = c.get('apiKey');
+		const bucket = identity
+			? `key:${identity.keyId}`
+			: `ip:${c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'}`;
+		const limit = identity?.rateLimitRpm ?? config.rateLimitRpm;
+
+		const decision = limiter.check(bucket, limit);
+		if (decision.limit > 0) {
+			c.header('x-ratelimit-limit', String(decision.limit));
+			c.header('x-ratelimit-remaining', String(decision.remaining));
+			c.header('x-ratelimit-reset', String(decision.resetAtMs));
+		}
+		if (!decision.allowed) {
+			c.header('retry-after', String(decision.retryAfterSeconds));
+			return c.json({ error: 'rate_limited' }, 429);
 		}
 		return next();
 	});

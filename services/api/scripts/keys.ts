@@ -30,10 +30,19 @@ async function main(): Promise<void> {
 				const name = arg('--name');
 				const account = arg('--account');
 				if (!(name && account)) {
-					console.error('usage: keys.ts create --name <label> --account <0xwallet> [--read-only]');
+					console.error(
+						'usage: keys.ts create --name <label> --account <0xwallet> [--read-only] [--rate-limit <rpm>]'
+					);
 					process.exit(1);
 				}
 				const canWrite = !process.argv.includes('--read-only');
+				// Per-key rpm override: omit → global default; 0 → unlimited.
+				const rateLimitRaw = arg('--rate-limit');
+				const rateLimitRpm = rateLimitRaw === undefined ? null : Number.parseInt(rateLimitRaw, 10);
+				if (rateLimitRpm !== null && (Number.isNaN(rateLimitRpm) || rateLimitRpm < 0)) {
+					console.error('--rate-limit must be a non-negative integer (0 = unlimited)');
+					process.exit(1);
+				}
 
 				await ensureAccount(db, account);
 
@@ -45,9 +54,12 @@ async function main(): Promise<void> {
 					name,
 					accountId: account,
 					canWrite,
+					rateLimitRpm,
 				});
 
-				console.log(`created ${id} (${name}) → account ${account}, write=${canWrite}`);
+				console.log(
+					`created ${id} (${name}) → account ${account}, write=${canWrite}, rpm=${rateLimitRpm ?? 'default'}`
+				);
 				console.log('');
 				console.log(`  ${plaintext}`);
 				console.log('');

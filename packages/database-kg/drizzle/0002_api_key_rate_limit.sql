@@ -1,0 +1,1 @@
+ALTER TABLE "kg"."api_keys" ADD COLUMN "rate_limit_rpm" integer;

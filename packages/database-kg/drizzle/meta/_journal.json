@@ -15,6 +15,13 @@
       "when": 1783012425314,
       "tag": "0001_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783020952014,
+      "tag": "0002_api_key_rate_limit",
+      "breakpoints": true
     }
   ]
 }

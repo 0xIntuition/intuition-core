@@ -34,8 +34,9 @@ ran in one place. Core hands you the whole machine:
 - **Classify URLs** with 17 built-in plugins (GitHub, Spotify, Wikipedia, X, …)
   and a [plugin API](./docs/writing-a-classification-plugin.md) for domains we
   will never staff.
-- **Enrich atoms** with metadata from public sources — OpenGraph, JSON-LD,
-  Wikipedia, Wikidata — **no API keys required**.
+- **Enrich atoms** with metadata from 36 provider plugins — OpenGraph, JSON-LD,
+  Wikipedia, Wikidata work with **no API keys**; [add keys](./docs/enrichment-providers.md)
+  for Spotify, TMDB, Etherscan, and more. [Write your own](./docs/writing-an-enrichment-plugin.md).
 - **Verify, don't trust** — point the indexer at the chain and reconstruct the
   graph yourself.
 

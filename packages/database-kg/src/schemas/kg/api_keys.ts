@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, index, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { accounts } from './accounts';
 import { kgSchema } from './schema';
@@ -28,6 +28,11 @@ export const apiKeys = kgSchema.table(
 			.notNull()
 			.references(() => accounts.id, { onDelete: 'cascade' }),
 		canWrite: boolean('can_write').notNull().default(true),
+		/**
+		 * Per-key requests-per-minute override. NULL → the API's global
+		 * `API_RATE_LIMIT_RPM` default applies; 0 → unlimited for this key.
+		 */
+		rateLimitRpm: integer('rate_limit_rpm'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		revokedAt: timestamp('revoked_at', { withTimezone: true }),
 		lastUsedAt: timestamp('last_used_at', { withTimezone: true }),

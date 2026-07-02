@@ -93,8 +93,9 @@ curl -X POST localhost:4010/v1/process -H 'Content-Type: application/json' \
 # → classification + enrichment artifacts (OpenGraph, JSON-LD, Wikipedia extract, Wikidata entity)
 ```
 
-Provider API keys (Spotify, Etherscan, Brandfetch, …) are optional — plugins
-without keys degrade gracefully or skip.
+Provider API keys (Spotify, Etherscan, TMDB, …) are optional — plugins
+without keys degrade gracefully or skip. **[enrichment-providers.md](./enrichment-providers.md)**
+lists what works keyless and how to get each key.
 
 ## 5. Index the chain
 
