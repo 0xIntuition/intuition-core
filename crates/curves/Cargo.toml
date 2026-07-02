@@ -1,0 +1,17 @@
+[package]
+name = "curves"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Rust parity library for Intuition bonding curves"
+
+[dependencies]
+alloy-primitives = { version = "1.5", features = ["std", "serde"] }
+num-bigint = "0.4"
+num-traits = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
+
+[dev-dependencies]
+serde_json = "1.0"
+

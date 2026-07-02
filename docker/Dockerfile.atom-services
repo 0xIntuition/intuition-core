@@ -1,0 +1,21 @@
+# atom-services — stateless classify/enrich HTTP API.
+#   POST /v1/classify · /v1/enrich · /v1/process · /v1/process/batch
+# Build context: repo root (Bun workspace).
+
+FROM oven/bun:1-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /repo
+COPY . .
+RUN bun install --frozen-lockfile --production
+
+ENV NODE_ENV=production
+ENV ATOM_SERVICES_PORT=4010
+EXPOSE 4010
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:4010/health || exit 1
+
+WORKDIR /repo/services/atom-services
+CMD ["bun", "src/index.ts"]

@@ -1,0 +1,14 @@
+{
+	"extends": "@0xintuition/tsconfig/compiled-package.json",
+	"include": ["src"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"strict": false,
+		"strictNullChecks": false,
+		"skipLibCheck": true,
+		"declaration": false,
+		"declarationMap": false,
+		"emitDeclarationOnly": false,
+		"noEmit": true
+	}
+}

@@ -24,7 +24,8 @@
 		"datastores:up": "docker compose -f docker-compose.datastores.yml up -d",
 		"datastores:down": "docker compose -f docker-compose.datastores.yml down",
 		"datastores:reset": "docker compose -f docker-compose.datastores.yml down -v",
-		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs"
+		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs",
+		"preinstall": "node scripts/enforce-bun-install.mjs"
 	},
 	"catalog": {
 		"typescript": "^5.9.3",

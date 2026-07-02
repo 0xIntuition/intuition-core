@@ -1,0 +1,12 @@
+{
+	"status": "1",
+	"message": "OK",
+	"result": [
+		{
+			"ContractName": "AcmeToken",
+			"ABI": "[{\"type\":\"function\",\"name\":\"name\"}]",
+			"TokenName": "Acme Token",
+			"TokenSymbol": "ACME"
+		}
+	]
+}

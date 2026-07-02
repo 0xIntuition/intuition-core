@@ -1,0 +1,9 @@
+{
+	"id": "a3f4ec8d-7dd5-4da6-9e53-3f5aa4bd0d66",
+	"title": "Acme Theme",
+	"disambiguation": "Studio version",
+	"isrcs": ["USACM0000001"],
+	"first-release-date": "2020-01-01",
+	"artist-credit": [{ "name": "Acme Artist" }],
+	"tags": [{ "name": "electronic" }, { "name": "instrumental" }]
+}

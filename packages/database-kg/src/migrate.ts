@@ -85,10 +85,31 @@ async function applyPostMigrations(connectionString: string): Promise<void> {
 	}
 }
 
+async function seedBaselinePredicates(connectionString: string): Promise<void> {
+	const { BASELINE_PREDICATES } = await import('./seeds/predicates');
+	const client = postgres(connectionString, { max: 1, prepare: false });
+	try {
+		for (const p of BASELINE_PREDICATES) {
+			// Idempotent: predicates are keyed by slug; existing rows are untouched.
+			await client`
+				INSERT INTO kg.predicates
+					(id, slug, label, description, is_transitive, is_symmetric, is_hierarchical, is_social, is_market)
+				VALUES
+					(${p.id}, ${p.slug}, ${p.label}, ${p.description ?? null}, ${p.isTransitive}, ${p.isSymmetric}, ${p.isHierarchical}, ${p.isSocial}, ${p.isMarket})
+				ON CONFLICT (slug) DO NOTHING
+			`;
+		}
+		console.log(`[migrate] baseline predicates seeded (${BASELINE_PREDICATES.length}).`);
+	} finally {
+		await client.end({ timeout: 5 });
+	}
+}
+
 async function main(): Promise<void> {
 	const connectionString = getKgConnectionString();
 	await applyDrizzleMigrations(connectionString);
 	await applyPostMigrations(connectionString);
+	await seedBaselinePredicates(connectionString);
 	console.log('[migrate] done.');
 }
 

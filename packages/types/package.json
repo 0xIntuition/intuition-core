@@ -1,0 +1,36 @@
+{
+	"name": "@0xintuition/types",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./classification": "./src/classification/index.ts",
+		"./enrichment": "./src/enrichment/index.ts",
+		"./onboarding": "./src/onboarding.ts",
+		"./timescale": "./src/timescale.ts",
+		"./trust-circles": "./src/trust-circles.ts",
+		"./feed": "./src/feed/index.ts",
+		"./workflows": "./src/workflows/index.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	},
+	"dependencies": {
+		"@0xintuition/atom-classification": "workspace:*",
+		"@0xintuition/atom-enrichment": "workspace:*",
+		"zod": "catalog:"
+	}
+}

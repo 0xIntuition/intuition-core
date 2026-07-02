@@ -1,0 +1,12 @@
+{
+	"id": 550,
+	"title": "Acme Origins",
+	"overview": "Origin story of Acme.",
+	"poster_path": "/poster.jpg",
+	"backdrop_path": "/backdrop.jpg",
+	"release_date": "2025-10-01",
+	"vote_average": 7.8,
+	"genres": [{ "id": 18, "name": "Drama" }],
+	"runtime": 123,
+	"imdb_id": "tt1234567"
+}

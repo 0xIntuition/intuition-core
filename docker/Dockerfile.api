@@ -1,0 +1,20 @@
+# Intuition Core query API — auth-free, read-only REST over the graph.
+# Build context: repo root (Bun workspace — the lockfile spans all workspaces,
+# so the whole repo is copied; .dockerignore keeps the context lean).
+
+FROM oven/bun:1-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /repo
+COPY . .
+RUN bun install --frozen-lockfile --production
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+WORKDIR /repo/services/api
+CMD ["bun", "src/index.ts"]

@@ -1,0 +1,55 @@
+{
+	"name": "@0xintuition/atom-classification",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./ai": "./src/ai.ts",
+		"./cache": "./src/cache.ts",
+		"./client": "./src/client.ts",
+		"./engine": "./src/engine.ts",
+		"./plugin-factories": "./src/plugins/index.ts",
+		"./plugins": "./src/plugins.ts",
+		"./plugins/amazon": "./src/plugins/amazon/index.ts",
+		"./plugins/default-url": "./src/plugins/default-url/index.ts",
+		"./plugins/etherscan": "./src/plugins/etherscan/index.ts",
+		"./plugins/ethereum": "./src/plugins/ethereum/index.ts",
+		"./plugins/github": "./src/plugins/github/index.ts",
+		"./plugins/imdb": "./src/plugins/imdb/index.ts",
+		"./plugins/instagram": "./src/plugins/instagram/index.ts",
+		"./plugins/isbn": "./src/plugins/isbn/index.ts",
+		"./plugins/lexical": "./src/plugins/lexical/index.ts",
+		"./plugins/plain-text": "./src/plugins/plain-text/index.ts",
+		"./plugins/spotify": "./src/plugins/spotify/index.ts",
+		"./plugins/tiktok": "./src/plugins/tiktok/index.ts",
+		"./plugins/tmdb": "./src/plugins/tmdb/index.ts",
+		"./plugins/type-profiles": "./src/plugins/type-profiles/index.ts",
+		"./plugins/wikipedia": "./src/plugins/wikipedia/index.ts",
+		"./plugins/x": "./src/plugins/x/index.ts",
+		"./plugins/youtube": "./src/plugins/youtube/index.ts",
+		"./presets": "./src/presets/index.ts",
+		"./server": "./src/server.ts",
+		"./type-registry": "./src/type-registry.ts",
+		"./types": "./src/types.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"test": "bun test __tests__",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,620 @@
+{
+	"runId": "019c33af-f767-7826-8660-8b8287f95dea-mm2mk8qg",
+	"status": "partial",
+	"mode": "process",
+	"classification": {
+		"ok": true,
+		"status": "complete",
+		"contractVersion": "cpkg-01",
+		"runtime": "server",
+		"mode": "progressive",
+		"classificationSessionId": "019c33af-f767-7826-8660-8b8287f95dea-mm2mk8qg",
+		"policy": {
+			"runClientClassification": true,
+			"runServerEnrichment": true,
+			"runDedupe": true,
+			"runAiFallback": false,
+			"includeProvenance": true,
+			"requestedServerTiers": [2, 3]
+		},
+		"message": "Resolved by platform-v0-resolver with 1 candidate atom.",
+		"receivedAt": "2026-02-25T22:47:29.880Z",
+		"classification": {
+			"type": "url",
+			"domain": "spotify",
+			"subtype": "track",
+			"confidence": 0.99,
+			"meta": {
+				"resourceType": "track",
+				"resourceId": "0ojU4I7FDbtkvh4lnkPI1C",
+				"canonicalUrl": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C"
+			}
+		},
+		"resolved": {
+			"resolverId": "platform-v0-resolver",
+			"resolverChain": ["platform-v0-resolver"],
+			"dedupeKey": "canonical:spotify:track:0oju4i7fdbtkvh4lnkpi1c",
+			"fallbackUsed": true,
+			"atoms": [
+				{
+					"schemaType": "MusicRecording",
+					"category": "song",
+					"title": "Spotify Track 0ojU4I7FDbtkvh4lnkPI1C",
+					"description": "Deterministic Spotify track fallback without API credentials.",
+					"canonicalId": "spotify:track:0ojU4I7FDbtkvh4lnkPI1C",
+					"sameAs": ["https://open.spotify.com/track/0oju4i7fdbtkvh4lnkpi1c"],
+					"source": "platform-v0:generic",
+					"confidence": 0.99,
+					"pluginId": "builtin-v0-platforms",
+					"resolverId": "platform-v0-resolver",
+					"hints": {},
+					"metadata": {
+						"platform": "spotify",
+						"subtype": "track",
+						"fallbackStage": "generic",
+						"fallbackChain": ["oembed", "opengraph", "generic"]
+					},
+					"data": {
+						"@context": "https://schema.org",
+						"@type": "MusicRecording",
+						"name": "Spotify Track 0ojU4I7FDbtkvh4lnkPI1C",
+						"description": "Deterministic Spotify track fallback without API credentials.",
+						"identifier": "spotify:track:0ojU4I7FDbtkvh4lnkPI1C",
+						"sameAs": ["https://open.spotify.com/track/0oju4i7fdbtkvh4lnkpi1c"]
+					}
+				}
+			]
+		},
+		"provenance": {
+			"/classification": {
+				"source": "server",
+				"confidence": 0.99,
+				"updatedAt": "2026-02-25T22:47:29.880Z",
+				"tier": 0
+			}
+		},
+		"debug": {
+			"inputPreview": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C?si=21240713411d486b",
+			"hasClientHints": false,
+			"requestedPluginIds": [],
+			"requestedServerTiers": [2, 3]
+		}
+	},
+	"enrichment": {
+		"status": "partial",
+		"artifacts": [
+			{
+				"artifact_type": "opengraph",
+				"data": {
+					"title": "Feel the Love (feat. Wale)",
+					"description": "Rudimental, Wale · Home (Deluxe Edition) · Song · 2013",
+					"image": "https://i.scdn.co/image/ab67616d0000b2738d879f108f3ef1b2086c67e8",
+					"url": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C",
+					"siteName": "Spotify",
+					"type": "music.song",
+					"audio": "https://p.scdn.co/mp3-preview/68d27a7f86d9ecb0b2e8b5de777e319006f66aea",
+					"audioUrl": "https://p.scdn.co/mp3-preview/68d27a7f86d9ecb0b2e8b5de777e319006f66aea",
+					"audioType": "audio/mpeg"
+				},
+				"meta": {
+					"pluginId": "opengraph",
+					"provider": "website",
+					"fetchedAt": "2026-02-12T23:27:40.437Z",
+					"sourceUrl": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C?si=21240713411d486b",
+					"fromCache": true,
+					"cachedAt": "2026-02-12T23:27:40.522Z"
+				}
+			},
+			{
+				"artifact_type": "favicon",
+				"data": {
+					"url": "https://www.google.com/s2/favicons?domain=open.spotify.com&sz=128",
+					"type": "image/png",
+					"sizes": "128x128"
+				},
+				"meta": {
+					"pluginId": "favicon",
+					"provider": "google-s2",
+					"fetchedAt": "2026-02-25T22:47:30.169Z",
+					"sourceUrl": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C?si=21240713411d486b"
+				}
+			},
+			{
+				"artifact_type": "brand",
+				"data": {
+					"brandId": "id20mQyGeY",
+					"name": "Spotify",
+					"domain": "spotify.com",
+					"claimed": true,
+					"description": "Spotify is all the music you’ll ever need.",
+					"longDescription": "Spotify, a Swedish audio streaming and media services provider, was founded in April 2006 by Daniel Ek and Martin Lorentzon. It offers a wide range of music, podcast, and video streaming services to millions of users worldwide. Headquartered in Stockholm, Sweden, Spotify has established itself as a leading player in the music streaming industry. The company's headquarters are situated in the heart of Stockholm's central business district. The office is well-known for its modern design and innovative workspaces, fostering a creative and collaborative environment for its employees. Spotify's main product is its music streaming platform, which allows users to access an extensive library of songs from various genres and artists. The company offers both free and premium subscription plans, with the latter providing additional features such as ad-free listening, offline mode, and higher audio quality. Moreover, Spotify has expanded its offerings to include podcasts, audiobooks, and video streaming services. Operating on a global scale, Spotify is available in over 90 countries and boasts a vast user base. The company has made noteworthy partnerships with various record labels, publishers, and artists to expand its catalog and enhance user experience. Additionally, it has formed partnerships with companies like Samsung, Uber, and Nike to reach new audiences and create unique music experiences. With a market position distinguished by a strong brand presence and a wide range of offerings, Spotify has become a prominent player in the music streaming industry. It overtook its main competitor, Apple Music, in terms of global subscriber count. As of Q1 2021, Spotify had over 356 million monthly active users and 158 million premium subscribers. Throughout its history, Spotify has achieved numerous milestones, such as its initial public offering on the New York Stock Exchange in April 2018. The company continuously strives to improve its user experience and has introduced features like personalized playlists, algorithm-driven recommendations, and social sharing options. As of the latest update, Spotify continues to invest in podcast acquisitions and exclusive partnerships, aiming to diversify its offerings beyond music. The company also focuses on expanding its presence in emerging markets and developing new technologies to stay at the forefront of the rapidly evolving streaming industry.",
+					"links": [
+						{
+							"name": "crunchbase",
+							"url": "https://crunchbase.com/organization/spotify"
+						},
+						{
+							"name": "youtube",
+							"url": "https://youtube.com/@Spotify"
+						},
+						{
+							"name": "twitter",
+							"url": "https://twitter.com/spotify"
+						},
+						{
+							"name": "instagram",
+							"url": "https://instagram.com/spotify"
+						},
+						{
+							"name": "linkedin",
+							"url": "https://linkedin.com/company/spotify"
+						},
+						{
+							"name": "facebook",
+							"url": "https://facebook.com/Spotify"
+						}
+					],
+					"logos": [
+						{
+							"theme": "light",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/2048/h/561/theme/light/logo.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 561,
+									"width": 2048,
+									"size": 72132
+								}
+							],
+							"type": "logo"
+						},
+						{
+							"theme": "dark",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/2048/h/561/theme/dark/logo.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 561,
+									"width": 2048,
+									"size": 116340
+								}
+							],
+							"type": "logo"
+						},
+						{
+							"theme": "light",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/theme/light/symbol.svg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "svg",
+									"size": 1940
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/light/symbol.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 800,
+									"width": 800,
+									"size": 33171
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/light/symbol.webp?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "webp",
+									"height": 800,
+									"width": 800,
+									"size": 18386
+								}
+							],
+							"type": "symbol"
+						},
+						{
+							"theme": "dark",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/theme/dark/symbol.svg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "svg",
+									"size": 1940
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/dark/symbol.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 800,
+									"width": 800,
+									"size": 58014
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/dark/symbol.webp?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "webp",
+									"height": 800,
+									"width": 800,
+									"size": 27562
+								}
+							],
+							"type": "symbol"
+						},
+						{
+							"theme": "dark",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/320/h/320/theme/dark/icon.jpeg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"format": "jpeg",
+									"height": 320,
+									"width": 320,
+									"size": 10258
+								}
+							],
+							"type": "icon"
+						},
+						{
+							"theme": "dark",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/2048/h/561/theme/dark/idpkGpp0K9.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 561,
+									"width": 2048,
+									"size": 72943
+								}
+							],
+							"type": "other"
+						},
+						{
+							"theme": "dark",
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/theme/dark/idoxEoRrti.svg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "svg",
+									"size": 1940
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/dark/idoxEoRrti.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "png",
+									"height": 800,
+									"width": 800,
+									"size": 47058
+								},
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/800/h/800/theme/dark/idoxEoRrti.webp?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"background": "transparent",
+									"format": "webp",
+									"height": 800,
+									"width": 800,
+									"size": 20390
+								}
+							],
+							"type": "other"
+						}
+					],
+					"images": [
+						{
+							"formats": [
+								{
+									"src": "https://cdn.brandfetch.io/id20mQyGeY/w/1500/h/500/theme/dark/idvi48-xYY.jpeg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+									"format": "jpeg",
+									"height": 500,
+									"width": 1500,
+									"size": 332036
+								}
+							],
+							"type": "banner"
+						}
+					],
+					"colors": [
+						{
+							"hex": "#1ED760",
+							"type": "accent",
+							"brightness": 167
+						},
+						{
+							"hex": "#191414",
+							"type": "dark",
+							"brightness": 21
+						},
+						{
+							"hex": "#FFFFFF",
+							"type": "light",
+							"brightness": 255
+						}
+					],
+					"fonts": ["Spotify Mix"],
+					"fontDetails": [
+						{
+							"name": "Spotify Mix",
+							"type": "title",
+							"origin": "custom",
+							"originId": null
+						},
+						{
+							"name": "Spotify Mix",
+							"type": "body",
+							"origin": "custom",
+							"originId": null
+						}
+					],
+					"qualityScore": 0.9999963653837067,
+					"company": {
+						"employees": 5001,
+						"financialIdentifiers": {
+							"isin": ["LU1778762911"],
+							"ticker": ["SPF.SW", "SPOT", "639.DE"]
+						},
+						"foundedYear": 2006,
+						"industries": [
+							{
+								"score": 1,
+								"id": "1",
+								"name": "Arts and Entertainment",
+								"emoji": "🍿",
+								"slug": "arts-and-entertainment"
+							},
+							{
+								"score": 1,
+								"id": "6",
+								"name": "Music",
+								"emoji": "🍿",
+								"parent": {
+									"emoji": "🍿",
+									"id": "1",
+									"name": "Arts and Entertainment",
+									"slug": "arts-and-entertainment"
+								},
+								"slug": "music"
+							}
+						],
+						"kind": "PUBLIC_COMPANY",
+						"location": {
+							"city": "Stockholm",
+							"country": "Sweden",
+							"countryCode": "SE",
+							"region": "Europe",
+							"state": "Stockholms Lan",
+							"subregion": "Northern Europe"
+						}
+					},
+					"isNsfw": false,
+					"urn": "urn:brandfetch:brand:id20mQyGeY",
+					"logoUrl": "https://cdn.brandfetch.io/id20mQyGeY/w/2048/h/561/theme/light/logo.png?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+					"iconUrl": "https://cdn.brandfetch.io/id20mQyGeY/theme/light/symbol.svg?c=1bxj3a1td56k95w08cdsownkb86JaFDGFh3",
+					"primaryColor": "#1ED760",
+					"secondaryColor": "#191414"
+				},
+				"meta": {
+					"pluginId": "brand",
+					"provider": "brandfetch",
+					"fetchedAt": "2026-02-25T22:47:30.788Z",
+					"sourceUrl": "https://open.spotify.com"
+				}
+			},
+			{
+				"artifact_type": "spotify",
+				"data": {
+					"name": "Feel the Love (feat. Wale)",
+					"type": "track",
+					"spotifyId": "0ojU4I7FDbtkvh4lnkPI1C",
+					"spotifyUrl": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C",
+					"spotifyApiPayload": {
+						"album": {
+							"album_type": "album",
+							"artists": [
+								{
+									"external_urls": {
+										"spotify": "https://open.spotify.com/artist/4WN5naL3ofxrVBgFpguzKo"
+									},
+									"href": "https://api.spotify.com/v1/artists/4WN5naL3ofxrVBgFpguzKo",
+									"id": "4WN5naL3ofxrVBgFpguzKo",
+									"name": "Rudimental",
+									"type": "artist",
+									"uri": "spotify:artist:4WN5naL3ofxrVBgFpguzKo"
+								}
+							],
+							"external_urls": {
+								"spotify": "https://open.spotify.com/album/6RM05aDNmbqF7AV1xwubac"
+							},
+							"href": "https://api.spotify.com/v1/albums/6RM05aDNmbqF7AV1xwubac",
+							"id": "6RM05aDNmbqF7AV1xwubac",
+							"images": [
+								{
+									"url": "https://i.scdn.co/image/ab67616d0000b2738d879f108f3ef1b2086c67e8",
+									"width": 640,
+									"height": 640
+								},
+								{
+									"url": "https://i.scdn.co/image/ab67616d00001e028d879f108f3ef1b2086c67e8",
+									"width": 300,
+									"height": 300
+								},
+								{
+									"url": "https://i.scdn.co/image/ab67616d000048518d879f108f3ef1b2086c67e8",
+									"width": 64,
+									"height": 64
+								}
+							],
+							"is_playable": true,
+							"name": "Home (Deluxe Edition)",
+							"release_date": "2013-04-05",
+							"release_date_precision": "day",
+							"total_tracks": 15,
+							"type": "album",
+							"uri": "spotify:album:6RM05aDNmbqF7AV1xwubac"
+						},
+						"artists": [
+							{
+								"external_urls": {
+									"spotify": "https://open.spotify.com/artist/4WN5naL3ofxrVBgFpguzKo"
+								},
+								"href": "https://api.spotify.com/v1/artists/4WN5naL3ofxrVBgFpguzKo",
+								"id": "4WN5naL3ofxrVBgFpguzKo",
+								"name": "Rudimental",
+								"type": "artist",
+								"uri": "spotify:artist:4WN5naL3ofxrVBgFpguzKo"
+							},
+							{
+								"external_urls": {
+									"spotify": "https://open.spotify.com/artist/67nwj3Y5sZQLl72VNUHEYE"
+								},
+								"href": "https://api.spotify.com/v1/artists/67nwj3Y5sZQLl72VNUHEYE",
+								"id": "67nwj3Y5sZQLl72VNUHEYE",
+								"name": "Wale",
+								"type": "artist",
+								"uri": "spotify:artist:67nwj3Y5sZQLl72VNUHEYE"
+							}
+						],
+						"disc_number": 1,
+						"duration_ms": 236000,
+						"explicit": false,
+						"external_ids": {
+							"isrc": "GBAHS1300284"
+						},
+						"external_urls": {
+							"spotify": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C"
+						},
+						"href": "https://api.spotify.com/v1/tracks/0ojU4I7FDbtkvh4lnkPI1C",
+						"id": "0ojU4I7FDbtkvh4lnkPI1C",
+						"is_local": false,
+						"is_playable": true,
+						"name": "Feel the Love (feat. Wale)",
+						"popularity": 36,
+						"preview_url": null,
+						"track_number": 13,
+						"type": "track",
+						"uri": "spotify:track:0ojU4I7FDbtkvh4lnkPI1C"
+					},
+					"imageUrl": "https://i.scdn.co/image/ab67616d0000b2738d879f108f3ef1b2086c67e8",
+					"artists": [
+						{
+							"name": "Rudimental",
+							"spotifyId": "4WN5naL3ofxrVBgFpguzKo"
+						},
+						{
+							"name": "Wale",
+							"spotifyId": "67nwj3Y5sZQLl72VNUHEYE"
+						}
+					],
+					"albumName": "Home (Deluxe Edition)",
+					"releaseDate": "2013-04-05",
+					"durationMs": 236000,
+					"popularity": 36,
+					"isrc": "GBAHS1300284"
+				},
+				"meta": {
+					"pluginId": "spotify",
+					"provider": "spotify-web-api",
+					"fetchedAt": "2026-02-25T22:47:31.282Z",
+					"sourceUrl": "https://open.spotify.com/track/0ojU4I7FDbtkvh4lnkPI1C"
+				}
+			},
+			{
+				"artifact_type": "musicbrainz",
+				"data": {
+					"mbid": "bd7c4804-ae98-4a44-905e-5d19bd98010f",
+					"name": "SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY SPOTIFY",
+					"type": "Recording",
+					"disambiguation": "YouTube, 2023‐03‐04",
+					"releaseDate": "2023-03-04",
+					"artistCredit": "Chonny Jash"
+				},
+				"meta": {
+					"pluginId": "musicbrainz",
+					"provider": "musicbrainz",
+					"fetchedAt": "2026-02-25T22:47:31.510Z",
+					"sourceUrl": "https://musicbrainz.org/recording/bd7c4804-ae98-4a44-905e-5d19bd98010f"
+				}
+			}
+		],
+		"errors": [
+			{
+				"pluginId": "wikipedia",
+				"code": "upstream_error",
+				"message": "HTTP 404 from https://en.wikipedia.org/api/rest_v1/page/summary/Spotify%20Track%200ojU4I7FDbtkvh4lnkPI1C",
+				"retriable": true
+			}
+		],
+		"skipped": [
+			{
+				"pluginId": "oembed",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "npm",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "youtube",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "github",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "tmdb",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "etherscan",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "coingecko",
+				"reason": "not_applicable"
+			},
+			{
+				"pluginId": "crossref",
+				"reason": "not_applicable"
+			}
+		],
+		"timings": {
+			"startedAt": "2026-02-25T22:47:30.081Z",
+			"finishedAt": "2026-02-25T22:47:31.564Z",
+			"durationMs": 1483,
+			"perPluginMs": {
+				"opengraph": 26,
+				"favicon": 0,
+				"brand": 620,
+				"wikipedia": 262,
+				"wikidata": 185,
+				"spotify": 381,
+				"musicbrainz": 610
+			},
+			"cacheHits": 1,
+			"cacheMisses": 6
+		}
+	},
+	"timings": {
+		"totalMs": 1691,
+		"classifyMs": 202,
+		"enrichMs": 1489
+	},
+	"observability": {
+		"phases": {
+			"totalMs": 1691,
+			"classifyMs": 202,
+			"enrichMs": 1489
+		},
+		"plugins": {
+			"executed": 7,
+			"failed": 1,
+			"skipped": 8,
+			"artifacts": 5,
+			"perPluginMs": {
+				"opengraph": 26,
+				"favicon": 0,
+				"brand": 620,
+				"wikipedia": 262,
+				"wikidata": 185,
+				"spotify": 381,
+				"musicbrainz": 610
+			}
+		}
+	}
+}

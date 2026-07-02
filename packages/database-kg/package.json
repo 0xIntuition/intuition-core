@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"exports": {
 		".": "./src/index.ts",
+		"./actions": "./src/actions/index.ts",
 		"./client": "./src/client.ts",
 		"./client-env": "./src/client-env.ts",
 		"./schema": "./src/schema.ts"
@@ -26,7 +27,8 @@
 	},
 	"dependencies": {
 		"drizzle-orm": "0.45.1",
-		"postgres": "^3.4.7"
+		"postgres": "^3.4.7",
+		"viem": "^2.23.2"
 	},
 	"devDependencies": {
 		"@0xintuition/tsconfig": "workspace:*",

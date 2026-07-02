@@ -1,0 +1,40 @@
+{
+	"name": "@0xintuition/atom-services",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./contracts": "./src/contracts.ts",
+		"./runtime": "./src/service/runtime.ts",
+		"./processing": "./src/service/processing.ts"
+	},
+	"scripts": {
+		"up": "bun run dev",
+		"build": "true",
+		"dev": "bun with-env bun --watch src/index.ts",
+		"start": "bun with-env bun src/index.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit",
+		"with-env": "dotenv -e ../../.env --",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write",
+		"clean": "git clean -xdf .cache .turbo dist node_modules"
+	},
+	"dependencies": {
+		"@0xintuition/atom-classification": "workspace:*",
+		"@0xintuition/atom-enrichment": "workspace:*",
+		"hono": "^4.11.6",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"@types/bun": "^1.3.3",
+		"dotenv-cli": "^10.0.0",
+		"typescript": "catalog:"
+	},
+	"license": "MIT"
+}

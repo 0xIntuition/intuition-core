@@ -1,0 +1,20 @@
+{
+	"linear": {
+		"preview_deposit_zero_supply": "1000000000000000000",
+		"preview_mint_round_up": "1500000000000000001",
+		"preview_withdraw_round_up": "666666666666666667",
+		"current_price_max_domain": "1000000000000000000"
+	},
+	"offset_progressive": {
+		"slope": "2000000000000000000",
+		"offset": "500000000000000000",
+		"max_shares": "340282366920938463462874607431768211455",
+		"max_assets": "115792089237316195423570985008687907852589169931798687112530",
+		"current_price_zero": "1000000000000000000",
+		"preview_deposit_from_zero": "618033988749894848",
+		"preview_mint": "22000000000000000000",
+		"preview_redeem": "20000000000000000000",
+		"preview_withdraw": "47727519816563834",
+		"preview_redeem_zero_offset_low_shares": "0"
+	}
+}

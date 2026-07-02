@@ -1,0 +1,21 @@
+{
+	"name": "acme-sdk",
+	"dist-tags": {
+		"latest": "1.2.3"
+	},
+	"versions": {
+		"1.2.3": {
+			"description": "Acme SDK",
+			"keywords": ["acme", "sdk"],
+			"license": "MIT",
+			"homepage": "https://acme.example",
+			"repository": {
+				"url": "https://github.com/acme/sdk"
+			},
+			"author": {
+				"name": "Acme Labs"
+			},
+			"maintainers": [{ "name": "alice" }, { "name": "bob" }]
+		}
+	}
+}

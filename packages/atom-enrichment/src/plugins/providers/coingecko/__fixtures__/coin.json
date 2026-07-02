@@ -1,0 +1,23 @@
+{
+	"id": "acme-token",
+	"symbol": "acme",
+	"name": "Acme Token",
+	"image": {
+		"small": "https://assets.coingecko.com/coins/images/1/small/acme.png",
+		"large": "https://assets.coingecko.com/coins/images/1/large/acme.png"
+	},
+	"links": {
+		"homepage": ["https://acme.example/token"]
+	},
+	"market_data": {
+		"current_price": { "usd": 1.23 },
+		"market_cap": { "usd": 1230000 },
+		"total_supply": 1000000000
+	},
+	"detail_platforms": {
+		"ethereum": {
+			"decimal_place": 18,
+			"contract_address": "0x1111111111111111111111111111111111111111"
+		}
+	}
+}

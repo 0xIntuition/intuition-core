@@ -1,0 +1,51 @@
+# projections — event store → typed read models + graph.
+# Build context: repo root.
+
+FROM rust:1-slim AS builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY Cargo.toml ./
+COPY crates/shared/Cargo.toml ./crates/shared/
+COPY crates/rindexer-ingestion/Cargo.toml ./crates/rindexer-ingestion/
+COPY crates/projections/Cargo.toml ./crates/projections/
+COPY crates/curves/Cargo.toml ./crates/curves/
+
+RUN mkdir -p crates/shared/src && echo "" > crates/shared/src/lib.rs \
+    && mkdir -p crates/rindexer-ingestion/src && echo "fn main() {}" > crates/rindexer-ingestion/src/main.rs \
+    && mkdir -p crates/projections/src && echo "fn main() {}" > crates/projections/src/main.rs \
+    && mkdir -p crates/curves/src && echo "" > crates/curves/src/lib.rs
+
+RUN cargo build --release -p projections || true
+
+COPY crates/shared ./crates/shared
+COPY crates/curves ./crates/curves
+COPY crates/projections ./crates/projections
+RUN touch crates/shared/src/lib.rs crates/curves/src/lib.rs crates/projections/src/main.rs \
+    && cargo build --release -p projections
+
+FROM debian:trixie-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 projections
+COPY --from=builder /app/target/release/projections /usr/local/bin/
+RUN chown projections:projections /usr/local/bin/projections
+USER projections
+
+EXPOSE 9092
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:9092/health/live || exit 1
+
+ENTRYPOINT ["projections"]

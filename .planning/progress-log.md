@@ -4,6 +4,143 @@ Reverse-chronological. Companion to `intuition-core-open-source-spec.md`.
 
 ---
 
+## 2026-07-02 (later) — Developer verbs complete: write path, API keys, atom-services, seeds, docs
+
+All three community verbs now verified live: **index atoms** (chain + local write path),
+**classify URLs**, **fetch enrichment metadata**.
+
+### Shipped + live-verified
+- **API-key system** (user request): `kg.api_keys` (SHA-256 hashes only, account-bound) + drizzle
+  migration 0001; bearer middleware (bad key → 401 immediately); `API_AUTH=open|public-read|gated`
+  (default public-read); keys CLI (`keys:create/list/revoke`, `--read-only`). Verified live:
+  no key → 401, valid key → 201 with `created_by` attribution, bogus key → 401.
+- **Write path**: `POST /api/atoms` ({input} → deterministic ID via kgAtomId, idempotent 201/200) and
+  `POST /api/triples` (kgTripleId restored — **parity-locked by known-answer test** against
+  @0xintuition/ids vector 0x57946a02…; ensureTripleWithCreation action added). Verified live:
+  posted github.com/oven-sh/bun → 0x951d…; full pipeline: parse ✅ classify **SoftwareSourceCode** ✅
+  enrich ✅ (3 keyless artifacts: opengraph, favicon, github-repo); attributed triple created and
+  read back via hexastore. Chain atoms' enrichment = `skipped` ×53 (plain strings — correct).
+- **atom-services** wired into default compose (:4010) + Dockerfile. Verified live keyless:
+  /v1/classify github URL → github/repo @0.97; /v1/process wikipedia URL → 5 artifacts (opengraph,
+  jsonld, icons, wikipedia extract, wikidata entity); npm plugin 404 degraded gracefully.
+  NOTE: /v1/process payload key is `rawInput`, /v1/classify takes `input`.
+- **Baseline predicate seed** (14) vendored — enshrined trusted-in-the-context-of IPFS atom id
+  inlined as identity-locked literal (0x0840db…2c07); auto-seeds in migrate. Verified live.
+- **Fixed real upstream bug**: migration 039 declared `refresh_trending_topics(job_id BIGINT,…)` but
+  TimescaleDB invokes custom jobs as (INTEGER, JSONB) → job failed every 15min. Fixed migration +
+  live DB. **Flag to alpha/prod — same bug exists there.**
+- **docs/**: run-your-own-node.md, architecture.md, configuration.md, troubleshooting.md (tzdata
+  landmine, CHAIN_ID-at-runtime, port conflicts, docker-crash recovery).
+- API unit tests added (auth helpers known-vector, detectRawType). **14/14 test tasks green**,
+  typecheck 11/11, biome 460 files, guard passing.
+
+### Still open
+- Rust Docker images building (background); then the containerized `--profile indexing` run.
+- Plugin-authoring guide (needs the example-plugin package vendored) — community extensibility doc.
+- GitHub org mechanics: repo creation, branch protection, core-maintainers team, gitleaks org license.
+- Marketing copy alignment (node→core, datastores wording).
+
+---
+
+## 2026-07-02 — FULL PIPELINE PROVEN ON REAL CHAIN DATA + SurrealDB dropped
+
+### The smoke test (task 7) — every stage verified live
+Bounded run against the **public keyless testnet RPC** (`https://testnet.rpc.intuition.systems/http`,
+chain 13579, MultiVault `0xeBc49d…843ec`, blocks 9030416→9032416):
+
+1. **indexer** (native binary): 234 events indexed in **691ms** — 53 AtomCreated, 58 Deposited,
+   61 SharePriceChanged, 62 ProtocolFeeAccrued; respected `end_block` and exited. ✅
+2. **projections** (PG-only): ~20 checkpointed workers fanned out → vault 54, term 53, position 55,
+   signal 58, event 234 read models; **core_entities wrote 53 atoms into our extracted `kg.nodes`**
+   (+2 creator accounts; 0 triples = 0 TripleCreated in window; exact parity). ✅
+3. **workers** (kg-parse + kg-classification, 25s each): all 53 chain atoms → `completed/completed`. ✅
+4. **query API**: `/api/stats` `{"atoms":53,"triples":0,"accounts":2}`; real atoms ("joji",
+   "winning", "losing") with deterministic hex IDs and `onchain:true` served over REST. ✅
+
+**Architecture decision (CTO): SurrealDB is OUT.** Core = Postgres-KG + TimescaleDB + Redis.
+The code already supported it: projections' `connect_surreal_if_needed` swaps in a **NoopSink when
+`SURREAL_DB_URL` is empty** ("retired in greenfield environments" — i.e. how staging/prod run).
+Removed the surrealdb service/volume/image, SURREAL_* env, README references; compose `projections`
+sets `SURREAL_DB_URL: ""` explicitly.
+
+### Landmines found + fixed this session
+- **Corrupt Docker layer** from the earlier disk-full: timescaledb-ha's zoneinfo files were
+  right-size but **zero-filled** → Postgres rejected `SET TimeZone='UTC'` (only 25 zones parsed, all
+  Africa/*). sqlx sets TimeZone=UTC at connect → indexer hard-fail. Fix: `docker rmi` + re-pull
+  (fresh image 4.35GB vs corrupt 2.67GB); 1198 zones after. **postgres-js never trips this** (no
+  startup param) — worth a troubleshooting-doc entry.
+- **Generated `networks.rs` reads `CHAIN_ID` from env directly** (panics if unset) — chain env is
+  needed at *runtime*, not only at manifest render. Compose already passes it; documented here.
+- SurrealDB v2 vs Rust SDK v3 subprotocol mismatch discovered en route (moot now — surreal dropped).
+- Docker Desktop crashed again mid-run (all containers exited 255); volumes survived, re-up clean.
+- TimescaleDB job noise: migration schedules `refresh_trending_topics` job but the function doesn't
+  exist (errors every 15min in logs). Nonfatal; clean up in migration curation fast-follow.
+- Native-run gotchas: indexer needs cwd with `./abi/` + rendered manifest; API port 3000 was taken
+  by an unrelated local process (use another port for local runs).
+
+### Remaining before flip-public (all known, none blocking the proof)
+1. **Rust Docker images unbuilt** — the two `docker build`s (ingestion, projections) were killed
+   twice mid-build; the smoke ran native binaries + compose datastores. Config is identical; build
+   the images and do one full `docker compose --profile indexing up` run.
+2. Commit everything; squash-fresh history at publish per security gate.
+3. `docs/` (run-your-own-node, architecture, config table, troubleshooting incl. the tzdata landmine).
+4. Migration curation fast-follow (product-analytics tables, trending-topics job).
+5. Marketing copy alignment: "four datastores"/SurrealDB → two Postgres + Redis; `node` → `core`.
+
+---
+
+## 2026-07-01 — Phases 3+4 push: Rust pipeline extracted + P0 hygiene + fresh read-only API
+
+Sprint toward publish. P0 hygiene done; Rust indexing pipeline extracted and compiling; fresh
+minimal query API written. TS atom-libs + workers extraction delegated (in flight).
+
+### P0 publish hygiene ✅
+- `.github/workflows/ci.yml`: frozen install, supply-chain guard, typecheck, biome, tests, compose
+  config validation + gitleaks over full history.
+- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`.
+- `scripts/guard-supply-chain-policy.mjs` + `enforce-bun-install.mjs` ported; preinstall wired; passing.
+- gitleaks: **history clean**; tree findings are only the local gitignored `.env` (dev creds — never commit).
+
+### Rust workspace extracted ✅ (`cargo check --workspace` exit 0, 2m07s)
+- `crates/`: `shared`, `rindexer-ingestion`, `projections`, vendored `curves` (path-dep fixed to
+  `../curves`). Embeddings crates deliberately excluded (Search tier, later).
+- Root `Cargo.toml` workspace with alpha's `[workspace.dependencies]` table.
+- **Scrubbed:** deleted 4 diagnostic bins (hardcoded internal RPC) + their `[[bin]]` entries; deleted
+  a leftover **rendered manifest containing a live partner RPC key** (caught by inspection, confirmed
+  by gitleaks after); removed the `rpc.intuition.systems` fallback in main.rs (INTUITION_RPC_URL now
+  required); stripped all 21 ENG- refs; scrubbed internal paths from the yaml template header.
+- **Bounded indexing:** rindexer supports `end_block`; entrypoint.sh now renders an optional
+  `end_block` line from `MULTIVAULT_END_BLOCK` (unset → sync to head). In example.env.
+- **Migrations:** all 49 event-store SQL migrations → `migrations/timescale/` (secret-scanned,
+  ENG-stripped; product-analytics tables kept for numbering integrity — curation is a fast-follow).
+- **Docker:** fresh `docker/Dockerfile.{ingestion,projections,timescale-migrations}` for the repo-root
+  context (same proven multi-stage caching pattern); `.dockerignore` added.
+- **Compose:** `timescale-migrate` one-shot in default profile; `indexer` + `projections` under
+  `--profile indexing` (need chain config; default `docker compose up` stays green without it).
+  Projections default `DISABLED_PROJECTIONS=funnel_tracker,user_activity_batch` (product analytics).
+
+### services/api written (verify pending)
+Fresh ~350-line Hono read-only API (spec §6 Option A) instead of slicing alpha's 82-file auth-coupled
+api: `/health`, `GET /api/atoms` (+ `:id`, `:id/triples` via hexastore), `GET /api/triples` (+ filters,
+`:id`), `/api/predicates`, `/api/stats`. Public read model only (`active`+`public`). Deps: database-kg +
+hono only. `docker/Dockerfile.api` + compose `api` service in the default profile. Typecheck/install
+deferred until the TS-extraction agent finishes (lockfile race).
+
+### In flight
+- Background agent extracting: atom-parser/classification/enrichment/rules-engine/types/graph-flags →
+  `packages/`, workers (kg-path only) + atom-services → `services/`, plus the database-kg **actions
+  subset** workers need (processing lease machinery). Must pass typecheck/biome/guard.
+
+### Next
+- Integrate agent output → full `bun install` + repo-wide typecheck + biome.
+- Task 7: live smoke — bounded index (START+~500 blocks) against testnet RPC → rows in event_store →
+  projections fan-out → query via API. Testnet params from the (deleted) rendered manifest: chain_id
+  13579, MultiVault 0xeBc49d356B7f64D888130D85CC6D17114a6843ec, start_block 9030416; RPC endpoint via
+  local .env only.
+- Then: workers wired into compose, README/docs refresh, commit.
+
+---
+
 ## 2026-07-01 — Tests green (incl. vs dev DBs) + `events_hourly` ships (parallel session)
 
 Ran concurrently with the "one button" validation below (two sessions worked the repo at once —

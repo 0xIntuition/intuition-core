@@ -1,0 +1,59 @@
+# =============================================================================
+# rindexer.yaml — TEMPLATE FILE: requires envsubst before use
+# =============================================================================
+# This file contains shell variable placeholders (dollar-brace syntax) and
+# MUST be processed by envsubst before being passed to the rindexer CLI.
+# Placeholder literals are intentionally NOT shown in this header because
+# rindexer's YAML loader scans comments for variable references and will
+# panic on unresolved names.
+#
+# Docker path: the container entrypoint (entrypoint.sh) expands this file at
+# startup. Local path: expand it yourself with envsubst before invoking the
+# binary.
+#
+# Required variables: CHAIN_ID, INTUITION_RPC_URL,
+# MULTIVAULT_CONTRACT_ADDRESS, MULTIVAULT_START_BLOCK, RINDEXER_HEALTH_PORT.
+#
+# Optional: MULTIVAULT_END_BLOCK bounds the indexed range for cheap test runs
+# (entrypoint.sh turns it into an end-block line; unset means sync to head).
+#
+# DO NOT pass this file directly to rindexer — the CLI will reject the
+# unexpanded placeholders with a parse error.
+# =============================================================================
+name: be_v3_indexer
+description: Indexer for MultiVault contract events
+repository: https://github.com/0xIntuition
+project_type: rust
+
+# Enable block timestamps enrichment (required for correct historical timestamps)
+timestamps: true
+
+global:
+  health_port: ${RINDEXER_HEALTH_PORT}
+
+networks:
+  - name: intuition
+    chain_id: ${CHAIN_ID}
+    rpc: "${INTUITION_RPC_URL}"
+
+# Disable built-in postgres storage - we use custom handlers
+storage:
+  postgres:
+    enabled: false
+
+contracts:
+  - name: MultiVault
+    details:
+      - network: intuition
+        address: "${MULTIVAULT_CONTRACT_ADDRESS}"
+        start_block: ${MULTIVAULT_START_BLOCK}
+${MULTIVAULT_END_BLOCK_LINE}
+        reorg_safe_distance: 10
+    abi: ./abi/MultiVault.json
+    include_events:
+      - name: AtomCreated
+      - name: TripleCreated
+      - name: Deposited
+      - name: Redeemed
+      - name: SharePriceChanged
+      - name: ProtocolFeeAccrued

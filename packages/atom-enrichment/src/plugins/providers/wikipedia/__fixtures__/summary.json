@@ -1,0 +1,16 @@
+{
+	"title": "Acme Labs",
+	"extract": "Acme Labs is a developer tooling company.",
+	"extract_html": "<p>Acme Labs is a developer tooling company.</p>",
+	"thumbnail": {
+		"source": "https://upload.wikimedia.org/acme.png"
+	},
+	"content_urls": {
+		"desktop": {
+			"page": "https://en.wikipedia.org/wiki/Acme_Labs"
+		}
+	},
+	"pageid": 12345,
+	"lang": "en",
+	"timestamp": "2026-01-01T00:00:00Z"
+}

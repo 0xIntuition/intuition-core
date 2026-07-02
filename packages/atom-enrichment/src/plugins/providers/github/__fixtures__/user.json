@@ -1,0 +1,13 @@
+{
+	"login": "acme",
+	"name": "Acme Labs",
+	"avatar_url": "https://avatars.githubusercontent.com/u/123456?v=4",
+	"bio": "Developer tooling company",
+	"company": "@acme",
+	"location": "San Francisco, CA",
+	"blog": "https://acme.example",
+	"public_repos": 42,
+	"followers": 1200,
+	"following": 12,
+	"html_url": "https://github.com/acme"
+}

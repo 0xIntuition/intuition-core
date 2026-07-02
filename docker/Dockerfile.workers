@@ -1,0 +1,21 @@
+# Intuition Core workers — parse → classify → enrich pipeline over kg.nodes.
+# Build context: repo root (Bun workspace). The worker mode is passed as the
+# container command, e.g. `kg-parse-worker`.
+
+FROM oven/bun:1-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /repo
+COPY . .
+RUN bun install --frozen-lockfile --production
+
+ENV NODE_ENV=production
+EXPOSE 4110
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:4110/healthz || exit 1
+
+WORKDIR /repo/services/workers
+ENTRYPOINT ["bun", "src/index.ts"]
+CMD ["kg-parse-worker"]

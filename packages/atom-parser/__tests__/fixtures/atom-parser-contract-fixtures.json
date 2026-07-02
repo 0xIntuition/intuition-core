@@ -1,0 +1,682 @@
+{
+	"localCases": [
+		{
+			"name": "ipfs_uri_with_gateway",
+			"input": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e/metadata/item.json",
+			"options": {
+				"remoteFetch": false,
+				"ipfsGatewayBaseUrl": "https://ipfs.io/"
+			},
+			"expected": {
+				"kind": "ipfs",
+				"normalizedInput": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e/metadata/item.json",
+				"data": {
+					"canonicalUri": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e/metadata/item.json",
+					"cid": "bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"path": "metadata/item.json",
+					"gatewayUrl": "https://ipfs.io/ipfs/bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e/metadata/item.json"
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "ethereum_address_lowercase",
+			"input": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "ethereum_address",
+				"normalizedInput": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+				"data": {
+					"address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+					"checksumAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "ens_name_mixed_case",
+			"input": "Vitalik.ETH",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "ens_name",
+				"normalizedInput": "Vitalik.ETH",
+				"data": {
+					"name": "vitalik.eth"
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "json_object",
+			"input": "{\"url\":\"https://example.com\"}",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "json",
+				"normalizedInput": "{\"url\":\"https://example.com\"}",
+				"data": {
+					"topLevelType": "object",
+					"objectKeyCount": 1,
+					"arrayLength": null
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_with_query",
+			"input": "http://example.com/path/doc.json?download=1",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "http://example.com/path/doc.json?download=1",
+				"data": {
+					"canonicalUrl": "http://example.com/path/doc.json?download=1",
+					"scheme": "http",
+					"host": "example.com",
+					"path": "/path/doc.json",
+					"hasQuery": true
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "isbn_13",
+			"input": "978-0-306-40615-7",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "isbn",
+				"normalizedInput": "978-0-306-40615-7",
+				"data": {
+					"canonical": "9780306406157",
+					"format": "isbn13",
+					"checksumValid": true
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "plain_string",
+			"input": "  hello world  ",
+			"options": {
+				"remoteFetch": false
+			},
+			"expected": {
+				"kind": "plain_string",
+				"normalizedInput": "hello world",
+				"data": {
+					"original": "  hello world  ",
+					"trimmed": "hello world"
+				},
+				"remote": null,
+				"warnings": []
+			}
+		}
+	],
+	"remoteCases": [
+		{
+			"name": "url_remote_webpage",
+			"input": "{{BASE_URL}}/page",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/page",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/page",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/page",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/page",
+					"statusCode": 200,
+					"contentType": "text/html",
+					"redirectCount": 0,
+					"subtype": "webpage",
+					"reason": "classified remote content as webpage"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_json_document",
+			"input": "{{BASE_URL}}/data",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/data",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/data",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/data",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/data",
+					"statusCode": 200,
+					"contentType": "application/json",
+					"redirectCount": 0,
+					"subtype": "json_document",
+					"reason": "classified remote content as json_document"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_json_sniffed",
+			"input": "{{BASE_URL}}/json-no-ct",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/json-no-ct",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/json-no-ct",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/json-no-ct",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/json-no-ct",
+					"statusCode": 200,
+					"contentType": "application/octet-stream",
+					"redirectCount": 0,
+					"subtype": "json_document",
+					"reason": "classified remote content as json_document"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_html_sniffed",
+			"input": "{{BASE_URL}}/html-no-ct",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/html-no-ct",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/html-no-ct",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/html-no-ct",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/html-no-ct",
+					"statusCode": 200,
+					"contentType": "application/octet-stream",
+					"redirectCount": 0,
+					"subtype": "webpage",
+					"reason": "classified remote content as webpage"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_image_sniffed",
+			"input": "{{BASE_URL}}/image-sniffed",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/image-sniffed",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/image-sniffed",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/image-sniffed",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/image-sniffed",
+					"statusCode": 200,
+					"contentType": "application/octet-stream",
+					"redirectCount": 0,
+					"subtype": "image",
+					"reason": "classified remote content as image"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_audio_sniffed",
+			"input": "{{BASE_URL}}/audio-sniffed",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/audio-sniffed",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/audio-sniffed",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/audio-sniffed",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/audio-sniffed",
+					"statusCode": 200,
+					"contentType": "application/octet-stream",
+					"redirectCount": 0,
+					"subtype": "audio",
+					"reason": "classified remote content as audio"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_unknown_empty",
+			"input": "{{BASE_URL}}/empty",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/empty",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/empty",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/empty",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/empty",
+					"statusCode": 200,
+					"contentType": null,
+					"redirectCount": 0,
+					"subtype": "unknown_remote",
+					"reason": "classified remote content as unknown_remote"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_generic_file",
+			"input": "{{BASE_URL}}/text-file",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/text-file",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/text-file",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/text-file",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/text-file",
+					"statusCode": 200,
+					"contentType": "text/plain",
+					"redirectCount": 0,
+					"subtype": "generic_file",
+					"reason": "classified remote content as generic_file"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "url_remote_redirect_limit_exceeded",
+			"input": "{{BASE_URL}}/step-1",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true,
+				"maxRedirects": 1
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/step-1",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/step-1",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/step-1",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "redirect_limit_exceeded",
+					"finalUrl": "{{BASE_URL}}/step-2",
+					"statusCode": 302,
+					"contentType": null,
+					"redirectCount": 1,
+					"subtype": null,
+					"reason": "redirect limit exceeded"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_REDIRECT_LIMIT",
+						"message": "remote inspection exceeded the redirect limit for {{BASE_URL}}/step-2"
+					}
+				]
+			}
+		},
+		{
+			"name": "url_remote_redirect_missing_location",
+			"input": "{{BASE_URL}}/broken-redirect",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/broken-redirect",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/broken-redirect",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/broken-redirect",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "error",
+					"finalUrl": "{{BASE_URL}}/broken-redirect",
+					"statusCode": 302,
+					"contentType": null,
+					"redirectCount": 0,
+					"subtype": null,
+					"reason": "redirect response missing Location header"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_REDIRECT_INVALID",
+						"message": "remote inspection received a redirect without a Location header"
+					}
+				]
+			}
+		},
+		{
+			"name": "url_remote_oversized",
+			"input": "{{BASE_URL}}/big",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true,
+				"maxResponseBytes": 8
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/big",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/big",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/big",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "oversized",
+					"finalUrl": "{{BASE_URL}}/big",
+					"statusCode": 200,
+					"contentType": "text/plain",
+					"redirectCount": 0,
+					"subtype": null,
+					"reason": "response exceeded the configured byte limit"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_OVERSIZED",
+						"message": "remote inspection skipped body analysis for {{BASE_URL}}/big because the response is too large"
+					}
+				]
+			}
+		},
+		{
+			"name": "url_remote_timeout",
+			"input": "{{BASE_URL}}/slow",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true,
+				"requestTimeoutMs": 10
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/slow",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/slow",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/slow",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "timeout",
+					"finalUrl": "{{BASE_URL}}/slow",
+					"statusCode": null,
+					"contentType": null,
+					"redirectCount": 0,
+					"subtype": null,
+					"reason": "remote request timed out"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_TIMEOUT",
+						"message": "remote inspection timed out for {{BASE_URL}}/slow"
+					}
+				]
+			}
+		},
+		{
+			"name": "url_remote_redirect_image",
+			"input": "{{BASE_URL}}/redirect",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "{{BASE_URL}}/redirect",
+				"data": {
+					"canonicalUrl": "{{BASE_URL}}/redirect",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/redirect",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/final",
+					"statusCode": 200,
+					"contentType": "image/png",
+					"redirectCount": 1,
+					"subtype": "image",
+					"reason": "classified remote content as image"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "ipfs_remote_audio_via_gateway",
+			"input": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true,
+				"allowPrivateNetworks": true,
+				"ipfsGatewayBaseUrl": "{{BASE_URL}}/"
+			},
+			"expected": {
+				"kind": "ipfs",
+				"normalizedInput": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+				"data": {
+					"canonicalUri": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"cid": "bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"path": null,
+					"gatewayUrl": "{{BASE_URL}}/ipfs/bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e"
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "success",
+					"finalUrl": "{{BASE_URL}}/ipfs/bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"statusCode": 200,
+					"contentType": "audio/mpeg",
+					"redirectCount": 0,
+					"subtype": "audio",
+					"reason": "classified remote content as audio"
+				},
+				"warnings": []
+			}
+		},
+		{
+			"name": "ipfs_remote_skipped_without_gateway",
+			"input": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+			"options": {
+				"remoteFetch": true
+			},
+			"expected": {
+				"kind": "ipfs",
+				"normalizedInput": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+				"data": {
+					"canonicalUri": "ipfs://bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"cid": "bafybeigdyrzt5rj6uqb6t5x3r7b6g6j4gh7f6wzsp4r4i2l3x6jt6s5z3e",
+					"path": null,
+					"gatewayUrl": null
+				},
+				"remote": {
+					"attempted": false,
+					"outcome": "skipped",
+					"finalUrl": null,
+					"statusCode": null,
+					"contentType": null,
+					"redirectCount": 0,
+					"subtype": null,
+					"reason": "remote inspection skipped because no IPFS gateway is configured"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_SKIPPED_NO_IPFS_GATEWAY",
+						"message": "remote inspection skipped because no IPFS gateway is configured"
+					}
+				]
+			}
+		},
+		{
+			"name": "url_remote_denied_localhost",
+			"input": "http://localhost/private",
+			"options": {
+				"remoteFetch": true,
+				"allowHttp": true
+			},
+			"expected": {
+				"kind": "url",
+				"normalizedInput": "http://localhost/private",
+				"data": {
+					"canonicalUrl": "http://localhost/private",
+					"scheme": "http",
+					"host": "localhost",
+					"path": "/private",
+					"hasQuery": false
+				},
+				"remote": {
+					"attempted": true,
+					"outcome": "denied",
+					"finalUrl": null,
+					"statusCode": null,
+					"contentType": null,
+					"redirectCount": 0,
+					"subtype": null,
+					"reason": "remote fetch target resolves to localhost"
+				},
+				"warnings": [
+					{
+						"code": "REMOTE_FETCH_DENIED",
+						"message": "remote fetch target resolves to localhost"
+					}
+				]
+			}
+		}
+	],
+	"errorCases": [
+		{
+			"name": "empty_input",
+			"input": "   ",
+			"options": {
+				"remoteFetch": false
+			},
+			"expectedError": {
+				"code": "EMPTY_INPUT",
+				"message": "input must not be empty"
+			}
+		},
+		{
+			"name": "oversized_input",
+			"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			"options": {
+				"remoteFetch": false,
+				"maxInputBytes": 8
+			},
+			"expectedError": {
+				"code": "INPUT_TOO_LARGE",
+				"message": "input exceeds the configured size limit (32 > 8)"
+			}
+		}
+	]
+}

@@ -1,0 +1,32 @@
+{
+	"name": "@0xintuition/atom-parser",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./types": "./src/types.ts",
+		"./detect": "./src/detect.ts",
+		"./remote": "./src/remote.ts",
+		"./parse": "./src/parse.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"test": "bun test __tests__",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"multiformats": "^13.3.2",
+		"viem": "^2.23.2"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,49 @@
+# One-shot event-store migrations for TimescaleDB.
+# Build context: repo root. Applies migrations/timescale/*.sql sequentially,
+# tracked in a schema_migrations table so each file runs exactly once.
+
+FROM postgres:16-alpine
+
+COPY migrations/timescale/ /migrations/
+
+COPY <<'EOF' /run-migrations.sh
+#!/bin/sh
+set -e
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "ERROR: DATABASE_URL is not set"
+  exit 1
+fi
+
+echo "Running migrations against: $(echo "$DATABASE_URL" | sed 's|://[^@]*@|://***@|')"
+
+# Always run 000 first — it creates the tracking table and seeds prior migrations.
+# This is idempotent so it's safe to run every time.
+echo "Bootstrapping migration tracking..."
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /migrations/000_create_schema_migrations.sql
+
+for f in /migrations/*.sql; do
+  name="$(basename "$f")"
+
+  if [ "$name" = "000_create_schema_migrations.sql" ]; then
+    continue
+  fi
+
+  already=$(psql "$DATABASE_URL" -tAc "SELECT 1 FROM schema_migrations WHERE filename = '$name'" 2>/dev/null)
+  if [ "$already" = "1" ]; then
+    echo "Skipping $name (already applied)"
+    continue
+  fi
+
+  echo "Applying $name..."
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "INSERT INTO schema_migrations (filename) VALUES ('$name')"
+done
+
+echo "All migrations applied successfully."
+EOF
+
+RUN chmod +x /run-migrations.sh
+
+ENTRYPOINT ["/run-migrations.sh"]

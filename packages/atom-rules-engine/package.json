@@ -1,0 +1,33 @@
+{
+	"name": "@0xintuition/atom-rules-engine",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./types": "./src/types.ts",
+		"./context": "./src/context.ts",
+		"./rules": "./src/engine.ts",
+		"./rule-catalog": "./src/rule-catalog.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"test": "bun test __tests__",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"@0xintuition/types": "workspace:*",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,14 @@
+# Default: all changes reviewed by the core team.
+* @0xIntuition/core-maintainers
+
+# Identity-sensitive surfaces — schema and migrations fork the graph if changed
+# carelessly. Require maintainer review explicitly.
+/packages/database-kg/src/schemas/  @0xIntuition/core-maintainers
+/packages/database-kg/drizzle/      @0xIntuition/core-maintainers
+/packages/database-kg/migrations/   @0xIntuition/core-maintainers
+/packages/database-timescale/       @0xIntuition/core-maintainers
+
+# Supply-chain / CI surface
+/.github/                            @0xIntuition/core-maintainers
+/scripts/                            @0xIntuition/core-maintainers
+/bunfig.toml                         @0xIntuition/core-maintainers

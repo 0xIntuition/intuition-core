@@ -1,0 +1,46 @@
+{
+	"name": "@0xintuition/atom-enrichment",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./types": "./src/types.ts",
+		"./handoff": "./src/handoff.ts",
+		"./provider-data": "./src/provider-data.ts",
+		"./plugins": "./src/plugins.ts",
+		"./providers": "./src/plugins/providers/index.ts",
+		"./presets": "./src/presets/index.ts",
+		"./engine": "./src/engine.ts",
+		"./plugin-registry": "./src/plugin-registry.ts",
+		"./cache": "./src/cache.ts",
+		"./testing": "./src/testing/index.ts",
+		"./classifications": "./src/classifications/index.ts",
+		"./classifications/defaults": "./src/classifications/defaults.ts",
+		"./classifications/registry": "./src/classifications/registry.ts",
+		"./classifications/schemas": "./src/classifications/schemas.ts",
+		"./provider-external-data": "./src/provider-external-data.ts",
+		"./slug-aliases": "./src/slug-aliases.ts",
+		"./extraction": "./src/extraction/index.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"dev": "tsc",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"test": "bun test __tests__",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"@0xintuition/classifications": "0.1.0-alpha.0",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

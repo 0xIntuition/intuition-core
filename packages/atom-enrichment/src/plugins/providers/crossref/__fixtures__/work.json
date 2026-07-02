@@ -1,0 +1,14 @@
+{
+	"message": {
+		"DOI": "10.1234/acme.2026.1",
+		"title": ["Acme Research Paper"],
+		"author": [{ "given": "Alice", "family": "Smith" }, { "given": "Bob", "family": "Jones" }],
+		"issued": { "date-parts": [[2026, 1, 5]] },
+		"container-title": ["Acme Journal"],
+		"publisher": "Acme Press",
+		"abstract": "<jats:p>This is an abstract.</jats:p>",
+		"URL": "https://doi.org/10.1234/acme.2026.1",
+		"type": "journal-article",
+		"is-referenced-by-count": 42
+	}
+}

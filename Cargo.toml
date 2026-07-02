@@ -1,0 +1,109 @@
+# Intuition Core — Rust workspace.
+#
+# The chain → graph pipeline: `rindexer-ingestion` decodes MultiVault events
+# into the TimescaleDB event store, `projections` fans them out into typed
+# read models and the graph, `curves` is the bonding-curve math both mirror
+# from Solidity, and `shared` holds the common domain types.
+#
+# The embeddings crates (embed-on-create, embeddings-job) are intentionally
+# not part of the minimal tier; they arrive feature-gated with the Search tier.
+
+[workspace]
+members = [
+    "crates/shared",
+    "crates/rindexer-ingestion",
+    "crates/projections",
+    "crates/curves",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Intuition"]
+license = "MIT"
+
+[workspace.dependencies]
+# Async Runtime
+tokio = { version = "1.42", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "json", "bigdecimal", "uuid"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Redis
+redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
+
+# Ethereum / Blockchain
+alloy = { version = "1.1", features = ["full", "rpc-types", "contract", "providers", "signers"] }
+alloy-primitives = "1.4"
+alloy-sol-types = "1.4"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls"] }
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Distributed Tracing
+opentelemetry = "0.27"
+opentelemetry-otlp = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.28"
+
+# Metrics & Monitoring
+prometheus = "0.14"
+axum = "0.8"
+
+# Middleware & Rate Limiting
+tower = "0.5"
+tower_governor = "0.8"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async Traits
+async-trait = "0.1"
+
+# Configuration
+config = "0.15"
+dotenvy = "0.15"
+
+# Utils
+seahash = "4.1"
+sha2 = "0.10"
+
+# Performance-oriented crates
+ahash = "0.8"
+dashmap = "6.1"
+smallvec = "1.15"
+compact_str = "0.8"
+arc-swap = "1.7"
+
+# Validation
+validator = { version = "0.19", features = ["derive"] }
+
+# Testing
+serial_test = "3.2"
+proptest = "1.6"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+wiremock = "0.6"
+
+# System Info (cross-platform memory metrics)
+sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

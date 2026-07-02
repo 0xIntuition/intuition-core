@@ -1,0 +1,14 @@
+{
+	"type": "video",
+	"title": "Acme Demo",
+	"author_name": "Acme Labs",
+	"author_url": "https://acme.example/author",
+	"provider_name": "YouTube",
+	"provider_url": "https://www.youtube.com/",
+	"thumbnail_url": "https://img.youtube.com/vi/abc123/maxresdefault.jpg",
+	"thumbnail_width": 1280,
+	"thumbnail_height": 720,
+	"html": "<iframe src=\"https://www.youtube.com/embed/abc123\"></iframe>",
+	"width": 1280,
+	"height": 720
+}

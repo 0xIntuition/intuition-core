@@ -1,0 +1,37 @@
+{
+	"entities": {
+		"Q12345": {
+			"id": "Q12345",
+			"labels": {
+				"en": { "language": "en", "value": "Acme Labs" }
+			},
+			"descriptions": {
+				"en": { "language": "en", "value": "Fictional developer tooling company" }
+			},
+			"aliases": {
+				"en": [{ "language": "en", "value": "Acme" }]
+			},
+			"claims": {
+				"P31": [
+					{
+						"mainsnak": {
+							"snaktype": "value",
+							"property": "P31",
+							"datavalue": {
+								"value": { "id": "Q4830453" },
+								"type": "wikibase-entityid"
+							}
+						}
+					}
+				]
+			},
+			"sitelinks": {
+				"enwiki": {
+					"site": "enwiki",
+					"title": "Acme_Labs",
+					"url": "https://en.wikipedia.org/wiki/Acme_Labs"
+				}
+			}
+		}
+	}
+}

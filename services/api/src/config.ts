@@ -1,0 +1,40 @@
+export type ApiAuthMode = 'open' | 'public-read' | 'gated';
+
+export type ApiConfig = {
+	port: number;
+	databaseKgUrl: string;
+	/** Comma-separated allowed CORS origins; empty means allow all (dev). */
+	allowedOrigins: string[];
+	/**
+	 * Endpoint gating:
+	 * - `public-read` (default): GET endpoints are open; writes require an API key.
+	 * - `gated`: every endpoint requires an API key.
+	 * - `open`: nothing requires a key (local dev); writes are unattributed.
+	 */
+	authMode: ApiAuthMode;
+};
+
+function parseAuthMode(raw: string | undefined): ApiAuthMode {
+	const mode = (raw ?? 'public-read').trim().toLowerCase();
+	if (mode === 'open' || mode === 'public-read' || mode === 'gated') {
+		return mode;
+	}
+	throw new Error(`API_AUTH must be one of: open, public-read, gated (got "${raw}")`);
+}
+
+export function loadConfig(env: Record<string, string | undefined> = process.env): ApiConfig {
+	const databaseKgUrl = env.DATABASE_KG_URL?.trim();
+	if (!databaseKgUrl) {
+		throw new Error('DATABASE_KG_URL must be set');
+	}
+
+	return {
+		port: Number.parseInt(env.API_PORT ?? '3000', 10),
+		databaseKgUrl,
+		allowedOrigins: (env.API_ALLOWED_ORIGINS ?? '')
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean),
+		authMode: parseAuthMode(env.API_AUTH),
+	};
+}

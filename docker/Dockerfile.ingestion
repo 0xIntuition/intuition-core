@@ -1,0 +1,80 @@
+# rindexer-ingestion — chain events → TimescaleDB event store.
+# Build context: repo root.
+
+# Build stage
+FROM rustlang/rust:nightly-slim AS builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    curl \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js is required by rindexer's build (codegen tooling).
+ARG TARGETARCH
+RUN ARCH=$(case "$TARGETARCH" in "amd64") echo "x64" ;; "arm64") echo "arm64" ;; *) echo "$TARGETARCH" ;; esac) \
+    && curl -fsSL https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-${ARCH}.tar.xz | tar -xJ -C /usr/local --strip-components=1 \
+    && node --version
+
+WORKDIR /app
+
+# Manifests first for dependency-layer caching. All workspace members must be
+# present for cargo to load the workspace, even though we only build one.
+COPY Cargo.toml ./
+COPY crates/shared/Cargo.toml ./crates/shared/
+COPY crates/rindexer-ingestion/Cargo.toml ./crates/rindexer-ingestion/
+COPY crates/projections/Cargo.toml ./crates/projections/
+COPY crates/curves/Cargo.toml ./crates/curves/
+
+# Dummy sources so the dependency graph compiles without real code.
+RUN mkdir -p crates/shared/src && echo "" > crates/shared/src/lib.rs \
+    && mkdir -p crates/rindexer-ingestion/src && echo "fn main() {}" > crates/rindexer-ingestion/src/main.rs \
+    && mkdir -p crates/projections/src && echo "fn main() {}" > crates/projections/src/main.rs \
+    && mkdir -p crates/curves/src && echo "" > crates/curves/src/lib.rs
+
+# Build dependencies only (cached layer)
+RUN cargo build --release -p rindexer-ingestion || true
+
+# Real sources, then rebuild.
+COPY crates/shared ./crates/shared
+COPY crates/curves ./crates/curves
+COPY crates/rindexer-ingestion ./crates/rindexer-ingestion
+RUN touch crates/shared/src/lib.rs crates/curves/src/lib.rs crates/rindexer-ingestion/src/main.rs \
+    && cargo build --release -p rindexer-ingestion
+
+# Runtime stage
+FROM debian:trixie-slim
+
+# gettext-base provides envsubst for the manifest templating.
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    libnss3 \
+    gettext-base \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 indexer
+
+COPY --from=builder /app/target/release/rindexer-ingestion /usr/local/bin/
+COPY crates/rindexer-ingestion/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN mkdir -p /rindexer/abi
+COPY crates/rindexer-ingestion/rindexer.yaml /rindexer/rindexer.yaml.tpl
+COPY crates/rindexer-ingestion/abi/ /rindexer/abi/
+
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && chown -R indexer:indexer /usr/local/bin/rindexer-ingestion /usr/local/bin/entrypoint.sh /rindexer
+
+USER indexer
+WORKDIR /rindexer
+ENV RINDEXER_MANIFEST_PATH=/rindexer/rindexer.yaml
+
+EXPOSE 8080 9091
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:9091/health || exit 1
+
+ENTRYPOINT ["entrypoint.sh"]

@@ -1,0 +1,17 @@
+{
+	"name": "Acme Labs",
+	"domain": "acme.example",
+	"description": "Developer tooling company",
+	"logos": [
+		{
+			"formats": [{ "src": "https://cdn.brandfetch.io/acme.example/logo.svg" }]
+		}
+	],
+	"icons": [
+		{
+			"formats": [{ "src": "https://cdn.brandfetch.io/acme.example/icon.png" }]
+		}
+	],
+	"colors": [{ "hex": "#1F2937", "type": "primary" }, { "hex": "#93C5FD", "type": "secondary" }],
+	"fonts": [{ "name": "Acme Sans" }]
+}

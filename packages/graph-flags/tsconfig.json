@@ -1,0 +1,8 @@
+{
+	"extends": "@0xintuition/tsconfig/compiled-package.json",
+	"compilerOptions": {
+		"strictNullChecks": true
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

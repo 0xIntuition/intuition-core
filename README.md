@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Intuition Core</h1>
   <p><strong>The open backend, in a box.</strong></p>
-  <p>A self-hosted indexer, atom intelligence pipeline, four datastores, and one query API —<br/>run your own shard of the world's knowledge graph.</p>
+  <p>A self-hosted indexer, atom intelligence pipeline, two Postgres databases, and one query API —<br/>run your own shard of the world's knowledge graph.</p>
 </div>
 
 ---
@@ -13,62 +13,94 @@ enrich it, keep it local and private, and publish onchain only when a record ear
 The data was always permissionless. Core makes the **machinery** permissionless too: point the
 indexer at the chain and reconstruct the graph yourself — verify, don't trust.
 
-> **Status:** early extraction from Intuition's production monorepo. Being assembled package by
-> package. See [`.planning/intuition-core-open-source-spec.md`](./.planning/intuition-core-open-source-spec.md)
-> for the full plan.
-
 ## What's in the box
 
 ```
-  chain ──► indexer ──► projections ──► [ Postgres-KG · TimescaleDB · SurrealDB · Redis ]
+  chain ──► indexer ──► projections ──► [ Postgres-KG · TimescaleDB · Redis ]
                                               │
                               workers (parse → classify → enrich)
                                               │
                                          query API  ◄── you read the graph you built
 ```
 
-| Layer | What it is | Language |
-| --- | --- | --- |
-| **indexer** | decode MultiVault chain events | Rust |
-| **projections** | event workers → typed tables + graph | Rust |
-| **workers** | parse → classify → enrich | TypeScript |
-| **api** | query the graph you built (no auth required) | TypeScript |
-
-The parse / classify / enrich intelligence ships as pure-TypeScript libraries on npm
-(`@0xintuition/atom-parser`, `/atom-classification`, `/atom-enrichment`, `/atom-rules-engine`), so the
-same code that runs in your node runs in your app.
+| Layer | What it is | Language | Where |
+| --- | --- | --- | --- |
+| **indexer** | decode MultiVault chain events → event store | Rust | `crates/rindexer-ingestion` |
+| **projections** | event workers → typed read models + graph | Rust | `crates/projections` |
+| **workers** | parse → classify → enrich pipeline | TypeScript | `services/workers` |
+| **api** | auth-free, read-only REST over the graph | TypeScript | `services/api` |
+| **atom intelligence** | parser · 17 classification plugins · enrichment · rules | TypeScript | `packages/atom-*` |
+| **data layer** | KG + TimescaleDB schemas, versioned migrations | TypeScript/SQL | `packages/database-*`, `migrations/` |
 
 ## Quick start
 
-> Datastores + schema migrations work today. Backend services (indexer, workers,
-> api) are being layered in — track progress in `.planning/`.
-
 ```bash
-# 1. Prerequisites: Docker, Bun (>= 1.3), and (later) Rust for the indexer.
+# Prerequisites: Docker + Bun (>= 1.3). Rust only if you build the crates natively.
 cp example.env .env
 bun install
 
-# 2. One button: datastores come up, then schema migrations auto-apply.
-docker compose up            # postgres-kg, timescale, surrealdb, redis + migrate
+# One button: datastores → schema migrations → workers → query API.
+docker compose up            # postgres-kg, timescale, redis, migrations, workers, api
 
-# — or, datastores only (apply migrations yourself) —
-bun run datastores:up                                   # the four datastores
-bun --filter @0xintuition/database-kg run db:migrate    # drizzle DDL + TimescaleDB hypertables
+curl localhost:3000/health
+curl "localhost:3000/api/atoms?limit=5"
 ```
 
-### Migrations
+### Index the chain
 
-The KG schema is managed with Drizzle (versioned, checked-in SQL) plus a custom
-post phase for the TimescaleDB features Drizzle can't express:
+Set the chain config in `.env` (a public RPC endpoint works — no API key needed
+for the Intuition testnet), then start the indexing tier:
 
 ```bash
-# from packages/database-kg
-bun run db:generate    # regenerate drizzle/ SQL from the schema (commit it)
-bun run db:migrate     # apply: drizzle journal, then migrations/post/*.sql
+# .env
+#   INTUITION_RPC_URL=https://testnet.rpc.intuition.systems/http
+#   CHAIN_ID=13579
+#   MULTIVAULT_CONTRACT_ADDRESS=0x...
+#   MULTIVAULT_START_BLOCK=...
+#   MULTIVAULT_END_BLOCK=        # optional: bound the range for a cheap test run
+
+docker compose --profile indexing up
 ```
 
-The runner detects TimescaleDB and skips the hypertable step on plain Postgres,
-so the schema applies either way.
+Chain events flow into the TimescaleDB event store, projections fan them out into
+typed read models and the graph, and the API serves what you indexed.
+
+## Query API
+
+Reads are open; writes are gated by operator-minted API keys and attributed to
+the key's account (`API_AUTH=open|public-read|gated`). Only `active` + `public`
+records are served.
+
+| Endpoint | What it does |
+| --- | --- |
+| `GET /health` | liveness + database reachability |
+| `POST /api/atoms` 🔑 | create an atom from any URL/string/JSON — deterministic ID, idempotent, `created_by` attributed |
+| `GET /api/atoms` | atoms; filters: `classification_type`, `q`, `limit`, `offset` |
+| `GET /api/atoms/:id` | one atom |
+| `GET /api/atoms/:id/triples` | every triple touching an atom, any position |
+| `POST /api/triples` 🔑 | create a claim between terms — deterministic ID, idempotent, attributed |
+| `GET /api/triples` | triples; filters: `subject_id`, `predicate_id`, `object_id` |
+| `GET /api/triples/:id` | one triple |
+| `GET /api/predicates` | the predicate registry (14 baseline predicates seeded) |
+| `GET /api/stats` | atom / triple / account / predicate counts |
+
+Mint keys with `bun run keys:create -- --name partner --account 0x…` (hashes
+only are stored). Stateless classify/enrich lives on `atom-services` (`:4010`):
+`POST /v1/classify`, `/v1/enrich`, `/v1/process`.
+
+**Docs:** [run-your-own-node](./docs/run-your-own-node.md) ·
+[architecture](./docs/architecture.md) · [configuration](./docs/configuration.md) ·
+[troubleshooting](./docs/troubleshooting.md)
+
+## Migrations
+
+Two migration systems, both applied automatically by `docker compose up`:
+
+- **KG (Postgres):** Drizzle-generated SQL in `packages/database-kg/drizzle/` plus custom
+  TimescaleDB post-migrations (hypertable + continuous aggregates). `bun run db:generate` /
+  `bun run db:migrate` from the package.
+- **Event store (TimescaleDB):** sequential SQL in `migrations/timescale/`, tracked in a
+  `schema_migrations` table so each file applies exactly once.
 
 ## Tiered configuration
 
@@ -76,23 +108,39 @@ The minimal tier needs **zero paid accounts**. Capabilities are opt-in.
 
 | Tier | Adds | Paid accounts |
 | --- | --- | --- |
-| **Minimal** | datastores + indexer + projections + workers + api | **none** |
-| **+ Search** | embeddings | OpenAI *or* a pluggable provider |
-| **+ Feed** | recommendation service | none (TimescaleDB only) |
-| **+ Trust** | claim signing (atom-warden) | signer keys; OAuth for verification |
-| **+ Rich enrichment** | provider plugins | optional per-provider keys |
+| **Minimal** | datastores + workers + api | **none** |
+| **+ Indexing** | `--profile indexing`: indexer + projections | none (public RPC works) |
+| **+ Rich enrichment** | provider plugins | optional per-provider keys (Spotify, GitHub, Etherscan, …) |
+| **+ Search** | embeddings *(coming)* | OpenAI *or* a pluggable provider |
+| **+ Feed** | recommendation service *(coming)* | none (TimescaleDB only) |
 
 ## Repository layout
 
 ```
 intuition-core/
-├─ packages/        # data layer — database schemas (Drizzle)
-├─ services/        # deployable TypeScript services (api, workers, …)
-├─ crates/          # Rust services (indexer, projections, …)   [coming]
+├─ crates/          # Rust: shared, rindexer-ingestion, projections, curves
+├─ packages/        # TypeScript libraries: atom-* intelligence, database schemas, types
+├─ services/        # deployable TypeScript services: api, workers, atom-services
+├─ migrations/      # event-store SQL migrations (TimescaleDB)
+├─ docker/          # per-service Dockerfiles
 ├─ tooling/         # shared build config
-├─ docker-compose.datastores.yml   # the four datastores
-└─ docs/            # run-your-own-node, architecture, plugin guides   [coming]
+├─ docker-compose.yml              # the one button
+└─ docker-compose.datastores.yml   # datastores only
 ```
+
+## Development
+
+```bash
+bun install               # Bun only — enforced by preinstall
+bun run typecheck         # all workspaces
+bun run test              # bun:test suites
+bunx @biomejs/biome check .
+cargo check --workspace   # the Rust crates
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the ground rules — notably that
+deterministic IDs, classification output, and schema are identity-sensitive
+surfaces with required review.
 
 ## Boundaries
 

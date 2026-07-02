@@ -2,8 +2,9 @@
 #
 #   docker compose -f docker-compose.datastores.yml up -d
 #
-# Brings up the four datastores the backend runs on, with healthchecks so
-# dependent services can wait on them. Connection strings match .env.example.
+# Brings up the datastores the backend runs on — two Postgres databases
+# (knowledge graph + Timescale event store) and Redis — with healthchecks so
+# dependent services can wait on them. Connection strings match example.env.
 # This is the minimal-tier foundation; services are layered on top in the
 # full docker-compose.yml.
 
@@ -50,23 +51,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # SurrealDB — atom/triple graph read model.
-  surrealdb:
-    image: surrealdb/surrealdb:v2
-    # The image's default non-root user can't create the RocksDB directory on a
-    # fresh named volume (root-owned). Local dev datastore, so run as root.
-    user: root
-    command: start --user root --pass root --bind 0.0.0.0:8000 rocksdb:/data/surreal.db
-    ports:
-      - "8000:8000"
-    volumes:
-      - surreal_data:/data
-    healthcheck:
-      test: ["CMD", "/surreal", "isready", "--conn", "http://localhost:8000"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   # Redis — indexer leader election.
   redis:
     image: redis:7-alpine
@@ -83,5 +67,4 @@ services:
 volumes:
   postgres_kg_data:
   timescale_data:
-  surreal_data:
   redis_data:

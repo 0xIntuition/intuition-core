@@ -1,0 +1,23 @@
+{
+	"items": [
+		{
+			"id": "abc123xyz89",
+			"snippet": {
+				"title": "Acme Demo",
+				"description": "A product demo.",
+				"channelTitle": "Acme Channel",
+				"channelId": "UC12345",
+				"publishedAt": "2026-01-01T00:00:00Z",
+				"thumbnails": {
+					"high": { "url": "https://img.youtube.com/vi/abc123xyz89/hqdefault.jpg" }
+				},
+				"tags": ["demo", "acme"]
+			},
+			"contentDetails": { "duration": "PT5M10S" },
+			"statistics": { "viewCount": "1024", "likeCount": "256" },
+			"player": {
+				"embedHtml": "<iframe src=\"https://www.youtube.com/embed/abc123xyz89\"></iframe>"
+			}
+		}
+	]
+}

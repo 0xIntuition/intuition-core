@@ -39,3 +39,142 @@ services:
              cd packages/database-kg &&
              bun src/migrate.ts"
     restart: "no"
+
+  # One-shot event-store migrations for TimescaleDB (the indexer's DDL:
+  # event_store hypertable, typed event tables, projection read models).
+  timescale-migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.timescale-migrations
+    environment:
+      DATABASE_URL: postgresql://intuition:intuition@timescale:5432/intuition_timescale
+    depends_on:
+      timescale:
+        condition: service_healthy
+    restart: "no"
+
+  # Query API — auth-free, read-only REST over the graph you indexed.
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    environment:
+      DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
+      API_PORT: "3000"
+      API_ALLOWED_ORIGINS: ${API_ALLOWED_ORIGINS:-}
+      # open | public-read | gated — writes require an API key unless "open".
+      # Mint keys with: bun --filter @0xintuition/api run keys:create
+      API_AUTH: ${API_AUTH:-public-read}
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Atom services — stateless classify/enrich over HTTP. Hand it any URL:
+  #   curl -X POST localhost:4010/v1/process -d '{"rawInput":"https://…"}'
+  # Provider keys are optional; plugins degrade gracefully without them.
+  atom-services:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.atom-services
+    environment:
+      ATOM_SERVICES_PORT: "4010"
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      BRANDFETCH_API_KEY: ${BRANDFETCH_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+    ports:
+      - "4010:4010"
+
+  # Workers — parse → classify → enrich pipeline over kg.nodes. One image,
+  # three modes. Provider API keys are optional; enrichment degrades gracefully.
+  workers-parse:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.workers
+    image: intuition-core/workers:local
+    command: ["kg-parse-worker"]
+    environment: &workers-env
+      DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      BRANDFETCH_API_KEY: ${BRANDFETCH_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  workers-classification:
+    image: intuition-core/workers:local
+    command: ["kg-classification-worker"]
+    environment: *workers-env
+    depends_on:
+      workers-parse:
+        condition: service_started
+
+  workers-enrichment:
+    image: intuition-core/workers:local
+    command: ["kg-enrichment-worker"]
+    environment: *workers-env
+    depends_on:
+      workers-parse:
+        condition: service_started
+
+  # ── Indexing tier (profile: indexing) ──────────────────────────────────────
+  # Needs chain config in .env (INTUITION_RPC_URL, CHAIN_ID,
+  # MULTIVAULT_CONTRACT_ADDRESS, MULTIVAULT_START_BLOCK). Optional
+  # MULTIVAULT_END_BLOCK bounds the range for cheap test runs.
+  #
+  #   docker compose --profile indexing up
+
+  indexer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ingestion
+    profiles: [indexing]
+    environment:
+      DATABASE_URL: postgresql://intuition:intuition@timescale:5432/intuition_timescale
+      REDIS_URL: redis://redis:6379
+      # Required by the indexer binary — it exits with a clear error if unset.
+      INTUITION_RPC_URL: ${INTUITION_RPC_URL:-}
+      CHAIN_ID: ${CHAIN_ID:-}
+      MULTIVAULT_CONTRACT_ADDRESS: ${MULTIVAULT_CONTRACT_ADDRESS:-}
+      MULTIVAULT_START_BLOCK: ${MULTIVAULT_START_BLOCK:-}
+      MULTIVAULT_END_BLOCK: ${MULTIVAULT_END_BLOCK:-}
+      RINDEXER_HEALTH_PORT: "8080"
+      METRICS_PORT: "9091"
+    ports:
+      - "9091:9091"
+    depends_on:
+      timescale-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  projections:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.projections
+    profiles: [indexing]
+    environment:
+      DATABASE_URL: postgresql://intuition:intuition@timescale:5432/intuition_timescale
+      DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
+      # Core runs on Postgres only. An empty SURREAL_DB_URL selects the
+      # projections' built-in no-op sink (the same configuration Intuition's
+      # own greenfield environments run) — graph writes go to PostgreSQL.
+      SURREAL_DB_URL: ""
+      PROJECTIONS_METRICS_PORT: "9092"
+      # Lean default: skip the product-analytics batch projections.
+      DISABLED_PROJECTIONS: ${DISABLED_PROJECTIONS:-funnel_tracker,user_activity_batch}
+    ports:
+      - "9092:9092"
+    depends_on:
+      timescale-migrate:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
