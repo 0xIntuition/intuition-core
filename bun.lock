@@ -22,6 +22,16 @@
         "typescript": "catalog:",
       },
     },
+    "packages/atom-classification-example-plugin": {
+      "name": "@0xintuition/atom-classification-example-plugin",
+      "dependencies": {
+        "@0xintuition/atom-classification": "workspace:*",
+      },
+      "devDependencies": {
+        "@0xintuition/tsconfig": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
     "packages/atom-enrichment": {
       "name": "@0xintuition/atom-enrichment",
       "dependencies": {
@@ -162,6 +172,8 @@
     "@0xintuition/api": ["@0xintuition/api@workspace:services/api"],
 
     "@0xintuition/atom-classification": ["@0xintuition/atom-classification@workspace:packages/atom-classification"],
+
+    "@0xintuition/atom-classification-example-plugin": ["@0xintuition/atom-classification-example-plugin@workspace:packages/atom-classification-example-plugin"],
 
     "@0xintuition/atom-enrichment": ["@0xintuition/atom-enrichment@workspace:packages/atom-enrichment"],
 
