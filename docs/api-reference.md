@@ -136,6 +136,38 @@ Filters: `subject_id` · `predicate_id` · `object_id` (combinable), plus
 The predicate registry — 14 baseline predicates are seeded on first migrate
 (`references`, `follows`, `has-tag`, `trusted-in-the-context-of`, …).
 
+### `GET /api/schema`
+
+Machine-readable metadata for base tables in the local `kg` schema. This is
+read-only and unauthenticated, including in `API_AUTH=gated`, so tooling can
+discover available KG tables without minting a key. The response is cached by
+the API process because schema metadata does not change at runtime.
+
+```json
+{
+  "data": {
+    "schema": "kg",
+    "generatedAt": "2026-07-03T00:00:00.000Z",
+    "tables": [
+      {
+        "name": "kg.nodes",
+        "schema": "kg",
+        "columns": [
+          { "name": "id", "type": "text", "nullable": false, "default": null, "position": 1 }
+        ],
+        "primaryKey": ["id"],
+        "foreignKeys": [],
+        "constraints": [],
+        "indexes": []
+      }
+    ]
+  }
+}
+```
+
+The separate TimescaleDB schema is documented in
+[data-model.md](./data-model.md) and is not returned by this endpoint.
+
 ### `GET /api/stats`
 
 ```json

@@ -17,6 +17,7 @@ import { cors } from 'hono/cors';
 import { type ApiKeyIdentity, bearerToken, resolveApiKey } from './auth';
 import type { ApiConfig } from './config';
 import { createRateLimiter } from './rate-limit';
+import { type KgSchemaMetadata, loadKgSchemaMetadata } from './schema';
 
 type AppEnv = {
 	Variables: {
@@ -26,6 +27,11 @@ type AppEnv = {
 
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 25;
+const GATED_PUBLIC_PATHS = new Set(['/health', '/api/schema']);
+
+export function isGatedPublicPath(path: string): boolean {
+	return GATED_PUBLIC_PATHS.has(path);
+}
 
 function parsePagination(query: Record<string, string | undefined>) {
 	const limit = Math.min(
@@ -66,6 +72,7 @@ export function detectRawType(input: string): KgNodeRawType {
 export function createApp(config: ApiConfig) {
 	const connection = createKgConnection({ connectionString: config.databaseKgUrl });
 	const db: KgDb = connection.db;
+	let schemaMetadataPromise: Promise<KgSchemaMetadata> | null = null;
 
 	const app = new Hono<AppEnv>();
 
@@ -96,7 +103,7 @@ export function createApp(config: ApiConfig) {
 
 	// `gated` mode: everything (except liveness) requires a key.
 	app.use('*', async (c, next) => {
-		if (config.authMode === 'gated' && c.req.path !== '/health' && !c.get('apiKey')) {
+		if (config.authMode === 'gated' && !isGatedPublicPath(c.req.path) && !c.get('apiKey')) {
 			return c.json({ error: 'api_key_required' }, 401);
 		}
 		return next();
@@ -159,6 +166,15 @@ export function createApp(config: ApiConfig) {
 		} catch {
 			return c.json({ status: 'degraded', database: 'unreachable' }, 503);
 		}
+	});
+
+	app.get('/api/schema', async (c) => {
+		schemaMetadataPromise ??= loadKgSchemaMetadata(db).catch((error) => {
+			schemaMetadataPromise = null;
+			throw error;
+		});
+		const metadata = await schemaMetadataPromise;
+		return c.json({ data: metadata });
 	});
 
 	// ── Atoms (kg.nodes) ────────────────────────────────────────────────────
