@@ -73,6 +73,13 @@ make smoke-index  # 500-block public testnet indexing window → projections →
 Smoke commands run their own disposable Compose projects with random host ports,
 so they can run while your normal `docker compose up` stack is still running.
 
+Explore the local database after bootstrapping or indexing:
+
+```bash
+make explore      # table counts, recent atoms, pipeline status, predicates, artifacts
+bun run explore
+```
+
 Raw commands still work:
 
 ```bash

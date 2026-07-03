@@ -13,6 +13,7 @@
 		"build": "turbo run build",
 		"build:packages": "turbo run build --filter './packages/*'",
 		"bootstrap": "scripts/bootstrap.sh",
+		"explore": "scripts/explore-data.sh",
 		"smoke": "scripts/smoke-test.sh",
 		"smoke:index": "scripts/smoke-index.sh",
 		"typecheck": "turbo run typecheck",
