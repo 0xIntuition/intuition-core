@@ -19,6 +19,8 @@
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
 		"dev": "turbo run dev",
+		"dev:local": "scripts/dev-local.sh",
+		"dev:local:dry-run": "scripts/dev-local.sh --dry-run",
 		"dev:packages": "turbo watch dev --filter './packages/*'",
 		"lint": "turbo run lint",
 		"format": "turbo run format",
