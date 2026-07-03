@@ -11,9 +11,9 @@ tears the stack down.
 
 Environment:
   SMOKE_PROJECT_NAME        Compose project name (default: intuition-core-smoke)
-  API_URL                   API base URL (default: http://localhost:3000)
+  API_URL                   API base URL (default: discovered from Compose)
   SMOKE_TIMEOUT_SECONDS     Health/worker timeout (default: 180)
-  SMOKE_BUILD=1             Force Docker image rebuilds before starting
+  SMOKE_BUILD=0             Reuse existing Docker images instead of rebuilding
   KEEP_SMOKE_STACK=1        Leave containers and volumes running after the test
 USAGE
 }
@@ -31,15 +31,21 @@ case "${1:-}" in
 esac
 
 PROJECT_NAME=${SMOKE_PROJECT_NAME:-intuition-core-smoke}
-API_URL=${API_URL:-http://localhost:3000}
+API_URL=${API_URL:-}
 TIMEOUT_SECONDS=${SMOKE_TIMEOUT_SECONDS:-180}
 PREDICATE_ID=0x0840db4575bf6bdb49b66c21dc40cb4cbb5e1b26bd239d7f56b126c14e452c07
 SMOKE_ACCOUNT=0x0000000000000000000000000000000000000001
+AUTH_HEADER_FILE=
 
 WORK_DIR=$(mktemp -d)
 
 compose() {
-	docker compose -p "$PROJECT_NAME" "$@"
+	API_HOST_PORT=${API_HOST_PORT:-0} \
+		ATOM_SERVICES_HOST_PORT=${ATOM_SERVICES_HOST_PORT:-0} \
+		POSTGRES_KG_HOST_PORT=${POSTGRES_KG_HOST_PORT:-0} \
+		TIMESCALE_HOST_PORT=${TIMESCALE_HOST_PORT:-0} \
+		REDIS_HOST_PORT=${REDIS_HOST_PORT:-0} \
+		docker compose -p "$PROJECT_NAME" "$@"
 }
 
 cleanup() {
@@ -63,6 +69,15 @@ fail() {
 
 need() {
 	command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
+}
+
+validate_positive_integer() {
+	name=$1
+	value=$2
+	case "$value" in
+		"" | *[!0-9]*) fail "$name must be a positive integer" ;;
+	esac
+	[ "$value" -gt 0 ] || fail "$name must be greater than 0"
 }
 
 json_get() {
@@ -104,7 +119,7 @@ api_post() {
 	output=$3
 	status=$(curl -sS -o "$output" -w "%{http_code}" \
 		-X POST "$API_URL$path" \
-		-H "Authorization: Bearer $API_KEY" \
+		-H "@$AUTH_HEADER_FILE" \
 		-H 'Content-Type: application/json' \
 		--data "$body") ||
 		fail "POST $path failed"
@@ -112,6 +127,15 @@ api_post() {
 		2*) ;;
 		*) fail "POST $path returned HTTP $status: $(cat "$output")" ;;
 	esac
+}
+
+set_api_url_from_compose() {
+	[ -z "$API_URL" ] || return 0
+	address=$(compose port api 3000 | tail -n 1)
+	[ -n "$address" ] || fail "could not discover API host port from Docker Compose"
+	port=${address##*:}
+	[ -n "$port" ] || fail "could not parse API host port from: $address"
+	API_URL="http://127.0.0.1:$port"
 }
 
 wait_for_api() {
@@ -159,15 +183,17 @@ wait_for_atom_processing() {
 need bun
 need curl
 need docker
+validate_positive_integer SMOKE_TIMEOUT_SECONDS "$TIMEOUT_SECONDS"
 
 printf 'Starting Docker Compose project %s\n' "$PROJECT_NAME"
 compose --profile indexing down -v --remove-orphans >/dev/null 2>&1 || true
-if [ "${SMOKE_BUILD:-0}" = "1" ]; then
-	compose up -d --build
-else
+if [ "${SMOKE_BUILD:-1}" = "0" ]; then
 	compose up -d
+else
+	compose up -d --build
 fi
 
+set_api_url_from_compose
 wait_for_api
 
 printf 'Minting local API key\n'
@@ -177,11 +203,14 @@ key_output=$(compose exec -T api bun scripts/keys.ts create \
 	fail "could not mint local API key"
 API_KEY=$(printf '%s\n' "$key_output" | awk '/ik_/ { for (i = 1; i <= NF; i++) if ($i ~ /^ik_/) { print $i; exit } }')
 [ -n "$API_KEY" ] || fail "could not parse minted API key"
+AUTH_HEADER_FILE=$WORK_DIR/auth-header
+(umask 077 && printf 'Authorization: Bearer %s\n' "$API_KEY" > "$AUTH_HEADER_FILE")
 
 subject_body=$WORK_DIR/subject.json
 object_body=$WORK_DIR/object.json
 atom_body=$WORK_DIR/atom.json
 triple_body=$WORK_DIR/triple.json
+triple_read_body=$WORK_DIR/triple-read.json
 triples_body=$WORK_DIR/triples.json
 stats_body=$WORK_DIR/stats.json
 
@@ -205,6 +234,17 @@ printf 'Verifying atom triples query\n'
 api_get "/api/atoms/$subject_id/triples" "$triples_body"
 touching_count=$(json_file_get "$triples_body" pagination.count)
 [ "$touching_count" -gt 0 ] || fail "expected at least one triple touching $subject_id"
+
+printf 'Verifying created triple\n'
+api_get "/api/triples/$triple_id" "$triple_read_body"
+read_triple_id=$(json_file_get "$triple_read_body" data.id)
+read_subject_id=$(json_file_get "$triple_read_body" data.subjectId)
+read_predicate_id=$(json_file_get "$triple_read_body" data.predicateId)
+read_object_id=$(json_file_get "$triple_read_body" data.objectId)
+[ "$read_triple_id" = "$triple_id" ] || fail "expected triple id $triple_id, got $read_triple_id"
+[ "$read_subject_id" = "$subject_id" ] || fail "expected triple subject $subject_id, got $read_subject_id"
+[ "$read_predicate_id" = "$PREDICATE_ID" ] || fail "expected triple predicate $PREDICATE_ID, got $read_predicate_id"
+[ "$read_object_id" = "$object_id" ] || fail "expected triple object $object_id, got $read_object_id"
 
 printf 'Verifying API stats\n'
 api_get /api/stats "$stats_body"

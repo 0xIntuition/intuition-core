@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: intuition
       POSTGRES_DB: intuition_kg
     ports:
-      - "5432:5432"
+      - "${POSTGRES_KG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_kg_data:/home/postgres/pgdata/data
     healthcheck:
@@ -42,7 +42,7 @@ services:
       POSTGRES_PASSWORD: intuition
       POSTGRES_DB: intuition_timescale
     ports:
-      - "5433:5432"
+      - "${TIMESCALE_HOST_PORT:-5433}:5432"
     volumes:
       - timescale_data:/home/postgres/pgdata/data
     healthcheck:
@@ -55,7 +55,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
