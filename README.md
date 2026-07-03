@@ -105,7 +105,7 @@ Expected response shapes:
 ```
 
 ```json
-{ "data": [{ "slug": "references", "label": "References", "...": "..." }] }
+{ "data": [{ "slug": "created-by", "label": "Created By", "...": "..." }] }
 ```
 
 Mint a write key. Prefer the Make target because it supplies the host Postgres
@@ -157,7 +157,7 @@ curl "http://localhost:3000/api/atoms/$ATOM_ID"
 curl "http://localhost:3000/api/atoms?limit=5"
 ```
 
-Expected shape:
+Expected single-atom shape:
 
 ```json
 {
@@ -169,6 +169,15 @@ Expected shape:
     "classificationStatus": "completed",
     "enrichmentStatus": "completed"
   }
+}
+```
+
+Expected list shape:
+
+```json
+{
+  "data": [{ "id": "0x...", "rawType": "http_uri", "...": "..." }],
+  "pagination": { "limit": 5, "offset": 0, "count": 1 }
 }
 ```
 

@@ -5,7 +5,7 @@ Intuition Core uses two local databases:
 - **Postgres-KG** (`intuition_kg`) stores the queryable knowledge graph:
   accounts, atoms, triples, predicates, enrichment artifacts, adjacency, and API
   keys.
-- **TimescaleDB** (`intuition`) stores chain events and market projections:
+- **TimescaleDB** (`intuition_timescale`) stores chain events and market projections:
   event-store rows, typed event tables, vaults, positions, signals,
   leaderboards, and protocol stats.
 
@@ -22,7 +22,7 @@ When running the default Docker Compose stack:
 psql postgresql://intuition:intuition@localhost:5432/intuition_kg
 
 # Chain event store and market read models
-psql postgresql://intuition:intuition@localhost:5433/intuition
+psql postgresql://intuition:intuition@localhost:5433/intuition_timescale
 ```
 
 Useful helpers:

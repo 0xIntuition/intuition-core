@@ -8,7 +8,7 @@ databases.
 psql postgresql://intuition:intuition@localhost:5432/intuition_kg
 
 # Chain event store and market read models
-psql postgresql://intuition:intuition@localhost:5433/intuition
+psql postgresql://intuition:intuition@localhost:5433/intuition_timescale
 ```
 
 Queries marked **indexing profile** need `docker compose --profile indexing up`

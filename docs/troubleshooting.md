@@ -43,7 +43,11 @@ automatically from `.env`.
 The API defaults to `API_AUTH=public-read`: reads are open, writes need a key.
 Mint one
 (`make keys ACCOUNT=0x0000000000000000000000000000000000000001 KEY_NAME=me`)
-or set `API_AUTH=open` for local development.
+for normal local development.
+
+`API_AUTH=open` allows unauthenticated writes. Use it only for intentional,
+disposable, loopback-only experiments; never use it on shared, remote, or
+tunneled hosts.
 
 ## Port already in use (3000 / 4010 / 4110)
 
