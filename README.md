@@ -63,6 +63,13 @@ Prefer Make?
 make bootstrap
 ```
 
+Verify the local stack end to end:
+
+```bash
+make smoke        # API key → atom → workers → triple → stats
+make smoke-index  # 500-block public testnet indexing window → projections → API stats
+```
+
 Raw commands still work:
 
 ```bash

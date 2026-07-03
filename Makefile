@@ -48,13 +48,12 @@ status: ## Show Docker Compose service status.
 	$(COMPOSE) --profile indexing ps
 
 .PHONY: smoke
-smoke: ## Check API health, stats, and predicates.
-	curl -fsS $(API_URL)/health
-	@printf '\n'
-	curl -fsS $(API_URL)/api/stats
-	@printf '\n'
-	curl -fsS $(API_URL)/api/predicates >/dev/null
-	@printf 'predicates: ok\n'
+smoke: ## Run the local API/workers/triples integration smoke test.
+	@scripts/smoke-test.sh
+
+.PHONY: smoke-index
+smoke-index: ## Run the bounded public testnet indexing smoke test.
+	@scripts/smoke-index.sh
 
 .PHONY: keys
 keys: ## Mint a local API key. Override KEY_NAME and ACCOUNT as needed.

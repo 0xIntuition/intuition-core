@@ -162,6 +162,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.ingestion
+    image: intuition-core/indexer:local
     profiles: [indexing]
     environment:
       DATABASE_URL: postgresql://intuition:intuition@timescale:5432/intuition_timescale
@@ -186,6 +187,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.projections
+    image: intuition-core/projections:local
     profiles: [indexing]
     environment:
       DATABASE_URL: postgresql://intuition:intuition@timescale:5432/intuition_timescale
