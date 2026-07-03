@@ -32,6 +32,20 @@ esac
 
 PROJECT_NAME=${COMPOSE_PROJECT_NAME:-intuition-core}
 PSQL_MODE=compose
+WORK_DIR=$(mktemp -d)
+PGHOST_VALUE=
+PGPORT_VALUE=
+PGUSER_VALUE=
+PGDATABASE_VALUE=
+PGPASSFILE_VALUE=
+
+cleanup() {
+	rm -rf "$WORK_DIR"
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 fail() {
 	printf 'explore-data: %s\n' "$*" >&2
@@ -48,6 +62,32 @@ compose() {
 
 select_psql_mode() {
 	if [ -n "${DATABASE_KG_URL:-}" ] && command -v psql >/dev/null 2>&1; then
+		need bun
+		parse_dir=$WORK_DIR/pg
+		mkdir -p "$parse_dir"
+		PARSE_DIR=$parse_dir bun -e '
+const url = new URL(process.env.DATABASE_KG_URL);
+if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
+	throw new Error("DATABASE_KG_URL must use postgres:// or postgresql://");
+}
+const dir = process.env.PARSE_DIR;
+await Bun.write(`${dir}/host`, url.hostname || "localhost");
+await Bun.write(`${dir}/port`, url.port || "5432");
+await Bun.write(`${dir}/user`, decodeURIComponent(url.username || ""));
+await Bun.write(`${dir}/database`, decodeURIComponent(url.pathname.replace(/^\//, "")));
+await Bun.write(`${dir}/password`, decodeURIComponent(url.password || ""));
+'
+		PGHOST_VALUE=$(cat "$parse_dir/host")
+		PGPORT_VALUE=$(cat "$parse_dir/port")
+		PGUSER_VALUE=$(cat "$parse_dir/user")
+		PGDATABASE_VALUE=$(cat "$parse_dir/database")
+		password_value=$(cat "$parse_dir/password")
+		[ -n "$PGUSER_VALUE" ] || fail "DATABASE_KG_URL must include a username"
+		[ -n "$PGDATABASE_VALUE" ] || fail "DATABASE_KG_URL must include a database name"
+		PGPASSFILE_VALUE=$WORK_DIR/pgpass
+		(umask 077 && printf '%s:%s:%s:%s:%s\n' \
+			"$PGHOST_VALUE" "$PGPORT_VALUE" "$PGDATABASE_VALUE" "$PGUSER_VALUE" "$password_value" \
+			> "$PGPASSFILE_VALUE")
 		PSQL_MODE=host
 		return 0
 	fi
@@ -63,7 +103,12 @@ select_psql_mode() {
 run_sql() {
 	sql=$1
 	if [ "$PSQL_MODE" = "host" ]; then
-		psql "$DATABASE_KG_URL" -v ON_ERROR_STOP=1 -P pager=off -c "$sql"
+		PGHOST=$PGHOST_VALUE \
+			PGPORT=$PGPORT_VALUE \
+			PGUSER=$PGUSER_VALUE \
+			PGDATABASE=$PGDATABASE_VALUE \
+			PGPASSFILE=$PGPASSFILE_VALUE \
+			psql -v ON_ERROR_STOP=1 -P pager=off -c "$sql"
 	else
 		compose exec -T postgres-kg psql -U intuition -d intuition_kg \
 			-v ON_ERROR_STOP=1 -P pager=off -c "$sql"
