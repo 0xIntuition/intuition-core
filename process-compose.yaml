@@ -41,6 +41,9 @@ processes:
     namespace: standard
     command: "scripts/timescale-migrate.sh"
     log_location: .logs/process-compose/timescale-migrate.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_URL=postgresql://intuition:intuition@localhost:5433/intuition_timescale"
     depends_on:
       datastores:
         condition: process_healthy
@@ -132,8 +135,6 @@ processes:
     depends_on:
       db-kg-migrate:
         condition: process_completed_successfully
-      atom-services:
-        condition: process_healthy
     readiness_probe:
       http_get:
         host: 127.0.0.1
@@ -159,8 +160,6 @@ processes:
     depends_on:
       db-kg-migrate:
         condition: process_completed_successfully
-      atom-services:
-        condition: process_healthy
     readiness_probe:
       http_get:
         host: 127.0.0.1

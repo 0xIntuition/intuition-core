@@ -239,7 +239,9 @@ bun run dev:local -- indexing
 ```
 
 Use `bun run dev:local:dry-run -- indexing` to validate the merged
-Process Compose config without starting services.
+Process Compose config without starting services. Dry-run does not check native
+indexing prerequisites; starting `indexing` also needs Rust/Cargo, `envsubst`
+(`brew install gettext` on macOS), and valid chain variables.
 
 **Create your first atom** (mint a key once, then post anything — a URL,
 string, or JSON):

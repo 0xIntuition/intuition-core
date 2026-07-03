@@ -48,7 +48,7 @@ processes:
       http_get:
         host: 127.0.0.1
         scheme: http
-        path: /health/startup
+        path: /health/ready
         port: 9092
       initial_delay_seconds: 5
       period_seconds: 10
