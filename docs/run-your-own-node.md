@@ -13,6 +13,17 @@ accounts** — the Intuition testnet RPC is public and keyless.
 
 ```bash
 git clone <this repo> && cd intuition-core
+scripts/bootstrap.sh
+```
+
+That runs preflight checks, creates `.env` from `example.env` when needed,
+installs dependencies, starts Docker Compose, waits for `localhost:3000/health`,
+and prints the first API commands. `make bootstrap` is the equivalent Makefile
+entrypoint.
+
+Manual startup remains available:
+
+```bash
 cp example.env .env
 bun install
 docker compose up
