@@ -2,7 +2,13 @@ openapi: 3.1.0
 info:
   title: Intuition Core Query API
   version: 0.1.0
-  description: REST API for reading and writing the local Intuition knowledge graph.
+  description: |
+    REST API for reading and writing the local Intuition knowledge graph.
+
+    Authentication is controlled by `API_AUTH`:
+    - `public-read` (default): read endpoints are open; write endpoints require a writable bearer API key.
+    - `gated`: all endpoints require a valid bearer API key except `/health` and `/api/schema`.
+    - `open`: no endpoint requires a key; writes are unattributed.
 servers:
   - url: http://localhost:3000
     description: Local Docker Compose stack
@@ -60,6 +66,9 @@ paths:
     get:
       tags: [Atoms]
       summary: List public atoms
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
@@ -112,7 +121,6 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 64000
-              additionalProperties: false
             examples:
               githubRepo:
                 value:
@@ -161,6 +169,9 @@ paths:
     get:
       tags: [Atoms]
       summary: Get one public atom
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/TermId"
       responses:
@@ -187,6 +198,9 @@ paths:
       tags: [Atoms, Triples]
       summary: List public triples touching an atom
       description: Matches the atom id in subject, predicate, or object position.
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/TermId"
         - $ref: "#/components/parameters/Limit"
@@ -216,6 +230,9 @@ paths:
     get:
       tags: [Triples]
       summary: List public triples
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
@@ -275,7 +292,6 @@ paths:
                   type: string
                 object_id:
                   type: string
-              additionalProperties: false
             examples:
               claim:
                 value:
@@ -313,6 +329,9 @@ paths:
     get:
       tags: [Triples]
       summary: Get one public triple
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/TermId"
       responses:
@@ -338,6 +357,9 @@ paths:
     get:
       tags: [Predicates]
       summary: List predicate registry
+      security:
+        - bearerAuth: []
+        - {}
       responses:
         "200":
           description: Seeded predicate registry ordered by slug.
@@ -361,6 +383,9 @@ paths:
     get:
       tags: [Stats]
       summary: Get public graph counts
+      security:
+        - bearerAuth: []
+        - {}
       responses:
         "200":
           description: Counts for active public atoms/triples and all accounts/predicates.
@@ -420,7 +445,7 @@ components:
       description: Protocol atom or triple id.
   responses:
     ApiKeyRequired:
-      description: The endpoint requires an API key in the current auth mode.
+      description: The endpoint requires an API key in the current auth mode, or the presented key is invalid/revoked.
       content:
         application/json:
           schema:
@@ -429,6 +454,9 @@ components:
             required:
               value:
                 error: api_key_required
+            invalid:
+              value:
+                error: invalid_api_key
     ApiKeyNotWritable:
       description: The presented API key is read-only.
       content:

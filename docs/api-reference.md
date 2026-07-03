@@ -156,14 +156,28 @@ the API process because schema metadata does not change at runtime.
           { "name": "id", "type": "text", "nullable": false, "default": null, "position": 1 }
         ],
         "primaryKey": ["id"],
-        "foreignKeys": [],
-        "constraints": [],
-        "indexes": []
+        "foreignKeys": [
+          {
+            "name": "nodes_created_by_accounts_id_fk",
+            "columns": ["created_by"],
+            "references": { "schema": "kg", "table": "kg.accounts", "columns": ["id"] },
+            "definition": "FOREIGN KEY (created_by) REFERENCES kg.accounts(id) ON DELETE SET NULL"
+          }
+        ],
+        "constraints": [
+          { "name": "nodes_pkey", "type": "primary_key", "columns": ["id"], "definition": "PRIMARY KEY (id)" }
+        ],
+        "indexes": [
+          { "name": "idx_nodes_classification_type", "definition": "CREATE INDEX ..." }
+        ]
       }
     ]
   }
 }
 ```
+
+The example is shortened; live responses include every base-table column,
+constraint, foreign key, and index returned by Postgres metadata.
 
 The separate TimescaleDB schema is documented in
 [data-model.md](./data-model.md) and is not returned by this endpoint.
