@@ -41,8 +41,9 @@ automatically from `.env`.
 ## Writes return 401 `api_key_required`
 
 The API defaults to `API_AUTH=public-read`: reads are open, writes need a key.
-Mint one (`bun run keys:create -- --name me --account 0x…`) or set
-`API_AUTH=open` for local development.
+Mint one
+(`make keys ACCOUNT=0x0000000000000000000000000000000000000001 KEY_NAME=me`)
+or set `API_AUTH=open` for local development.
 
 ## Port already in use (3000 / 4010 / 4110)
 
