@@ -312,9 +312,10 @@ the key's account** (`created_by`). Three modes via `API_AUTH`:
 | `GET /api/atoms` · `/api/atoms/:id` | list (filter/search) and fetch atoms |
 | `GET /api/atoms/:id/triples` | every triple touching an atom, any position (hexastore) |
 | `GET /api/triples` · `/api/triples/:id` | filter by subject / predicate / object |
-| `GET /api/predicates` · `/api/stats` · `/health` | registry, counts, liveness |
+| `GET /api/predicates` · `/api/schema` · `/api/stats` · `/health` | registry, KG schema metadata, counts, liveness |
 
 Requests, responses, and error shapes: **[docs/api-reference.md](./docs/api-reference.md)**.
+OpenAPI 3.1 spec: **[docs/openapi.yaml](./docs/openapi.yaml)**.
 
 ## Configuration tiers
 
