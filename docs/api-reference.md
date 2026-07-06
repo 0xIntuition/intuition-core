@@ -136,6 +136,52 @@ Filters: `subject_id` · `predicate_id` · `object_id` (combinable), plus
 The predicate registry — 14 baseline predicates are seeded on first migrate
 (`references`, `follows`, `has-tag`, `trusted-in-the-context-of`, …).
 
+### `GET /api/schema`
+
+Machine-readable metadata for base tables in the local `kg` schema. This is
+read-only and unauthenticated, including in `API_AUTH=gated`, so tooling can
+discover available KG tables without minting a key. The response is cached by
+the API process because schema metadata does not change at runtime.
+
+```json
+{
+  "data": {
+    "schema": "kg",
+    "generatedAt": "2026-07-03T00:00:00.000Z",
+    "tables": [
+      {
+        "name": "kg.nodes",
+        "schema": "kg",
+        "columns": [
+          { "name": "id", "type": "text", "nullable": false, "default": null, "position": 1 }
+        ],
+        "primaryKey": ["id"],
+        "foreignKeys": [
+          {
+            "name": "nodes_created_by_accounts_id_fk",
+            "columns": ["created_by"],
+            "references": { "schema": "kg", "table": "kg.accounts", "columns": ["id"] },
+            "definition": "FOREIGN KEY (created_by) REFERENCES kg.accounts(id) ON DELETE SET NULL"
+          }
+        ],
+        "constraints": [
+          { "name": "nodes_pkey", "type": "primary_key", "columns": ["id"], "definition": "PRIMARY KEY (id)" }
+        ],
+        "indexes": [
+          { "name": "idx_nodes_classification_type", "definition": "CREATE INDEX ..." }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The example is shortened; live responses include every base-table column,
+constraint, foreign key, and index returned by Postgres metadata.
+
+The separate TimescaleDB schema is documented in
+[data-model.md](./data-model.md) and is not returned by this endpoint.
+
 ### `GET /api/stats`
 
 ```json

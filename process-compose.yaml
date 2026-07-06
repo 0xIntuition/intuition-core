@@ -1,0 +1,173 @@
+version: "0.5"
+
+log_level: info
+log_length: 5000
+ordered_shutdown: true
+
+processes:
+  datastores:
+    description: "Postgres KG, TimescaleDB, and Redis via Docker Compose."
+    namespace: standard
+    command: "bun run datastores:up"
+    is_daemon: true
+    launch_timeout_seconds: 10
+    log_location: .logs/process-compose/datastores.log
+    shutdown:
+      command: "bun run datastores:down"
+      timeout_seconds: 30
+    readiness_probe:
+      exec:
+        command: "scripts/datastores-ready.sh"
+      initial_delay_seconds: 2
+      period_seconds: 5
+      timeout_seconds: 5
+      failure_threshold: 24
+
+  db-kg-migrate:
+    description: "Apply KG Drizzle migrations."
+    namespace: standard
+    command: "cd packages/database-kg && bun run db:migrate"
+    log_location: .logs/process-compose/db-kg-migrate.log
+    environment:
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+    depends_on:
+      datastores:
+        condition: process_healthy
+    availability:
+      restart: "exit_on_failure"
+
+  timescale-migrate:
+    description: "Apply TimescaleDB SQL migrations."
+    namespace: standard
+    command: "scripts/timescale-migrate.sh"
+    log_location: .logs/process-compose/timescale-migrate.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_URL=postgresql://intuition:intuition@localhost:5433/intuition_timescale"
+    depends_on:
+      datastores:
+        condition: process_healthy
+    availability:
+      restart: "exit_on_failure"
+
+  api:
+    description: "Query API on http://localhost:3000."
+    namespace: standard
+    command: "cd services/api && bun run dev"
+    log_location: .logs/process-compose/api.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+      - "API_PORT=3000"
+      - "API_AUTH=public-read"
+      - "API_RATE_LIMIT_RPM=120"
+    depends_on:
+      db-kg-migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /health
+        port: 3000
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]
+
+  atom-services:
+    description: "Stateless atom classification/enrichment service on http://localhost:4010."
+    namespace: standard
+    command: "cd services/atom-services && bun run dev"
+    log_location: .logs/process-compose/atom-services.log
+    is_dotenv_disabled: true
+    environment:
+      - "ATOM_SERVICES_PORT=4010"
+      - "ATOM_SERVICES_PERSISTENCE_ENABLED=false"
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /ready
+        port: 4010
+      initial_delay_seconds: 2
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 12
+    success_exit_codes: [130, 143]
+
+  workers-parse:
+    description: "KG parse worker on http://localhost:4110."
+    namespace: standard
+    command: "cd services/workers && bun run dev:kg:parse"
+    log_location: .logs/process-compose/workers-parse.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+      - "WORKERS_PORT=4110"
+      - "WORKERS_PARSE_HEALTH_PORT=4110"
+    depends_on:
+      db-kg-migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /readyz
+        port: 4110
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]
+
+  workers-enrichment:
+    description: "KG enrichment worker on http://localhost:4111."
+    namespace: standard
+    command: "cd services/workers && bun run dev:kg:enrichment"
+    log_location: .logs/process-compose/workers-enrichment.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+      - "WORKERS_PORT=4111"
+      - "WORKERS_ENRICHMENT_HEALTH_PORT=4111"
+    depends_on:
+      db-kg-migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /readyz
+        port: 4111
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]
+
+  workers-classification:
+    description: "KG classification worker on http://localhost:4112."
+    namespace: standard
+    command: "cd services/workers && bun run dev:kg:classification"
+    log_location: .logs/process-compose/workers-classification.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+      - "WORKERS_PORT=4112"
+      - "WORKERS_CLASSIFICATION_HEALTH_PORT=4112"
+    depends_on:
+      db-kg-migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /readyz
+        port: 4112
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]

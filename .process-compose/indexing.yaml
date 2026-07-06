@@ -1,0 +1,57 @@
+processes:
+  indexer:
+    description: "Native rindexer ingestion service on http://localhost:9091."
+    namespace: indexing
+    command: "scripts/rindexer-local-run.sh"
+    log_location: .logs/process-compose/indexer.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_URL=postgresql://intuition:intuition@localhost:5433/intuition_timescale"
+      - "REDIS_URL=redis://localhost:6379"
+      - "RINDEXER_HEALTH_PORT=8080"
+      - "METRICS_PORT=9091"
+    depends_on:
+      timescale-migrate:
+        condition: process_completed_successfully
+      datastores:
+        condition: process_healthy
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /health
+        port: 9091
+      initial_delay_seconds: 5
+      period_seconds: 10
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]
+
+  projections:
+    description: "Native projection workers on http://localhost:9092."
+    namespace: indexing
+    command: "cargo run -p projections"
+    log_location: .logs/process-compose/projections.log
+    is_dotenv_disabled: true
+    environment:
+      - "DATABASE_URL=postgresql://intuition:intuition@localhost:5433/intuition_timescale"
+      - "DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg"
+      - "SURREAL_DB_URL="
+      - "PROJECTIONS_METRICS_PORT=9092"
+      - "DISABLED_PROJECTIONS=funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual"
+    depends_on:
+      timescale-migrate:
+        condition: process_completed_successfully
+      db-kg-migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /health/ready
+        port: 9092
+      initial_delay_seconds: 5
+      period_seconds: 10
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]
