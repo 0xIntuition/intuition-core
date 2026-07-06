@@ -32,7 +32,7 @@ automatically.
 | --- | --- | --- |
 | `SURREAL_DB_URL` | *(empty)* | **keep empty** — selects the no-op graph sink; Core is Postgres-only |
 | `DATABASE_KG_URL` | unset | when set, `core_entities` writes atoms/triples into the KG |
-| `ENABLED_PROJECTIONS` / `DISABLED_PROJECTIONS` | — / `funnel_tracker,user_activity_batch` | CSV allow/deny lists |
+| `ENABLED_PROJECTIONS` / `DISABLED_PROJECTIONS` | — / `funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual` | CSV allow/deny lists |
 | `PROJECTIONS_BATCH_SIZE` / `PROJECTIONS_POLL_INTERVAL_MS` | `500` / `1000` | throughput tuning |
 | `PROJECTIONS_METRICS_PORT` | `9092` | health: `/health/live` |
 

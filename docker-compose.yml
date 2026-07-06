@@ -15,29 +15,29 @@ name: intuition-core
 include:
   - docker-compose.datastores.yml
 
+x-api-build: &api-build
+  context: .
+  dockerfile: docker/Dockerfile.api
+
+x-api-image: &api-image intuition-core/api:local
+
 services:
   # One-shot schema migration. Runs after the datastores are healthy and exits 0
   # before services depending on it start. Uses the kg connection over the
   # compose network (service DNS name `postgres-kg`), so no .env is needed here.
   migrate:
-    image: oven/bun:1
-    working_dir: /repo
+    build: *api-build
+    image: *api-image
+    working_dir: /repo/packages/database-kg
     environment:
       # Container-network DSN — `postgres-kg` resolves to the datastore service.
       DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
-    volumes:
-      - .:/repo
-      # Mask host node_modules so a clean Linux install happens in-container.
-      - /repo/node_modules
     depends_on:
       postgres-kg:
         condition: service_healthy
     # Call the runner directly (not the with-env wrapper): the DSN is already in
     # the container environment, so no dotenv file is required.
-    command: >
-      sh -c "bun install --frozen-lockfile &&
-             cd packages/database-kg &&
-             bun src/migrate.ts"
+    command: ["bun", "src/migrate.ts"]
     restart: "no"
 
   # One-shot event-store migrations for TimescaleDB (the indexer's DDL:
@@ -55,9 +55,8 @@ services:
 
   # Query API — auth-free, read-only REST over the graph you indexed.
   api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
+    build: *api-build
+    image: *api-image
     environment:
       DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
       API_PORT: "3000"
@@ -103,10 +102,10 @@ services:
   # Workers — parse → classify → enrich pipeline over kg.nodes. One image,
   # three modes. Provider API keys are optional; enrichment degrades gracefully.
   workers-parse:
-    build:
+    build: &workers-build
       context: .
       dockerfile: docker/Dockerfile.workers
-    image: intuition-core/workers:local
+    image: &workers-image intuition-core/workers:local
     command: ["kg-parse-worker"]
     environment: &workers-env
       DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
@@ -131,17 +130,23 @@ services:
         condition: service_completed_successfully
 
   workers-classification:
-    image: intuition-core/workers:local
+    build: *workers-build
+    image: *workers-image
     command: ["kg-classification-worker"]
-    environment: *workers-env
+    environment:
+      <<: *workers-env
+      WORKERS_HEALTHCHECK_PORT: "4112"
     depends_on:
       workers-parse:
         condition: service_started
 
   workers-enrichment:
-    image: intuition-core/workers:local
+    build: *workers-build
+    image: *workers-image
     command: ["kg-enrichment-worker"]
-    environment: *workers-env
+    environment:
+      <<: *workers-env
+      WORKERS_HEALTHCHECK_PORT: "4111"
     depends_on:
       workers-parse:
         condition: service_started
@@ -190,8 +195,8 @@ services:
       # own greenfield environments run) — graph writes go to PostgreSQL.
       SURREAL_DB_URL: ""
       PROJECTIONS_METRICS_PORT: "9092"
-      # Lean default: skip the product-analytics batch projections.
-      DISABLED_PROJECTIONS: ${DISABLED_PROJECTIONS:-funnel_tracker,user_activity_batch}
+      # Lean open-source default: skip product analytics and market-schema dual writes.
+      DISABLED_PROJECTIONS: ${DISABLED_PROJECTIONS:-funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual}
     ports:
       - "9092:9092"
     depends_on:
