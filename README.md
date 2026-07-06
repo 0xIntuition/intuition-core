@@ -50,9 +50,24 @@ Intuition testnet RPC is public and keyless).
 
 ```bash
 git clone https://github.com/0xIntuition/intuition-core && cd intuition-core
+scripts/bootstrap.sh
+```
+
+The bootstrap script checks Docker, Bun, free disk space, creates `.env` from
+`example.env` when needed, installs dependencies, starts Docker Compose, waits
+for the API health check, then prints the first useful API commands.
+
+Prefer Make?
+
+```bash
+make bootstrap
+```
+
+Raw commands still work:
+
+```bash
 cp example.env .env
 bun install
-
 docker compose up        # databases → migrations → seeds → workers → API
 ```
 
