@@ -4,6 +4,45 @@ Reverse-chronological. Companion to `intuition-core-open-source-spec.md`.
 
 ---
 
+## 2026-07-02 (evening) — Rate limiting, provider docs, local devnet
+
+**Docker workflow note:** Kames shuts Docker Desktop down manually between uses (machine slowdown).
+Daemon-down is the normal state — batch ALL Docker-dependent validation into single planned sessions.
+
+### Shipped (static-verified: typecheck 12/12, tests 14/14, biome, 67 md link-clean; committed)
+- **Rate limiting** (`a5160e8`): per-key fixed-window limiter, API_RATE_LIMIT_RPM default 120,
+  per-key `rate_limit_rpm` override (migration 0002 authored, NOT yet applied to local DB),
+  keys:create --rate-limit, 429 + headers, unit tests.
+- **Provider docs** (`a5160e8`): docs/enrichment-providers.md (keyless table + 13 keyed providers
+  with acquisition steps, env names verified from code) + docs/writing-an-enrichment-plugin.md.
+  **Fixed compose bug: only 6/16 provider keys were passed through to containers.**
+- **Local devnet** (latest): devnet/ (vendored devnet-deploy.sh + pinned-ref setup.sh @ 4b4ee8e1),
+  compose `--profile devnet` (anvil + one-shot deployer), docs/local-devnet.md, example.env block.
+  Deploy sequence PROVEN natively (2× fresh-anvil runs, AtomCreated acceptance): MultiVault
+  deterministic at 0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f, ~40s cold. Event signatures verified
+  == indexer ABI. Docker-side (image build, compose run) NOT yet validated.
+
+### ⚡ NEXT DOCKER SESSION — run this batch, then Docker can go down again
+1. `docker compose up -d postgres-kg` → `bun --filter @0xintuition/database-kg run db:migrate`
+   (applies 0002 rate_limit_rpm) → quick live rate-limit check (mint key --rate-limit 3, hit 4×,
+   expect 429).
+2. **Containerized full-stack run** (task 11): `docker compose down -v` then
+   `docker compose --profile indexing up --build -d` with testnet chain env → verify: migrations,
+   234 events, kg.nodes populated, workers process, API serves (the outsider experience; also
+   rebuilds bun images with the API-key/rate-limit/write-path code — current api image is STALE).
+   Note: Rust images already built earlier; --build refreshes bun layers fast. Keep builds
+   sequential — parallel heavy builds destabilized the daemon before.
+3. **Devnet validation** (task 13): `docker compose --profile devnet up -d anvil devnet-deploy` →
+   watch acceptance pass → flip .env to anvil/31337/0xa85233… → `--profile devnet --profile
+   indexing up` → create atom via cast → confirm it lands in /api/atoms classified.
+
+### Remaining after that (publish mechanics, mostly user-side)
+- GitHub org: repo, core-maintainers team, branch protection, gitleaks org license; squash-fresh
+  history at flip. Marketing copy alignment. Logo/social image + terminal GIF. GHCR-published
+  images + v0.1.0 tag (turns 15-min first-run builds into a pull).
+
+---
+
 ## 2026-07-02 (later) — Developer verbs complete: write path, API keys, atom-services, seeds, docs
 
 All three community verbs now verified live: **index atoms** (chain + local write path),

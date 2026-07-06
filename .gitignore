@@ -49,3 +49,7 @@ npm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Devnet: local clone of intuition-contracts-v2 + deployment state
+devnet/contracts-v2/
+devnet/deployments-devnet.json
