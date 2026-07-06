@@ -219,6 +219,30 @@ bun install
 docker compose up        # databases → migrations → seeds → workers → API
 ```
 
+Prefer native services with a TUI? Install
+[`process-compose`](https://f1bonacc1.github.io/process-compose/installation/)
+and run the local profile:
+
+```bash
+bun run dev:local -- standard
+```
+
+This keeps datastores in Docker, then runs KG migrations, Timescale migrations,
+the API, workers, and atom-services as local processes with logs under
+`.logs/process-compose/`.
+
+To add the Rust indexing tier, set the chain variables in `.env` (see
+[run your own node](./docs/run-your-own-node.md#5-index-the-chain)), then run:
+
+```bash
+bun run dev:local -- indexing
+```
+
+Use `bun run dev:local:dry-run -- indexing` to validate the merged
+Process Compose config without starting services. Dry-run does not check native
+indexing prerequisites; starting `indexing` also needs Rust/Cargo, `envsubst`
+(`brew install gettext` on macOS), and valid chain variables.
+
 **Create your first atom** (mint a key once, then post anything — a URL,
 string, or JSON):
 
