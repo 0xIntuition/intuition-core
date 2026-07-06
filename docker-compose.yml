@@ -66,7 +66,7 @@ services:
       API_AUTH: ${API_AUTH:-public-read}
       API_RATE_LIMIT_RPM: ${API_RATE_LIMIT_RPM:-120}
     ports:
-      - "3000:3000"
+      - "${API_HOST_PORT:-3000}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -97,7 +97,7 @@ services:
       UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL:-}
       UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN:-}
     ports:
-      - "4010:4010"
+      - "${ATOM_SERVICES_HOST_PORT:-4010}:4010"
 
   # Workers — parse → classify → enrich pipeline over kg.nodes. One image,
   # three modes. Provider API keys are optional; enrichment degrades gracefully.
