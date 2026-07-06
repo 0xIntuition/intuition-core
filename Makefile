@@ -55,6 +55,10 @@ smoke: ## Run the local API/workers/triples integration smoke test.
 smoke-index: ## Run the bounded public testnet indexing smoke test.
 	@scripts/smoke-index.sh
 
+.PHONY: explore
+explore: ## Print a guided snapshot of local KG tables, atoms, predicates, and artifacts.
+	@scripts/explore-data.sh
+
 .PHONY: keys
 keys: ## Mint a local API key. Override KEY_NAME and ACCOUNT as needed.
 	DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg \
