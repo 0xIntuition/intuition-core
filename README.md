@@ -63,6 +63,137 @@ Prefer Make?
 make bootstrap
 ```
 
+### Your first 5 minutes
+
+Start the local stack:
+
+```bash
+scripts/bootstrap.sh
+# or: make bootstrap
+```
+
+Expected shape:
+
+```text
+OK Docker and Docker Compose are available
+OK Created .env from example.env
+==> Installing workspace dependencies
+==> Starting Docker Compose
+OK API is healthy
+Try the API:
+  curl http://localhost:3000/health
+  curl http://localhost:3000/api/stats
+  curl http://localhost:3000/api/predicates
+```
+
+Check that the read API is live:
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/api/stats
+curl http://localhost:3000/api/predicates
+```
+
+Expected response shapes:
+
+```json
+{ "status": "ok" }
+```
+
+```json
+{ "data": { "atoms": 0, "triples": 0, "accounts": 0, "predicates": 14 } }
+```
+
+```json
+{ "data": [{ "slug": "created-by", "label": "Created By", "...": "..." }] }
+```
+
+Mint a write key. Prefer the Make target because it supplies the host Postgres
+connection string that the key script requires:
+
+```bash
+make keys ACCOUNT=0x0000000000000000000000000000000000000001 KEY_NAME=me
+```
+
+Expected shape:
+
+```text
+created key_... (me) -> account 0x0000000000000000000000000000000000000001, write=true, rpm=default
+
+  ik_...
+
+Store this key now - it is not recoverable.
+```
+
+Create an atom with the printed `ik_...` key:
+
+```bash
+API_KEY=ik_...
+
+curl -X POST http://localhost:3000/api/atoms \
+  -H "Authorization: Bearer $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"https://github.com/oven-sh/bun"}'
+```
+
+Expected shape:
+
+```json
+{
+  "data": {
+    "id": "0x...",
+    "created": true,
+    "createdBy": "0x0000000000000000000000000000000000000001"
+  }
+}
+```
+
+Read it back:
+
+```bash
+ATOM_ID=0x...
+
+curl "http://localhost:3000/api/atoms/$ATOM_ID"
+curl "http://localhost:3000/api/atoms?limit=5"
+```
+
+Expected single-atom shape:
+
+```json
+{
+  "data": {
+    "id": "0x...",
+    "rawType": "http_uri",
+    "classificationType": "...",
+    "parseStatus": "completed",
+    "classificationStatus": "completed",
+    "enrichmentStatus": "completed"
+  }
+}
+```
+
+Expected list shape:
+
+```json
+{
+  "data": [{ "id": "0x...", "rawType": "http_uri", "...": "..." }],
+  "pagination": { "limit": 5, "offset": 0, "count": 1 }
+}
+```
+
+Workers may briefly show `pending` before those statuses become `completed`.
+
+If the first run fails, check these five things first:
+
+1. `curl http://localhost:3000/health` returns `{"status":"ok"}`.
+2. Writes returning `401 api_key_required` need a key from `make keys`.
+3. Port conflicts on `3000`, `4010`, or `4110` need the other process stopped
+   or `API_PORT` / `ATOM_SERVICES_PORT` / `WORKERS_PORT` overrides.
+4. Postgres `TimeZone` errors usually mean a corrupt Timescale Docker image;
+   see [troubleshooting](./docs/troubleshooting.md#invalid-value-for-parameter-timezone-utc-from-postgres).
+5. Empty indexed tables usually mean the indexing profile has not run yet, or
+   the configured block window does not contain MultiVault events.
+
 Verify the local stack end to end:
 
 ```bash
@@ -92,7 +223,7 @@ docker compose up        # databases → migrations → seeds → workers → AP
 string, or JSON):
 
 ```bash
-cd services/api && bun run keys:create -- --name me --account 0xYourWallet
+make keys ACCOUNT=0x0000000000000000000000000000000000000001 KEY_NAME=me
 # → ik_… (printed once — store it)
 
 curl -X POST localhost:3000/api/atoms \
@@ -132,6 +263,9 @@ events in under a second once synced — atoms land in your graph, classified an
 queryable, with full market read models alongside.
 
 Full walkthrough: **[docs/run-your-own-node.md](./docs/run-your-own-node.md)**.
+
+Data reference: **[docs/data-model.md](./docs/data-model.md)**.
+SQL cookbook: **[docs/example-queries.md](./docs/example-queries.md)**.
 
 ## How it works
 
