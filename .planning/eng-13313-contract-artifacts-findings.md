@@ -29,6 +29,13 @@ Date: 2026-07-08
 - The checked-in rindexer JSON ABI and the Rust generated binding are separate
   artifacts. This change keeps the JSON ABI package-backed, but does not
   regenerate the rindexer Rust bindings.
+- PR #9 initially failed secret scanning because the licensed
+  `gitleaks/gitleaks-action` is not usable for this organization without a
+  license key. Replacing it with the OSS GitLeaks CLI exposed an unrelated
+  historical finding from the pull-request merge ref's base history
+  (`devnet/devnet-deploy.sh`). CI now scans only the commits introduced by the
+  pull request or push range so new leaks are still blocked without failing this
+  PR on pre-existing base commits.
 
 ## Validation
 
@@ -41,3 +48,4 @@ Date: 2026-07-08
 - `cargo fmt --all -- --check`
 - `cargo clippy --workspace --all-targets -- -D warnings`
 - `cargo test --workspace`
+- `gitleaks git --log-opts="origin/main..HEAD" --redact --verbose`

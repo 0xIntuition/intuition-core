@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history — scan every commit, not just HEAD
+          fetch-depth: 0 # required for commit-range secret scans
 
       - name: Install gitleaks
         env:
@@ -56,5 +56,25 @@ jobs:
           sudo install /tmp/gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
-      - name: Run gitleaks
-        run: gitleaks detect --source . --redact --verbose
+      - name: Run gitleaks on pull request commits
+        if: github.event_name == 'pull_request'
+        run: |
+          gitleaks git \
+            --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" \
+            --redact \
+            --verbose
+
+      - name: Run gitleaks on pushed commits
+        if: github.event_name == 'push'
+        run: |
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            gitleaks git \
+              --log-opts="${{ github.sha }}~1..${{ github.sha }}" \
+              --redact \
+              --verbose
+          else
+            gitleaks git \
+              --log-opts="${{ github.event.before }}..${{ github.sha }}" \
+              --redact \
+              --verbose
+          fi
