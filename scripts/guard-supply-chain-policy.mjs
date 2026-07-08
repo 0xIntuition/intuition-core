@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const minReleaseAgeSeconds = 1_209_600;
+const reviewedMinimumReleaseAgeExcludes = new Set(['@0xintuition/contracts-v2']);
 const failures = [];
 
 const dependencySections = [
@@ -107,8 +108,28 @@ const checkBunPolicy = () => {
 		addFailure(bunfigPath, `minimumReleaseAge must be at least ${minReleaseAgeSeconds} seconds`);
 	}
 
-	if (/^\s*minimumReleaseAgeExcludes\s*=/.test(bunfig)) {
-		addFailure(bunfigPath, 'minimumReleaseAgeExcludes requires explicit review');
+	const excludesMatch = bunfig.match(/^\s*minimumReleaseAgeExcludes\s*=\s*\[([^\]]*)\]/m);
+
+	if (excludesMatch) {
+		const excludes = [...excludesMatch[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+
+		for (const excludedPackage of excludes) {
+			if (!reviewedMinimumReleaseAgeExcludes.has(excludedPackage)) {
+				addFailure(
+					bunfigPath,
+					`minimumReleaseAgeExcludes contains unreviewed package ${excludedPackage}`
+				);
+			}
+		}
+
+		for (const reviewedPackage of reviewedMinimumReleaseAgeExcludes) {
+			if (!excludes.includes(reviewedPackage)) {
+				addFailure(
+					bunfigPath,
+					`missing reviewed minimumReleaseAgeExcludes package ${reviewedPackage}`
+				);
+			}
+		}
 	}
 };
 

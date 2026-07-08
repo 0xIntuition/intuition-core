@@ -1,0 +1,30 @@
+{
+	"name": "@0xintuition/contracts",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./multivault": "./src/multivault.ts"
+	},
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
+		"test": "bun test __tests__",
+		"sync:rindexer-artifacts": "bun scripts/sync-rindexer-artifacts.ts",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"@0xintuition/contracts-v2": "1.0.0-alpha.0"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"@types/bun": "^1.3.3",
+		"typescript": "catalog:"
+	}
+}

@@ -2,3 +2,7 @@
 # Refuse to install package versions published less than 14 days ago.
 # Defense-in-depth against supply-chain attacks using compromised credentials.
 minimumReleaseAge = 1209600
+# Reviewed first-party exception: @0xintuition/contracts-v2 was first
+# published on 2026-07-07 and is required for the OSS contract-artifact
+# integration tracked in ENG-13313. Keep this list intentionally narrow.
+minimumReleaseAgeExcludes = ["@0xintuition/contracts-v2"]
