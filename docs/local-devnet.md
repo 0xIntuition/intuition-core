@@ -1,24 +1,32 @@
 # Local devnet — your own chain, fully self-contained
 
 Run the **entire** Intuition stack with zero external dependencies: a local
-Anvil chain, the real [intuition-contracts-v2](https://github.com/0xIntuition/intuition-contracts-v2)
-deployed onto it, and the indexer reconstructing the graph from *your* chain.
-Create atoms onchain, watch them land in your knowledge graph, classified and
-enriched — all on your machine, even offline (after the first image/contract
-fetch).
+Anvil chain, the real Intuition contracts deployed onto it, and the indexer
+reconstructing the graph from *your* chain. Create atoms onchain, watch them
+land in your knowledge graph, classified and enriched — all on your machine,
+even offline (after the first image fetch).
+
+The contracts come from the published
+[`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2)
+npm package — ABIs and **production bytecode** (the exact `optimizer_runs=10000`
+build that runs on Intuition mainnet), pinned by version in
+`packages/contracts/package.json`. No git clone, no Foundry build step: the
+deployer (`packages/contracts/src/deploy/`) replays the canonical deployment
+sequence with [viem](https://viem.sh) in a few seconds.
 
 ## 1. Start the chain + deploy the contracts
 
 ```bash
 docker compose --profile devnet up -d anvil devnet-deploy
-docker compose logs -f devnet-deploy   # watch: build → deploy → acceptance test
+docker compose logs -f devnet-deploy   # watch: deploy → acceptance test
+# or: make devnet
 ```
 
-The one-shot `devnet-deploy` job clones the contracts at a **pinned commit**,
-builds with Foundry, deploys the full system (WrappedTrust → emissions
-controller → MultiVault implementation → proxy + bonding curves + roles), and
-finishes by creating a test atom and verifying the `AtomCreated` event fires.
-Cold run ≈ 40 s; re-runs detect the existing deployment and just re-verify.
+The one-shot `devnet-deploy` job deploys the full system (WrappedTrust →
+emissions controllers → MultiVault implementation → proxies + bonding curves +
+roles) straight from the npm package, and finishes by creating a test atom and
+verifying the `AtomCreated` event fires. Re-runs detect the existing
+deployment and just re-verify.
 
 Because Anvil runs with its default mnemonic, the deployment is deterministic:
 
@@ -81,26 +89,74 @@ the deterministic-identity guarantee doing its job onchain.
 
 ## Running natively (no Docker)
 
-With [Foundry](https://getfoundry.sh) installed:
+With [Foundry](https://getfoundry.sh)'s `anvil` installed:
 
 ```bash
-anvil &                       # terminal 1
-./devnet/setup.sh             # terminal 2 — clone (pinned), build, deploy, verify
+anvil --disable-code-size-limit &   # terminal 1
+bun run devnet:deploy               # terminal 2 — deploy + acceptance test
 ```
 
-## Upgrading the pinned contracts
+Or run the whole native dev stack (datastores, API, workers, chain) under
+Process Compose:
 
-`devnet/setup.sh` pins `CONTRACTS_REF` for reproducibility. To move it: bump
-the ref, then **re-verify the six event signatures** against
-`crates/rindexer-ingestion/abi/MultiVault.json` (AtomCreated, TripleCreated,
-Deposited, Redeemed, SharePriceChanged, ProtocolFeeAccrued) — an event-shape
-change is an indexer-breaking change.
+```bash
+bun run dev:local -- indexing --devnet   # fully self-contained chain-to-API loop
+```
+
+## Deploy your own testnet instance
+
+The same deployer stands up a fresh, self-owned protocol instance on
+**Intuition Sepolia** (chain 13579) — your own MultiVault + emissions system,
+isolated from the canonical deployment:
+
+```bash
+PRIVATE_KEY=0x… bun run testnet:deploy
+```
+
+Requirements: a key funded with tTRUST for gas (~40 transactions — faucet at
+https://testnet.hub.intuition.systems). The canonical wrapped-TRUST token is
+reused by default (it's shared infra, like WETH; set `TRUST_TOKEN=fresh` for a
+fully isolated one). State lands in `devnet/deployments-testnet.json`, the
+createAtoms acceptance test runs, and the CLI prints the `.env` block that
+points the Core indexer at your new instance.
+
+## Upgrading the contracts
+
+The protocol version is pinned in **one place**:
+`packages/contracts/package.json` (`@0xintuition/contracts-v2`). To bump it:
+
+1. Update the version, `bun install`.
+2. `bun run abis:sync` — regenerates the JSON ABIs consumed outside TypeScript
+   (`crates/rindexer-ingestion/abi/MultiVault.json`). CI fails on drift, and an
+   **event-shape change is an indexer-breaking change** (AtomCreated,
+   TripleCreated, Deposited, Redeemed, SharePriceChanged, ProtocolFeeAccrued).
+3. `packages/contracts/scripts/regen-vendored.sh` — recompiles the vendored
+   artifacts (AtomWarden, WrappedTrust) from the new package source.
+4. If the canonical deploy scripts changed upstream, mirror the change in
+   `packages/contracts/src/deploy/system.ts` (it replicates
+   `IntuitionDeployAndSetup.s.sol`) and re-run the acceptance test.
 
 ## Gotchas we already hit for you
 
-- **Contract size:** the build runs with `FOUNDRY_OPTIMIZER_RUNS=200`; at the
-  repo default (10,000) MultiVault exceeds the EIP-170 24,576-byte limit.
+- **Contract size:** the published bytecode is the production build; MultiVault's
+  runtime (27,666 bytes) exceeds EIP-170's 24,576-byte cap, which the Intuition
+  L3 raises. Anvil must therefore run with `--disable-code-size-limit` — the
+  compose file and Process Compose overlay already do.
+- **Proxies are mandatory:** the implementations call `_disableInitializers()`
+  in their constructors; everything is initialized through
+  `TransparentUpgradeableProxy` init-data, exactly like production.
 - **Deploy block is not deterministic** (Anvil batches vary) — read it from
   `deployments-devnet.json` if you need it; `MULTIVAULT_START_BLOCK=0` is fine.
 - The deployer account must be the admin (the deploy makes admin-only calls);
-  `setup.sh` handles this.
+  the deployer defaults to Anvil account #0 for both.
+
+## Upstream follow-ups (tracked for `contracts-v2@1.0.0-alpha.1`)
+
+The npm package doesn't yet export everything a from-scratch deployment needs;
+`packages/contracts/vendored/` fills the gaps (see its README for provenance).
+Once upstream ships these, the vendored artifacts get deleted:
+
+- Export `AtomWarden` + `WrappedTrust` ABIs/bytecodes.
+- Ship the OZ infra bytecodes (`TransparentUpgradeableProxy`,
+  `TimelockController`, `UpgradeableBeacon`) or a first-party deploy module.
+- Add a `deployments` export (canonical addresses per chain).

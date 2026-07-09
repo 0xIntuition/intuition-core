@@ -2,29 +2,37 @@
 	"name": "@0xintuition/contracts",
 	"private": true,
 	"type": "module",
+	"description": "Protocol surface for Intuition Core: re-exported ABIs, network address book, and the local devnet deployer — all derived from the pinned @0xintuition/contracts-v2 package.",
 	"exports": {
 		".": "./src/index.ts",
+		"./abis": "./src/abis.ts",
+		"./addresses": "./src/addresses.ts",
+		"./deploy": "./src/deploy/index.ts",
 		"./multivault": "./src/multivault.ts"
 	},
 	"license": "MIT",
 	"scripts": {
 		"build": "tsc",
-		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"clean": "git clean -xdf .cache .turbo .vendor-build dist node_modules",
+		"dev": "tsc",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
-		"test": "bun test __tests__",
-		"sync:rindexer-artifacts": "bun scripts/sync-rindexer-artifacts.ts",
+		"test": "bun test src __tests__",
+		"devnet:deploy": "DEPLOY_TARGET=anvil bun run src/deploy/cli.ts",
+		"vendored:regen": "scripts/regen-vendored.sh",
 		"ci": "biome check",
 		"lint": "biome lint",
 		"format": "biome format",
 		"check": "biome check",
-		"check:write": "biome check --write"
-	},
-	"dependencies": {
-		"@0xintuition/contracts-v2": "1.0.0-alpha.0"
+		"check:write": "biome check --write",
+		"testnet:deploy": "DEPLOY_TARGET=intuition-sepolia bun run src/deploy/cli.ts"
 	},
 	"devDependencies": {
 		"@0xintuition/tsconfig": "workspace:*",
 		"@types/bun": "^1.3.3",
 		"typescript": "catalog:"
+	},
+	"dependencies": {
+		"@0xintuition/contracts-v2": "1.0.0-alpha.0",
+		"viem": "^2.23.2"
 	}
 }

@@ -78,7 +78,7 @@ edit, or reinterpret upstream contract artifacts.
 3. Regenerate the ABI JSON used by rindexer:
 
    ```bash
-   bun run --cwd packages/contracts sync:rindexer-artifacts
+   bun run abis:sync
    ```
 
 4. Run the focused tests:

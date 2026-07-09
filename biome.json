@@ -1,7 +1,19 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
 	"files": {
-		"includes": ["**", "!.cache", "!.turbo", "!dist", "!node_modules", "!.planning", "!**/drizzle"]
+		"includes": [
+			"**",
+			"!.cache",
+			"!.turbo",
+			"!dist",
+			"!node_modules",
+			"!.planning",
+			"!**/drizzle",
+			"!**/routeTree.gen.ts",
+			"!apps/explorer/src/styles.css",
+			"!**/.output",
+			"!**/.nitro"
+		]
 	},
 	"vcs": {
 		"enabled": true,

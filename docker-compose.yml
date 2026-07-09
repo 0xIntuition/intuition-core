@@ -125,6 +125,10 @@ services:
       CANOPY_API_KEY: ${CANOPY_API_KEY:-}
       UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL:-}
       UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN:-}
+    # Health ports are published so local dashboards (apps/explorer) can probe
+    # worker liveness from the host.
+    ports:
+      - "4110:4110"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -136,6 +140,8 @@ services:
     environment:
       <<: *workers-env
       WORKERS_HEALTHCHECK_PORT: "4112"
+    ports:
+      - "4112:4112"
     depends_on:
       workers-parse:
         condition: service_started
@@ -147,6 +153,8 @@ services:
     environment:
       <<: *workers-env
       WORKERS_HEALTHCHECK_PORT: "4111"
+    ports:
+      - "4111:4111"
     depends_on:
       workers-parse:
         condition: service_started
@@ -162,10 +170,13 @@ services:
   #   MULTIVAULT_START_BLOCK=0
   # and run:  docker compose --profile devnet --profile indexing up
 
+  # --disable-code-size-limit: the contracts ship as the production build
+  # (optimizer_runs=10000); MultiVault's runtime exceeds EIP-170's 24576 bytes,
+  # which the Intuition L3 permits by raising the cap — anvil must do the same.
   anvil:
     image: ghcr.io/foundry-rs/foundry:stable
     profiles: [devnet]
-    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--state", "/data/anvil-state.json"]
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--disable-code-size-limit", "--state", "/data/anvil-state.json"]
     ports:
       - "8545:8545"
     volumes:
@@ -176,9 +187,10 @@ services:
       timeout: 5s
       retries: 20
 
-  # One-shot: clone contracts (pinned ref) → forge build → deploy → verify
-  # AtomCreated fires. Idempotent — skips deploy when MultiVault already has
-  # code on the anvil chain (state persists on the anvil_data volume).
+  # One-shot: deploy the full protocol from the pinned @0xintuition/contracts-v2
+  # npm package (production bytecode, no toolchain) and verify AtomCreated
+  # fires. Idempotent — skips deploy when MultiVault already has code on the
+  # anvil chain (state persists on the anvil_data volume).
   devnet-deploy:
     build:
       context: .
@@ -186,8 +198,10 @@ services:
     profiles: [devnet]
     environment:
       RPC_URL: http://anvil:8545
+      STATE_FILE: /state/deployments-devnet.json
     volumes:
-      - devnet_contracts:/devnet/contracts-v2
+      # Bind-mounted so the host sees devnet/deployments-devnet.json.
+      - ./devnet:/state
     depends_on:
       anvil:
         condition: service_healthy
@@ -250,4 +264,3 @@ services:
 
 volumes:
   anvil_data:
-  devnet_contracts:

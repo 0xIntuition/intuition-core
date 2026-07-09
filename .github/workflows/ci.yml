@@ -17,13 +17,16 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.3"
+          bun-version: "1.3.11"
 
       - name: Install (frozen lockfile)
         run: bun install --frozen-lockfile
 
       - name: Supply-chain policy guard
         run: bun run guard:supply-chain
+
+      - name: ABI drift gate (generated from @0xintuition/contracts-v2)
+        run: bun run abis:check
 
       - name: Typecheck
         run: bun run typecheck
@@ -60,6 +63,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           gitleaks git \
+            --config .gitleaks.toml \
             --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" \
             --redact \
             --verbose
@@ -69,11 +73,15 @@ jobs:
         run: |
           if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             gitleaks git \
+              --config .gitleaks.toml \
+            --config .gitleaks.toml \
               --log-opts="${{ github.sha }}~1..${{ github.sha }}" \
               --redact \
               --verbose
           else
             gitleaks git \
+              --config .gitleaks.toml \
+            --config .gitleaks.toml \
               --log-opts="${{ github.event.before }}..${{ github.sha }}" \
               --redact \
               --verbose

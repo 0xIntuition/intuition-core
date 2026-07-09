@@ -1,0 +1,46 @@
+{
+	"name": "@0xintuition/explorer",
+	"private": true,
+	"type": "module",
+	"description": "Dashboard-focused data explorer for Intuition Core — service health, pipeline status, and atom/triple browsing. The reference consumer of the public API.",
+	"scripts": {
+		"dev": "vite dev --port 3100",
+		"up": "bun run dev",
+		"build": "vite build",
+		"start": "node .output/server/index.mjs",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test src",
+		"clean": "git clean -xdf .cache .turbo .output .nitro dist node_modules",
+		"ci": "biome check",
+		"lint": "biome lint",
+		"format": "biome format",
+		"check": "biome check",
+		"check:write": "biome check --write"
+	},
+	"dependencies": {
+		"@fontsource/inter": "5.2.8",
+		"@fontsource/jetbrains-mono": "5.2.8",
+		"@tanstack/react-query": "5.96.2",
+		"@tanstack/react-router": "1.168.10",
+		"@tanstack/react-start": "1.167.16",
+		"@tanstack/react-table": "8.21.3",
+		"clsx": "2.1.1",
+		"lucide-react": "0.476.0",
+		"react": "19.1.0",
+		"react-dom": "19.1.0",
+		"tailwind-merge": "3.5.0",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@0xintuition/tsconfig": "workspace:*",
+		"@tailwindcss/vite": "^4.1.0",
+		"@tanstack/nitro-v2-vite-plugin": "1.154.9",
+		"@types/bun": "^1.3.3",
+		"@types/react": "19.1.10",
+		"@types/react-dom": "19.2.0",
+		"@vitejs/plugin-react": "5.2.0",
+		"tailwindcss": "^4.1.0",
+		"typescript": "catalog:",
+		"vite": "7.3.2"
+	}
+}

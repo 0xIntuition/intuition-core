@@ -4,6 +4,142 @@ Reverse-chronological. Companion to `intuition-core-open-source-spec.md`.
 
 ---
 
+## 2026-07-09 (later) — Testnet instance deployed + chain-agnostic deployer
+
+**A fresh, self-owned Intuition protocol instance is LIVE on Intuition Sepolia (13579)**, deployed
+entirely from the npm package via the generalized viem deployer (`bun run testnet:deploy`):
+MultiVault proxy `0x8e90C0acb6D1d673Ee77d569E1f4f3BDd8A45662` (deploy block 9359242), full system
+(23 contracts + wiring, canonical WTRUST `0xDE80…0fe35` reused), createAtoms acceptance PASSED
+onchain (block 9359248). Total cost ≈ 0.105 tTRUST. Full address set:
+`devnet/deployments-testnet.json` (untracked — commit if this instance should be shared).
+
+### What it took (two real-network lessons now encoded in the deployer)
+1. **Intuition Sepolia enforces EIP-170** (verified: canonical MultiVault impl there is 23,926 B)
+   — the npm package's production optimizer_runs=10000 bytecode (27,666–30,926 B runtimes) is
+   rejected at eth_estimateGas. Fix: vendored **size-fit build** (`MultiVaultSizeFit.json`,
+   optimizer_runs=200, runtime 24,033 B, verified onchain) compiled from the package's own src
+   (regen-vendored.sh stage 2: OZ 5.4.0 + solady 0.1.26). MigrationMode doesn't fit even at 200
+   runs → EIP-170 targets deploy plain MultiVault as the impl (the old forge devnet's exact
+   approach). Local anvil keeps byte-identical production bytecode (`eip170: false`).
+2. **CoreEmissionsController reverts when startTimestamp < block.timestamp at init** — the anvil
+   +100s epoch offset gets consumed by real-network receipt waits (run 2 failed exactly there).
+   Testnet profile uses +3600s.
+
+### Deployer generalization (packages/contracts)
+- `deploy/config.ts`: `DeployConfig` + `DeployTarget` profiles (`anvil`, `intuition-sepolia` w/
+  canonical SetupScript NETWORK_INTUITION_SEPOLIA parameters — 2wk epochs, 75M/26 emissions);
+  `system.ts`/`acceptance.ts` chain-agnostic via `targetChain()`; CLI has per-target preflight
+  (chain-id, balance w/ faucet hint, PRIVATE_KEY required off-anvil), reuses canonical WTRUST
+  (`TRUST_TOKEN=fresh` overrides), prints the indexer `.env` block. Anvil path re-verified.
+
+### Also this session
+- README: hero dashboard screenshot + "Run everything — chain → indexer → API → explorer" section
+  (full-loop recipe, port/CORS notes, explorer intro, testnet-deploy pointer) with three explorer
+  screenshots committed under docs/assets/. CORS fix: user's .env allowlist lacked :3100 — container
+  recreated with shell-env override (durable fix = user adds :3100 to API_ALLOWED_ORIGINS in .env).
+- Session shut down cleanly: compose stack + explorer dev server stopped (volumes kept — devnet
+  chain state and DBs persist), Docker Desktop off.
+- Explorer dashboard fix: user's browser hit a stale dev process defaulting VITE_API_URL to :3000
+  (alpha-beta's vite server on this machine) → skeletons/empty. Killed strays; explorer runs on
+  :3100 with VITE_API_URL=http://localhost:3200 (compose api on API_HOST_PORT=3200 because :3000
+  is occupied). Worker health ports 4110-4112 now published in docker-compose → all 7 services
+  green in the health grid.
+- Deployer key for the testnet instance was provided in-session (admin/deployer
+  `0x54C15B56800235F273bb659aea820c9D3112B3FD`) — treat as dev-grade; it is also this instance's
+  admin + MIGRATOR, so keep it or plan an admin rotation.
+
+## 2026-07-09 — apps/explorer: dashboard data explorer + API read-model extensions
+
+`apps/explorer` (@0xintuition/explorer): TanStack Start app on :3100 — the operational dashboard
+and the **reference consumer of the public API** (self-contained: no private workspace packages,
+per the auth-free boundary; the experimental app's portable patterns were re-implemented clean).
+
+### Shipped
+- **API read-model extensions** (services/api): `GET /api/atoms/:id/artifacts`, `GET /api/events`
+  (entity_kind/event_type/entity_id filters), `GET /api/stats/pipeline` (per-stage status counts,
+  extracted `aggregatePipelineStats` + tests), `?expand=terms` on all triple reads (3 aliased node
+  joins → `{id,data,classificationType,rawType}` per S/P/O), `stats` (node_stats) embedded in atom
+  detail. docs/api-reference.md + openapi.yaml updated (12 paths, validated).
+- **Explorer app**: dashboard (stat cards, pipeline bars, live service-health grid via a Start
+  server route `/api/status` probing health ports server-side — no CORS), atoms table
+  (search/classification filters in URL state) + rich atom detail (raw/resolved data, artifact
+  gallery w/ image extraction, position-highlighted triples, graph degree, per-atom events),
+  triples as linked S→P→O chips + detail, predicates, events feed, live schema viewer, and a
+  **write playground** (create atom/triple, localStorage API key, live curl-equivalent panel).
+- **Foundations**: typed zod-validated REST client (`src/lib/api.ts`, doubles as API usage docs),
+  dark-first Tailwind v4 token system, workspace integration (`apps/*` added to workspaces,
+  package-level turbo.json for `.output/**`, biome ignores for routeTree.gen.ts + tailwind css),
+  process-compose `explorer` process in the standard profile.
+- Versions exact-pinned to the alpha-proven matrix (react-start 1.167.16, router 1.168.10,
+  vite 7.3.2, react 19.1.0, query 5.96.2, table 8.21.3); Tailwind v4 via @tailwindcss/vite.
+  NOTE: port 3100 (3001 collides with the alpha API dev server on this machine).
+
+### Verified (live, against the docker devnet stack on API_HOST_PORT=3200)
+- All 7 routes SSR 200; production build (nitro) clean; typecheck 14/14, biome 521 files, tests
+  16/16 tasks, ABI gate, supply-chain guard.
+- **Every client endpoint exercised through the app's own zod-validated client**: stats, pipeline
+  (60 atoms · 2 enriched), q-search finds the SoftwareSourceCode atom, artifacts (favicon:active),
+  expanded triples resolve S/O labels (null predicate term exercised the fallback-chip path by
+  design), events feed, 13 schema tables.
+- **Write path**: minted key → createAtom created:true → idempotent re-post created:false →
+  readback pending in pipeline. 401 without key surfaces cleanly (playground shows it).
+- /api/status grid live: api/atom-services/indexer/projections ok; docker workers show
+  unreachable from host (health ports not published — accurate; defaults target native dev).
+- Machine quirks: host ports 3000+3001 are held by alpha-beta dev servers → explorer on **3100**,
+  compose api override `API_HOST_PORT=3200` for this session. `bun --filter` is broken on
+  bun 1.3.11 (repo pins 1.3.3) → `make keys` fails; ran services/api keys:create directly.
+  Start 1.167 uses default client/server entries + conventional `tanstackStart()` (the
+  experimental app's custom ssr.tsx/client.tsx shapes are for an older API — do not copy).
+
+## 2026-07-08 — Contracts as an npm dependency: `@0xintuition/contracts-v2` end-to-end
+
+The clone+forge devnet is gone. The protocol now enters the repo exactly once, as the
+pinned npm package `@0xintuition/contracts-v2@1.0.0-alpha.0` (built from upstream `94bddae`
+= main; `gitHead` + source-hash verified).
+
+### Shipped
+- **`packages/contracts`** (`@0xintuition/contracts`): re-exported viem-typed ABIs, network
+  address book (13579 testnet entry), vendored artifacts the package doesn't ship
+  (OZ 5.4.0 TransparentUpgradeableProxy/TimelockController/UpgradeableBeacon + AtomWarden +
+  WrappedTrust, compiled from the package's own `./src/*` export — `scripts/regen-vendored.sh`),
+  and a **viem deployer** replicating `IntuitionDeployAndSetup.s.sol` (anvil branch) with the
+  createAtoms→AtomCreated acceptance test. Idempotent CLI: `bun run devnet:deploy`.
+- **Production-faithful devnet**: published bytecode is the `optimizer_runs=10000` production
+  build; MultiVault runtime = 27,666 B > EIP-170, so anvil now runs `--disable-code-size-limit`
+  (mirrors the raised cap on the Intuition L3). The old devnet rebuilt at 200 runs — different
+  bytecode than prod; the new one is byte-identical. Real MultiVaultMigrationMode used as the
+  proxy impl (as prod does), no more plain-MultiVault size workaround.
+- **Infra swap**: `docker/Dockerfile.devnet` → bun-only one-shot (no foundry/git/python; volume
+  `devnet_contracts` dropped, state bind-mounted to `devnet/deployments-devnet.json`);
+  deleted `devnet/setup.sh` + `devnet-deploy.sh`; `make devnet`; Process Compose overlay
+  `.process-compose/devnet.yaml` + `dev-local.sh --devnet` flag (composable with `indexing`).
+- **ABI single source of truth**: `scripts/sync-abis.ts` generates
+  `crates/rindexer-ingestion/abi/MultiVault.json` from the package (`abis:sync`/`abis:check`);
+  CI drift gate wired into ci.yml. ABI bumped 4b4ee8e→94bddae: **events 26/26 identical**
+  (indexer-safe); function diffs are the ref bump.
+- **Supply-chain policy**: bunfig `minimumReleaseAgeExcludes = ["@0xintuition/contracts-v2"]`
+  (first-party, exact-pinned); guard script now enforces a reviewed allowlist
+  (`APPROVED_RELEASE_AGE_EXCLUDES`) instead of rejecting all excludes.
+
+### Verified
+- Native e2e: fresh anvil → deploy (34 txs, ~2 s) → acceptance passed; re-run idempotent.
+  **MultiVault proxy deterministic at the SAME address as before**
+  (`0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f`) — docs/example.env stayed valid.
+- Docker e2e: `--profile devnet up --build` → acceptance passed in-container, state file on host,
+  restart skips deploy. Drift gate proven (perturb → fail → sync → pass).
+  Workspace green: typecheck 13/13, biome, guard.
+- **FULL LOOP PROVEN on docker devnet** (`--profile devnet --profile indexing`): cast createAtoms
+  ("https://github.com/0xIntuition/intuition-core") → indexed in seconds → /api/stats 57→58 →
+  /api/atoms shows it parsed + classified `SoftwareSourceCode` → **deterministic-ID parity**:
+  `kgAtomId()` locally == onchain-indexed id (`0x85ec2459…`). Note: first Rust image build is slow
+  (~1 h cold, and one wedged BuildKit run needed a client restart); subsequent builds are cached.
+
+### Upstream follow-ups (contracts-v2 alpha.1 — we maintain the package)
+Export AtomWarden + WrappedTrust; ship OZ infra bytecodes or a deploy module; add a
+`deployments` (address book) export. Then delete `packages/contracts/vendored/`.
+
+---
+
 ## 2026-07-02 (evening) — Rate limiting, provider docs, local devnet
 
 **Docker workflow note:** Kames shuts Docker Desktop down manually between uses (machine slowdown).

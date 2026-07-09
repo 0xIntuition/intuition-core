@@ -1,0 +1,32 @@
+processes:
+  devnet-anvil:
+    description: "Local anvil chain (31337) on http://localhost:8545."
+    namespace: devnet
+    # --disable-code-size-limit: the contracts deploy as the production build
+    # (MultiVault runtime > EIP-170's 24576 bytes, which the Intuition L3
+    # permits by raising the cap — anvil must do the same).
+    command: "anvil --chain-id 31337 --disable-code-size-limit --state .logs/devnet/anvil-state.json"
+    log_location: .logs/process-compose/devnet-anvil.log
+    is_dotenv_disabled: true
+    readiness_probe:
+      exec:
+        command: "cast chain-id --rpc-url http://127.0.0.1:8545"
+      initial_delay_seconds: 1
+      period_seconds: 2
+      timeout_seconds: 3
+      failure_threshold: 15
+    success_exit_codes: [130, 143]
+
+  devnet-deploy:
+    description: "Deploy the Intuition contracts from @0xintuition/contracts-v2 onto anvil."
+    namespace: devnet
+    command: "bun run devnet:deploy"
+    log_location: .logs/process-compose/devnet-deploy.log
+    is_dotenv_disabled: true
+    environment:
+      - "RPC_URL=http://127.0.0.1:8545"
+    depends_on:
+      devnet-anvil:
+        condition: process_healthy
+    availability:
+      restart: "exit_on_failure"

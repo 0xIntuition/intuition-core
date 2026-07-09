@@ -2,7 +2,9 @@
 # Refuse to install package versions published less than 14 days ago.
 # Defense-in-depth against supply-chain attacks using compromised credentials.
 minimumReleaseAge = 1209600
-# Reviewed first-party exception: @0xintuition/contracts-v2 was first
-# published on 2026-07-07 and is required for the OSS contract-artifact
-# integration tracked in ENG-13313. Keep this list intentionally narrow.
+# Reviewed first-party exception (ENG-13313): @0xintuition/contracts-v2 is
+# exact-version pinned by its consumers and required for the OSS
+# contract-artifact integration. Keep this list intentionally narrow — any
+# change must also update the reviewed allowlist in
+# scripts/guard-supply-chain-policy.mjs.
 minimumReleaseAgeExcludes = ["@0xintuition/contracts-v2"]

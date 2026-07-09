@@ -3,8 +3,9 @@
 	"private": true,
 	"description": "Intuition Core — the open backend, in a box. Self-hosted indexer, atom intelligence, and a query API for the Intuition knowledge graph.",
 	"license": "MIT",
-	"packageManager": "bun@1.3.3",
+	"packageManager": "bun@1.3.11",
 	"workspaces": [
+		"apps/*",
 		"packages/*",
 		"services/*",
 		"tooling/*"
@@ -31,7 +32,11 @@
 		"datastores:down": "docker compose -f docker-compose.datastores.yml down",
 		"datastores:reset": "docker compose -f docker-compose.datastores.yml down -v",
 		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs",
-		"preinstall": "node scripts/enforce-bun-install.mjs"
+		"preinstall": "node scripts/enforce-bun-install.mjs",
+		"devnet:deploy": "bun run --cwd packages/contracts devnet:deploy",
+		"abis:sync": "bun run scripts/sync-abis.ts",
+		"abis:check": "bun run scripts/sync-abis.ts --check",
+		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy"
 	},
 	"catalog": {
 		"typescript": "^5.9.3",
@@ -42,7 +47,8 @@
 		"@types/bun": "^1.3.3",
 		"turbo": "^2.6.2",
 		"typescript": "^5.9.3",
-		"ultracite": "^7.0.11"
+		"ultracite": "^7.0.11",
+		"@0xintuition/contracts": "workspace:*"
 	},
 	"engines": {
 		"node": ">=20"

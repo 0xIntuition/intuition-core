@@ -91,13 +91,27 @@ curl "localhost:3000/api/atoms?q=joji&limit=1"
 
 ### `GET /api/atoms/:id`
 
-One atom, full row (processing state, results, timestamps). `404 not_found` if
-absent or not public.
+One atom, full row (processing state, results, timestamps), plus `stats` —
+graph-degree data from the adjacency projections (`inDegree`, `outDegree`,
+`neighborKindCounts`, `predicateCounts`; `null` until the atom participates in
+a triple). `404 not_found` if absent or not public.
+
+### `GET /api/atoms/:id/artifacts`
+
+Enrichment artifacts attached to the atom — one row per provider output
+(`opengraph`, `github-repo`, …): `artifactKind`, `artifactVersion`, `status`,
+`sourceUri`, the raw `data` payload, normalized `extracted` fields, and
+`error` when the provider failed. Newest first, paginated.
+
+```bash
+curl "localhost:3000/api/atoms/0x85ec2459…/artifacts"
+```
 
 ### `GET /api/atoms/:id/triples`
 
 Every triple touching the atom **in any position** — subject, predicate, or
 object — served by the hexastore indexes. Paginated like `GET /api/atoms`.
+Supports `?expand=terms` (see `GET /api/triples`).
 
 ### `POST /api/triples` 🔑
 
@@ -130,6 +144,33 @@ Term ids must be 32-byte protocol ids: `400 invalid_term_id` otherwise.
 
 Filters: `subject_id` · `predicate_id` · `object_id` (combinable), plus
 `limit`/`offset`. `GET /api/triples/:id` fetches one.
+
+Add `?expand=terms` to embed a `{id, data, classificationType, rawType}`
+summary for each subject/predicate/object term (a term is `null` when its
+atom isn't in the public read model) — this is what makes a triple table
+readable without N follow-up atom fetches.
+
+### `GET /api/events`
+
+Append-only activity feed (`kg.events`): node/triple/predicate/artifact
+creations, onchain and off. Filters: `entity_kind` · `event_type` ·
+`entity_id`, plus `limit`/`offset`. Rows carry `eventTime`, `eventType`,
+`entityKind`, `entityId`, `actorId`, `isOnchain`, `blockNumber`, `txHash`,
+and the event `payload`.
+
+### `GET /api/stats/pipeline`
+
+Worker-pipeline health: per-stage status counts over public atoms.
+
+```json
+{
+  "data": {
+    "parse":          { "completed": 57, "pending": 1 },
+    "classification": { "completed": 57, "pending": 1 },
+    "enrichment":     { "completed": 12, "skipped": 44, "pending": 2 }
+  }
+}
+```
 
 ### `GET /api/predicates`
 

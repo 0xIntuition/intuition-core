@@ -108,6 +108,14 @@ const checkBunPolicy = () => {
 		addFailure(bunfigPath, `minimumReleaseAge must be at least ${minReleaseAgeSeconds} seconds`);
 	}
 
+	// Fail on multiple assignments outright: bun honors the LAST one, while a
+	// single-match check would only inspect the first — an easy silent bypass.
+	const excludeAssignments = [...bunfig.matchAll(/^\s*minimumReleaseAgeExcludes\s*=/gm)];
+	if (excludeAssignments.length > 1) {
+		addFailure(bunfigPath, 'minimumReleaseAgeExcludes must be assigned at most once');
+		return;
+	}
+
 	const excludesMatch = bunfig.match(/^\s*minimumReleaseAgeExcludes\s*=\s*\[([^\]]*)\]/m);
 
 	if (excludesMatch) {

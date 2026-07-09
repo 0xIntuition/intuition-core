@@ -205,6 +205,7 @@ paths:
         - $ref: "#/components/parameters/TermId"
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/ExpandTerms"
       responses:
         "200":
           description: Triples touching the atom.
@@ -226,6 +227,43 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/atoms/{id}/artifacts:
+    get:
+      tags: [Atoms]
+      summary: List enrichment artifacts attached to an atom
+      description: >-
+        One row per provider output (opengraph, github-repo, ...). Newest
+        first. 404 when the atom is absent or not public.
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/TermId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Artifacts for the atom.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, pagination]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Artifact"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/ApiKeyRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/triples:
     get:
       tags: [Triples]
@@ -236,6 +274,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/ExpandTerms"
         - name: subject_id
           in: query
           schema:
@@ -334,6 +373,7 @@ paths:
         - {}
       parameters:
         - $ref: "#/components/parameters/TermId"
+        - $ref: "#/components/parameters/ExpandTerms"
       responses:
         "200":
           description: Triple row.
@@ -349,6 +389,56 @@ paths:
           $ref: "#/components/responses/ApiKeyRequired"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List graph activity events
+      description: >-
+        Append-only activity feed (kg.events) — node/triple/predicate/artifact
+        creations, onchain and off.
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+        - name: entity_kind
+          in: query
+          schema:
+            type: string
+            enum: [node, triple, predicate, artifact]
+          description: Filter by entity kind.
+        - name: event_type
+          in: query
+          schema:
+            type: string
+          description: Filter by event type.
+        - name: entity_id
+          in: query
+          schema:
+            type: string
+          description: Filter by entity id.
+      responses:
+        "200":
+          description: Events, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, pagination]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/ApiKeyRequired"
         "429":
           $ref: "#/components/responses/RateLimited"
         "500":
@@ -373,6 +463,31 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Predicate"
+        "401":
+          $ref: "#/components/responses/ApiKeyRequired"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/stats/pipeline:
+    get:
+      tags: [Stats]
+      summary: Worker-pipeline status counts
+      description: Per-stage (parse, classification, enrichment) status counts over public atoms.
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Pipeline stats.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PipelineStats"
         "401":
           $ref: "#/components/responses/ApiKeyRequired"
         "429":
@@ -443,6 +558,17 @@ components:
       schema:
         type: string
       description: Protocol atom or triple id.
+    ExpandTerms:
+      name: expand
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [terms]
+      description: >-
+        `expand=terms` embeds a `{id, data, classificationType, rawType}`
+        summary for each subject/predicate/object term (null when the term's
+        atom is not public).
   responses:
     ApiKeyRequired:
       description: The endpoint requires an API key in the current auth mode, or the presented key is invalid/revoked.
@@ -608,6 +734,11 @@ components:
               $ref: "#/components/schemas/AnyJson"
             searchText:
               type: string
+            stats:
+              oneOf:
+                - $ref: "#/components/schemas/NodeStats"
+                - type: "null"
+              description: Graph-degree stats; null until the atom participates in a triple.
     Triple:
       type: object
       required:
@@ -679,6 +810,116 @@ components:
           $ref: "#/components/schemas/AnyJson"
         metadata:
           $ref: "#/components/schemas/AnyJson"
+    TermSummary:
+      type: [object, "null"]
+      description: Joined atom summary for a triple term (null when not public).
+      properties:
+        id:
+          type: string
+        data:
+          type: [string, "null"]
+        classificationType:
+          type: string
+        rawType:
+          type: string
+    ExpandedTriple:
+      allOf:
+        - $ref: "#/components/schemas/Triple"
+        - type: object
+          properties:
+            subject:
+              $ref: "#/components/schemas/TermSummary"
+            predicate:
+              $ref: "#/components/schemas/TermSummary"
+            object:
+              $ref: "#/components/schemas/TermSummary"
+    NodeStats:
+      type: object
+      required: [inDegree, outDegree, neighborKindCounts, predicateCounts]
+      properties:
+        inDegree:
+          type: integer
+        outDegree:
+          type: integer
+        neighborKindCounts:
+          $ref: "#/components/schemas/AnyJson"
+        predicateCounts:
+          $ref: "#/components/schemas/AnyJson"
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+    Artifact:
+      type: object
+      required: [id, createdAt, updatedAt, artifactKind, artifactVersion, status, data, extracted]
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        artifactKind:
+          type: string
+          description: Provider slug, e.g. `opengraph`, `github-repo`.
+        artifactVersion:
+          type: string
+        status:
+          type: string
+        sourceUri:
+          type: [string, "null"]
+        data:
+          $ref: "#/components/schemas/AnyJson"
+        extracted:
+          $ref: "#/components/schemas/AnyJson"
+        error:
+          $ref: "#/components/schemas/AnyJson"
+    Event:
+      type: object
+      required: [id, eventTime, eventType, entityKind, entityId, isOnchain, payload]
+      properties:
+        id:
+          type: string
+        eventTime:
+          type: string
+          format: date-time
+        eventType:
+          type: string
+        entityKind:
+          type: string
+          enum: [node, triple, predicate, artifact]
+        entityId:
+          type: string
+        actorId:
+          type: [string, "null"]
+        classificationType:
+          type: [string, "null"]
+        isOnchain:
+          type: boolean
+        blockNumber:
+          type: [integer, "null"]
+        txHash:
+          type: [string, "null"]
+        payload:
+          $ref: "#/components/schemas/AnyJson"
+    PipelineStats:
+      type: object
+      required: [parse, classification, enrichment]
+      description: Per-stage status counts over public atoms.
+      properties:
+        parse:
+          type: object
+          additionalProperties:
+            type: integer
+        classification:
+          type: object
+          additionalProperties:
+            type: integer
+        enrichment:
+          type: object
+          additionalProperties:
+            type: integer
     Predicate:
       type: object
       required:
