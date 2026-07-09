@@ -1,5 +1,11 @@
 {
 	"extends": "./tsconfig.json",
-	"include": ["src", "vendored/*.json"],
-	"exclude": ["node_modules"]
+	"include": [
+		"src",
+		"__tests__",
+		"vendored/*.json"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }

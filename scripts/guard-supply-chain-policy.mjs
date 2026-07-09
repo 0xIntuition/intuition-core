@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const minReleaseAgeSeconds = 1_209_600;
+const reviewedMinimumReleaseAgeExcludes = new Set(['@0xintuition/contracts-v2']);
 const failures = [];
 
 const dependencySections = [
@@ -107,26 +108,35 @@ const checkBunPolicy = () => {
 		addFailure(bunfigPath, `minimumReleaseAge must be at least ${minReleaseAgeSeconds} seconds`);
 	}
 
-	// minimumReleaseAgeExcludes is allowed ONLY for this reviewed allowlist of
-	// first-party packages (exact-version pinned by their consumers). Adding an
-	// entry requires updating this constant, i.e. a reviewed change to the guard.
-	const APPROVED_RELEASE_AGE_EXCLUDES = ['@0xintuition/contracts-v2'];
-	const excludesMatch = bunfig.match(/^\s*minimumReleaseAgeExcludes\s*=\s*(\[[^\]]*\])/m);
+	// Fail on multiple assignments outright: bun honors the LAST one, while a
+	// single-match check would only inspect the first — an easy silent bypass.
+	const excludeAssignments = [...bunfig.matchAll(/^\s*minimumReleaseAgeExcludes\s*=/gm)];
+	if (excludeAssignments.length > 1) {
+		addFailure(bunfigPath, 'minimumReleaseAgeExcludes must be assigned at most once');
+		return;
+	}
+
+	const excludesMatch = bunfig.match(/^\s*minimumReleaseAgeExcludes\s*=\s*\[([^\]]*)\]/m);
 
 	if (excludesMatch) {
-		let excludes;
-		try {
-			excludes = JSON.parse(excludesMatch[1].replaceAll("'", '"'));
-		} catch {
-			addFailure(bunfigPath, 'minimumReleaseAgeExcludes is not a parseable array');
-			return;
+		const excludes = [...excludesMatch[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+
+		for (const excludedPackage of excludes) {
+			if (!reviewedMinimumReleaseAgeExcludes.has(excludedPackage)) {
+				addFailure(
+					bunfigPath,
+					`minimumReleaseAgeExcludes contains unreviewed package ${excludedPackage}`
+				);
+			}
 		}
-		const unapproved = excludes.filter((name) => !APPROVED_RELEASE_AGE_EXCLUDES.includes(name));
-		if (unapproved.length > 0) {
-			addFailure(
-				bunfigPath,
-				`minimumReleaseAgeExcludes contains unapproved packages: ${unapproved.join(', ')}`
-			);
+
+		for (const reviewedPackage of reviewedMinimumReleaseAgeExcludes) {
+			if (!excludes.includes(reviewedPackage)) {
+				addFailure(
+					bunfigPath,
+					`missing reviewed minimumReleaseAgeExcludes package ${reviewedPackage}`
+				);
+			}
 		}
 	}
 };

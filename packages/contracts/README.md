@@ -4,6 +4,8 @@ The monorepo's single protocol surface. Everything protocol-shaped flows from
 the **pinned** [`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2)
 npm package through this workspace package:
 
+- **`./multivault`** — MultiVault constants for the indexer boundary
+  (`MULTIVAULT_RINDEXER_EVENTS`, canonical ABI JSON used by the drift test).
 - **`./abis`** — viem-typed ABIs for every protocol contract (single import
   point; includes `AtomWardenAbi`/`WrappedTrustAbi` from the vendored
   artifacts the package doesn't export yet).

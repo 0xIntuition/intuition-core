@@ -17,6 +17,7 @@ atom intelligence pipeline, and query API, stood up with one command.
 [Explorer](#the-explorer) ·
 [How it works](#how-it-works) ·
 [API](#the-query-api) ·
+[Contracts](./docs/contracts.md) ·
 [Docs](./docs) ·
 [Contributing](./CONTRIBUTING.md)
 

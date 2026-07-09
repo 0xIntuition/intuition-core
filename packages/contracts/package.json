@@ -7,7 +7,8 @@
 		".": "./src/index.ts",
 		"./abis": "./src/abis.ts",
 		"./addresses": "./src/addresses.ts",
-		"./deploy": "./src/deploy/index.ts"
+		"./deploy": "./src/deploy/index.ts",
+		"./multivault": "./src/multivault.ts"
 	},
 	"license": "MIT",
 	"scripts": {
@@ -15,7 +16,7 @@
 		"clean": "git clean -xdf .cache .turbo .vendor-build dist node_modules",
 		"dev": "tsc",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
-		"test": "bun test src",
+		"test": "bun test src __tests__",
 		"devnet:deploy": "DEPLOY_TARGET=anvil bun run src/deploy/cli.ts",
 		"vendored:regen": "scripts/regen-vendored.sh",
 		"ci": "biome check",
