@@ -171,3 +171,26 @@ processes:
       timeout_seconds: 3
       failure_threshold: 24
     success_exit_codes: [130, 143]
+
+  explorer:
+    description: "Data explorer + service dashboard on http://localhost:3100."
+    namespace: standard
+    command: "cd apps/explorer && bun run dev"
+    log_location: .logs/process-compose/explorer.log
+    is_dotenv_disabled: true
+    environment:
+      - "VITE_API_URL=http://localhost:3000"
+    depends_on:
+      api:
+        condition: process_healthy
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        scheme: http
+        path: /
+        port: 3100
+      initial_delay_seconds: 5
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 24
+    success_exit_codes: [130, 143]

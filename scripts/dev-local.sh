@@ -13,6 +13,8 @@ Profiles:
   indexing   standard + native rindexer ingestion and projections
 
 Flags:
+  --devnet   also run a local anvil chain and deploy the Intuition contracts
+             onto it (requires foundry's anvil + cast on PATH)
   --dry-run  validate the merged Process Compose config and exit
   --no-tui   run without the Process Compose TUI
   -h, --help show this help
@@ -21,10 +23,12 @@ Examples:
   bun run dev:local
   bun run dev:local -- standard --dry-run
   bun run dev:local -- indexing --no-tui
+  bun run dev:local -- indexing --devnet   # fully self-contained chain-to-API loop
 USAGE
 }
 
 profile="standard"
+devnet=false
 dry_run=false
 no_tui=false
 extra_args=()
@@ -33,6 +37,10 @@ while [[ $# -gt 0 ]]; do
 	case "$1" in
 		standard | indexing)
 			profile="$1"
+			shift
+			;;
+		--devnet)
+			devnet=true
 			shift
 			;;
 		--dry-run)
@@ -79,6 +87,19 @@ cd "$ROOT_DIR"
 config_args=(-f process-compose.yaml)
 if [[ "$profile" == "indexing" ]]; then
 	config_args+=(-f .process-compose/indexing.yaml)
+fi
+if [[ "$devnet" == "true" ]]; then
+	if ! command -v anvil >/dev/null 2>&1 || ! command -v cast >/dev/null 2>&1; then
+		cat >&2 <<'EOF'
+error: --devnet requires foundry's anvil and cast.
+
+Install:
+  curl -L https://foundry.paradigm.xyz | bash && foundryup
+EOF
+		exit 1
+	fi
+	mkdir -p "${ROOT_DIR}/.logs/devnet"
+	config_args+=(-f .process-compose/devnet.yaml)
 fi
 
 pc_args=(up --ordered-shutdown --logs-truncate)

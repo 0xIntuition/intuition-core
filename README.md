@@ -14,6 +14,7 @@ atom intelligence pipeline, and query API, stood up with one command.
 [![Databases: Postgres + TimescaleDB](https://img.shields.io/badge/databases-Postgres%20%2B%20TimescaleDB-336791?logo=postgresql&logoColor=white)](./docs/architecture.md)
 
 [Quick start](#quick-start) ·
+[Explorer](#the-explorer) ·
 [How it works](#how-it-works) ·
 [API](#the-query-api) ·
 [Docs](./docs) ·
@@ -39,9 +40,16 @@ ran in one place. Core hands you the whole machine:
   for Spotify, TMDB, Etherscan, and more. [Write your own](./docs/writing-an-enrichment-plugin.md).
 - **Verify, don't trust** — point the indexer at the chain and reconstruct the
   graph yourself.
+- **Watch it live** — a built-in [explorer dashboard](#the-explorer) shows
+  service health, the worker pipeline, and every atom's artifacts, triples,
+  and events as they land.
 
 The minimal stack needs **zero paid accounts**, including chain indexing (the
 Intuition testnet RPC is public and keyless).
+
+[![Explorer dashboard — service health, worker pipeline, live data](./docs/assets/dashboard.png)](#the-explorer)
+
+<p align="center"><em>The built-in <a href="#the-explorer">explorer</a>: your node at a glance — live service health, pipeline throughput, and the freshest atoms.</em></p>
 
 ## Quick start
 
@@ -291,6 +299,75 @@ Full walkthrough: **[docs/run-your-own-node.md](./docs/run-your-own-node.md)**.
 Data reference: **[docs/data-model.md](./docs/data-model.md)**.
 SQL cookbook: **[docs/example-queries.md](./docs/example-queries.md)**.
 
+## The explorer
+
+Your node is not a black box. **`apps/explorer`** is a dashboard-first data
+explorer that ships with Core — and the **reference consumer of the public
+API**: everything it renders comes through the same REST endpoints your app
+would use, via one readable
+[typed client](./apps/explorer/src/lib/api.ts) that doubles as documentation.
+
+```bash
+cd apps/explorer && bun run dev     # → http://localhost:3100
+```
+
+- **Dashboard** — live service health across all seven services, worker-pipeline
+  throughput (parse → classify → enrich), data volumes, and an activity feed.
+- **Atoms** — every atom with its classification, pipeline state, and onchain
+  provenance; detail pages surface raw + resolved data, **enrichment artifacts**
+  (with extracted images), associated **triples** with the atom's position
+  highlighted, graph degree, and per-atom events.
+
+![Atoms table — classification, pipeline state, onchain provenance](./docs/assets/atoms.png)
+
+- **Triples & predicates** — claims rendered as linked subject → predicate →
+  object chips with resolved labels, and the seeded predicate registry.
+- **Playground** — create atoms and triples through the public API, with the
+  exact `curl` equivalent shown for every request.
+- **Events & schema** — the append-only activity log and the live data model
+  from `GET /api/schema`.
+
+![Predicate registry — the verbs of the knowledge graph](./docs/assets/predicates.png)
+
+### Run everything — chain → indexer → API → explorer
+
+The full self-contained loop: a local chain with the real contracts, the
+indexer reconstructing the graph from it, the intelligence pipeline enriching
+every atom, and the explorer to watch it all happen.
+
+```bash
+# 1. Chain + contracts (anvil with the production bytecode, deployed from npm)
+docker compose --profile devnet up -d anvil devnet-deploy
+
+# 2. Point the indexer at it — in .env:
+#      INTUITION_RPC_URL=http://anvil:8545
+#      CHAIN_ID=31337
+#      MULTIVAULT_CONTRACT_ADDRESS=0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
+#      MULTIVAULT_START_BLOCK=0
+docker compose --profile devnet --profile indexing up -d
+
+# 3. The explorer
+cd apps/explorer && bun run dev     # → http://localhost:3100
+```
+
+Create atoms onchain (`docs/local-devnet.md#3-create-atoms-onchain`) or through
+the explorer's **Playground**, and watch them land in the graph — indexed,
+parsed, classified, enriched — within seconds.
+
+> Ports: the API publishes on `3000` by default (`API_HOST_PORT` overrides it —
+> then set `VITE_API_URL` for the explorer). If you set `API_ALLOWED_ORIGINS`,
+> include `http://localhost:3100`.
+
+**Deploy your own testnet instance** — the same deployer stands up a fresh,
+self-owned protocol deployment on Intuition Sepolia (chain 13579), then prints
+the `.env` block that points your indexer at it:
+
+```bash
+PRIVATE_KEY=0x… bun run testnet:deploy
+```
+
+Details: **[docs/local-devnet.md](./docs/local-devnet.md)**.
+
 ## How it works
 
 ```
@@ -320,6 +397,8 @@ SQL cookbook: **[docs/example-queries.md](./docs/example-queries.md)**.
 | **atom-services** | `services/atom-services` | stateless `POST /v1/classify` · `/v1/enrich` · `/v1/process` |
 | **atom intelligence** | `packages/atom-*` | the parser, 17 classification plugins, enrichment adapters, rules engine |
 | **data layer** | `packages/database-*`, `migrations/` | schemas + versioned, auto-applied migrations |
+| **protocol surface** | `packages/contracts` | pinned [`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2) ABIs, address book, devnet deployer |
+| **explorer** | `apps/explorer` | dashboard + data explorer — service health, pipeline status, atoms/triples/artifacts; the reference API consumer |
 
 Deep dive: **[docs/architecture.md](./docs/architecture.md)**.
 
@@ -349,7 +428,7 @@ Capabilities are opt-in; the floor is free.
 | --- | --- | --- |
 | **Minimal** (`docker compose up`) | databases + workers + api + atom-services | **none** |
 | **+ Indexing** (`--profile indexing`) | indexer + projections | none — public RPC |
-| **+ Local devnet** (`--profile devnet`) | [Anvil + the real contracts](./docs/local-devnet.md) — index your own chain, fully offline | none |
+| **+ Local devnet** (`--profile devnet`) | [Anvil + the real contracts](./docs/local-devnet.md) — production bytecode from [`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2), your own chain, fully offline | none |
 | **+ Rich enrichment** | provider plugins | optional keys (Spotify, Etherscan, …) |
 | **+ Search** *(coming)* | embeddings | OpenAI or pluggable provider |
 
@@ -359,8 +438,9 @@ Every variable: **[docs/configuration.md](./docs/configuration.md)**.
 
 ```
 intuition-core/
+├─ apps/            web apps — explorer (dashboard + data explorer on :3100)
 ├─ crates/          Rust — shared · rindexer-ingestion · projections · curves
-├─ packages/        TypeScript libraries — atom-* intelligence · database schemas · types
+├─ packages/        TypeScript libraries — atom-* intelligence · database schemas · contracts · types
 ├─ services/        deployable services — api · workers · atom-services
 ├─ migrations/      event-store SQL migrations (TimescaleDB)
 ├─ docker/          per-service Dockerfiles

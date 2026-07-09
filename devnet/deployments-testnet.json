@@ -1,0 +1,15 @@
+{
+  "chainId": 13579,
+  "WrappedTrust": "0xDE80b6EE63f7D809427CA350e30093F436A0fe35",
+  "BaseEmissionsController": "0x585b628601898a9591A3e5cb011cB051F8317E1E",
+  "MultiVaultImplementation": "0xdC3F7157d06B9bB39fBf8bEdAE1C5FFf856ceF8e",
+  "MultiVault": "0x8e90C0acb6D1d673Ee77d569E1f4f3BDd8A45662",
+  "AtomWalletFactory": "0x8aca733a710C8e650D6c21D522178155025BB05d",
+  "AtomWarden": "0xd1c56F7B3ff0de5D412f665B22b5b091F9CcF7c6",
+  "BondingCurveRegistry": "0x672229472267e61a03EBB8bE3573c1F7553f6e1E",
+  "LinearCurve": "0x15dF6e3C202E7c1E55b4C33CBA861D11f1577241",
+  "SatelliteEmissionsController": "0x169027B06Bc0Cbd4B4D93aBd87386fDD74B4Fe1a",
+  "TrustBonding": "0x3C4b779ce7929306445872EAD325271caD1def39",
+  "deployBlock": 9359242,
+  "deployer": "0x54C15B56800235F273bb659aea820c9D3112B3FD"
+}

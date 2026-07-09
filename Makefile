@@ -31,6 +31,14 @@ up: ## Start the default Docker Compose stack in the background.
 index: ## Start Docker Compose with the indexing profile in the background.
 	$(COMPOSE) --profile indexing up -d
 
+.PHONY: devnet
+devnet: ## Start the local anvil chain and deploy the Intuition contracts onto it.
+	$(COMPOSE) --profile devnet up -d anvil devnet-deploy
+
+.PHONY: devnet-deploy
+devnet-deploy: ## Deploy the contracts to an already-running anvil (native, no docker).
+	bun run devnet:deploy
+
 .PHONY: down
 down: ## Stop Docker Compose services and keep volumes.
 	$(COMPOSE) --profile indexing down --remove-orphans

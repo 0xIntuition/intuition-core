@@ -1,7 +1,10 @@
 import {
 	accounts,
+	artifacts,
 	createKgConnection,
 	type KgDb,
+	kgEvents,
+	nodeStats,
 	nodes,
 	predicates,
 	triples,
@@ -11,7 +14,8 @@ import {
 	ensureTripleWithCreation,
 	type KgNodeRawType,
 } from '@0xintuition/database-kg/actions';
-import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { type ApiKeyIdentity, bearerToken, resolveApiKey } from './auth';
@@ -45,6 +49,34 @@ function parsePagination(query: Record<string, string | undefined>) {
 /** Only active, public rows are served — the public read model. */
 const publicNodes = and(eq(nodes.status, 'active'), eq(nodes.visibility, 'public'));
 const publicTriples = and(eq(triples.status, 'active'), eq(triples.visibility, 'public'));
+
+// Aliased node joins for `?expand=terms` — one per triple position. Drizzle
+// collapses an all-null joined selection to `null`, so missing terms arrive
+// as `subject: null` with no extra normalization.
+const subjectNodes = alias(nodes, 'subject_nodes');
+const predicateNodes = alias(nodes, 'predicate_nodes');
+const objectNodes = alias(nodes, 'object_nodes');
+
+type PipelineStage = 'parse' | 'classification' | 'enrichment';
+const PIPELINE_STAGES: readonly PipelineStage[] = ['parse', 'classification', 'enrichment'];
+
+/** Fold grouped (parse, classification, enrichment, count) rows into per-stage status counts. */
+export function aggregatePipelineStats(
+	rows: ReadonlyArray<Record<PipelineStage, string> & { count: number }>
+): Record<PipelineStage, Record<string, number>> {
+	const stages: Record<PipelineStage, Record<string, number>> = {
+		parse: {},
+		classification: {},
+		enrichment: {},
+	};
+	for (const row of rows) {
+		for (const stage of PIPELINE_STAGES) {
+			const status = row[stage];
+			stages[stage][status] = (stages[stage][status] ?? 0) + row.count;
+		}
+	}
+	return stages;
+}
 
 /**
  * Cheap raw-type detection for ingest. The parse worker performs the
@@ -264,23 +296,127 @@ export function createApp(config: ApiConfig) {
 		if (!row) {
 			return c.json({ error: 'not_found' }, 404);
 		}
-		return c.json({ data: row });
+
+		// Graph-degree stats are maintained by the adjacency projections; absent
+		// until the node participates in a triple.
+		const [stats] = await db.select().from(nodeStats).where(eq(nodeStats.nodeId, id)).limit(1);
+
+		return c.json({
+			data: {
+				...row,
+				stats: stats
+					? {
+							inDegree: Number(stats.inDegree),
+							outDegree: Number(stats.outDegree),
+							neighborKindCounts: stats.neighborKindCounts,
+							predicateCounts: stats.predicateCounts,
+							updatedAt: stats.updatedAt,
+						}
+					: null,
+			},
+		});
 	});
+
+	// Enrichment artifacts attached to an atom (opengraph, provider payloads, …).
+	// Served only for atoms in the public read model.
+	app.get('/api/atoms/:id/artifacts', async (c) => {
+		const id = c.req.param('id');
+		const { limit, offset } = parsePagination(c.req.query());
+
+		const [node] = await db
+			.select({ id: nodes.id })
+			.from(nodes)
+			.where(and(eq(nodes.id, id), publicNodes))
+			.limit(1);
+		if (!node) {
+			return c.json({ error: 'not_found' }, 404);
+		}
+
+		const rows = await db
+			.select({
+				id: artifacts.id,
+				createdAt: artifacts.createdAt,
+				updatedAt: artifacts.updatedAt,
+				artifactKind: artifacts.artifactKind,
+				artifactVersion: artifacts.artifactVersion,
+				status: artifacts.status,
+				sourceUri: artifacts.sourceUri,
+				data: artifacts.data,
+				extracted: artifacts.extracted,
+				error: artifacts.error,
+			})
+			.from(artifacts)
+			.where(eq(artifacts.nodeId, id))
+			.orderBy(desc(artifacts.createdAt), desc(artifacts.id))
+			.limit(limit)
+			.offset(offset);
+
+		return c.json({ data: rows, pagination: { limit, offset, count: rows.length } });
+	});
+
+	/**
+	 * Triples with `{id, data, classificationType, rawType}` summaries joined
+	 * in for each S/P/O term (`?expand=terms`) — a triple table is unreadable
+	 * as bare 32-byte ids.
+	 */
+	const selectExpandedTriples = () =>
+		db
+			.select({
+				...getTableColumns(triples),
+				subject: {
+					id: subjectNodes.id,
+					data: subjectNodes.data,
+					classificationType: subjectNodes.classificationType,
+					rawType: subjectNodes.rawType,
+				},
+				predicate: {
+					id: predicateNodes.id,
+					data: predicateNodes.data,
+					classificationType: predicateNodes.classificationType,
+					rawType: predicateNodes.rawType,
+				},
+				object: {
+					id: objectNodes.id,
+					data: objectNodes.data,
+					classificationType: objectNodes.classificationType,
+					rawType: objectNodes.rawType,
+				},
+			})
+			.from(triples)
+			.leftJoin(subjectNodes, eq(triples.subjectId, subjectNodes.id))
+			.leftJoin(predicateNodes, eq(triples.predicateId, predicateNodes.id))
+			.leftJoin(objectNodes, eq(triples.objectId, objectNodes.id));
+
+	const wantsExpandedTerms = (query: Record<string, string | undefined>) =>
+		query.expand === 'terms';
 
 	// All triples touching an atom, in any position — served by the hexastore.
 	app.get('/api/atoms/:id/triples', async (c) => {
 		const id = c.req.param('id');
-		const { limit, offset } = parsePagination(c.req.query());
+		const query = c.req.query();
+		const { limit, offset } = parsePagination(query);
+
+		const where = and(
+			or(eq(triples.subjectId, id), eq(triples.predicateId, id), eq(triples.objectId, id)),
+			publicTriples
+		);
+
+		if (wantsExpandedTerms(query)) {
+			const rows = await selectExpandedTriples()
+				.where(where)
+				.orderBy(desc(triples.createdAt), desc(triples.id))
+				.limit(limit)
+				.offset(offset);
+			return c.json({
+				data: rows,
+				pagination: { limit, offset, count: rows.length },
+			});
+		}
 
 		const rows = await db
 			.select()
 			.from(triples)
-			.where(
-				and(
-					or(eq(triples.subjectId, id), eq(triples.predicateId, id), eq(triples.objectId, id)),
-					publicTriples
-				)
-			)
+			.where(where)
 			.orderBy(desc(triples.createdAt), desc(triples.id))
 			.limit(limit)
 			.offset(offset);
@@ -357,6 +493,18 @@ export function createApp(config: ApiConfig) {
 			filters.push(eq(triples.objectId, query.object_id));
 		}
 
+		if (wantsExpandedTerms(query)) {
+			const rows = await selectExpandedTriples()
+				.where(and(...filters))
+				.orderBy(desc(triples.createdAt), desc(triples.id))
+				.limit(limit)
+				.offset(offset);
+			return c.json({
+				data: rows,
+				pagination: { limit, offset, count: rows.length },
+			});
+		}
+
 		const rows = await db
 			.select()
 			.from(triples)
@@ -370,6 +518,17 @@ export function createApp(config: ApiConfig) {
 
 	app.get('/api/triples/:id', async (c) => {
 		const id = c.req.param('id');
+
+		if (wantsExpandedTerms(c.req.query())) {
+			const [row] = await selectExpandedTriples()
+				.where(and(eq(triples.id, id), publicTriples))
+				.limit(1);
+			if (!row) {
+				return c.json({ error: 'not_found' }, 404);
+			}
+			return c.json({ data: row });
+		}
+
 		const [row] = await db
 			.select()
 			.from(triples)
@@ -382,11 +541,76 @@ export function createApp(config: ApiConfig) {
 		return c.json({ data: row });
 	});
 
+	// ── Events (kg.events) ──────────────────────────────────────────────────
+
+	// Append-only activity feed: node/triple/predicate/artifact creations,
+	// onchain and offchain. Filterable by entity kind/type/id.
+	app.get('/api/events', async (c) => {
+		const query = c.req.query();
+		const { limit, offset } = parsePagination(query);
+
+		const filters = [];
+		if (query.entity_kind) {
+			filters.push(eq(kgEvents.entityKind, query.entity_kind));
+		}
+		if (query.event_type) {
+			filters.push(eq(kgEvents.eventType, query.event_type));
+		}
+		if (query.entity_id) {
+			filters.push(eq(kgEvents.entityId, query.entity_id));
+		}
+
+		const rows = await db
+			.select({
+				id: kgEvents.id,
+				eventTime: kgEvents.eventTime,
+				eventType: kgEvents.eventType,
+				entityKind: kgEvents.entityKind,
+				entityId: kgEvents.entityId,
+				actorId: kgEvents.actorId,
+				classificationType: kgEvents.classificationType,
+				isOnchain: kgEvents.isOnchain,
+				blockNumber: kgEvents.blockNumber,
+				txHash: kgEvents.txHash,
+				payload: kgEvents.payload,
+			})
+			.from(kgEvents)
+			.where(filters.length > 0 ? and(...filters) : undefined)
+			.orderBy(desc(kgEvents.eventTime), desc(kgEvents.id))
+			.limit(limit)
+			.offset(offset);
+
+		return c.json({
+			data: rows.map((row) => ({
+				...row,
+				blockNumber: row.blockNumber === null ? null : Number(row.blockNumber),
+			})),
+			pagination: { limit, offset, count: rows.length },
+		});
+	});
+
 	// ── Predicates & stats ──────────────────────────────────────────────────
 
 	app.get('/api/predicates', async (c) => {
 		const rows = await db.select().from(predicates).orderBy(predicates.slug);
 		return c.json({ data: rows });
+	});
+
+	// Worker-pipeline health: how many public atoms sit in each stage/status.
+	// One grouped scan; statuses come from the CHECK-constrained columns.
+	app.get('/api/stats/pipeline', async (c) => {
+		const rows = await db
+			.select({
+				parse: nodes.parseStatus,
+				classification: nodes.classificationStatus,
+				enrichment: nodes.enrichmentStatus,
+				count: sql<number>`count(*)::int`,
+			})
+			.from(nodes)
+			.where(publicNodes)
+			.groupBy(nodes.parseStatus, nodes.classificationStatus, nodes.enrichmentStatus);
+
+		return c.json({ data: aggregatePipelineStats(rows) });
 	});
 
 	app.get('/api/stats', async (c) => {

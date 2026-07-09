@@ -25,6 +25,9 @@ jobs:
       - name: Supply-chain policy guard
         run: bun run guard:supply-chain
 
+      - name: ABI drift gate (generated from @0xintuition/contracts-v2)
+        run: bun run abis:check
+
       - name: Typecheck
         run: bun run typecheck
 

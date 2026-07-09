@@ -1,0 +1,10 @@
+{
+	"extends": "@0xintuition/tsconfig/compiled-package.json",
+	"compilerOptions": {
+		"lib": ["ES2022"],
+		"strictNullChecks": true,
+		"resolveJsonModule": true
+	},
+	"include": ["src", "vendored/*.json"],
+	"exclude": ["node_modules"]
+}

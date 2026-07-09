@@ -107,8 +107,27 @@ const checkBunPolicy = () => {
 		addFailure(bunfigPath, `minimumReleaseAge must be at least ${minReleaseAgeSeconds} seconds`);
 	}
 
-	if (/^\s*minimumReleaseAgeExcludes\s*=/.test(bunfig)) {
-		addFailure(bunfigPath, 'minimumReleaseAgeExcludes requires explicit review');
+	// minimumReleaseAgeExcludes is allowed ONLY for this reviewed allowlist of
+	// first-party packages (exact-version pinned by their consumers). Adding an
+	// entry requires updating this constant, i.e. a reviewed change to the guard.
+	const APPROVED_RELEASE_AGE_EXCLUDES = ['@0xintuition/contracts-v2'];
+	const excludesMatch = bunfig.match(/^\s*minimumReleaseAgeExcludes\s*=\s*(\[[^\]]*\])/m);
+
+	if (excludesMatch) {
+		let excludes;
+		try {
+			excludes = JSON.parse(excludesMatch[1].replaceAll("'", '"'));
+		} catch {
+			addFailure(bunfigPath, 'minimumReleaseAgeExcludes is not a parseable array');
+			return;
+		}
+		const unapproved = excludes.filter((name) => !APPROVED_RELEASE_AGE_EXCLUDES.includes(name));
+		if (unapproved.length > 0) {
+			addFailure(
+				bunfigPath,
+				`minimumReleaseAgeExcludes contains unapproved packages: ${unapproved.join(', ')}`
+			);
+		}
 	}
 };
 

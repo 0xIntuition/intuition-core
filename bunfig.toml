@@ -2,3 +2,7 @@
 # Refuse to install package versions published less than 14 days ago.
 # Defense-in-depth against supply-chain attacks using compromised credentials.
 minimumReleaseAge = 1209600
+# First-party packages only (exact-version pinned in the consuming package.json).
+# Any change here must also update APPROVED_RELEASE_AGE_EXCLUDES in
+# scripts/guard-supply-chain-policy.mjs, which is the reviewed allowlist.
+minimumReleaseAgeExcludes = ["@0xintuition/contracts-v2"]
