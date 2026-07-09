@@ -69,8 +69,8 @@ explore: ## Print a guided snapshot of local KG tables, atoms, predicates, and a
 
 .PHONY: keys
 keys: ## Mint a local API key. Override KEY_NAME and ACCOUNT as needed.
-	DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg \
-		bun --filter @0xintuition/api run keys:create -- --name $(KEY_NAME) --account $(ACCOUNT)
+	cd services/api && DATABASE_KG_URL=postgresql://intuition:intuition@localhost:5432/intuition_kg \
+		bun run keys:create -- --name $(KEY_NAME) --account $(ACCOUNT)
 
 .PHONY: test
 test: ## Run the test suite.

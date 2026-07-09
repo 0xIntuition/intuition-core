@@ -3,7 +3,7 @@
 	"private": true,
 	"description": "Intuition Core — the open backend, in a box. Self-hosted indexer, atom intelligence, and a query API for the Intuition knowledge graph.",
 	"license": "MIT",
-	"packageManager": "bun@1.3.3",
+	"packageManager": "bun@1.3.11",
 	"workspaces": [
 		"apps/*",
 		"packages/*",

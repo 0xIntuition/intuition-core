@@ -383,9 +383,33 @@ export function createApp(config: ApiConfig) {
 				},
 			})
 			.from(triples)
-			.leftJoin(subjectNodes, eq(triples.subjectId, subjectNodes.id))
-			.leftJoin(predicateNodes, eq(triples.predicateId, predicateNodes.id))
-			.leftJoin(objectNodes, eq(triples.objectId, objectNodes.id));
+			// Public-read-model filter ON THE JOIN, not just the triple: a term
+			// whose atom is draft/unlisted must come back null, never leak its
+			// data through a public triple.
+			.leftJoin(
+				subjectNodes,
+				and(
+					eq(triples.subjectId, subjectNodes.id),
+					eq(subjectNodes.status, 'active'),
+					eq(subjectNodes.visibility, 'public')
+				)
+			)
+			.leftJoin(
+				predicateNodes,
+				and(
+					eq(triples.predicateId, predicateNodes.id),
+					eq(predicateNodes.status, 'active'),
+					eq(predicateNodes.visibility, 'public')
+				)
+			)
+			.leftJoin(
+				objectNodes,
+				and(
+					eq(triples.objectId, objectNodes.id),
+					eq(objectNodes.status, 'active'),
+					eq(objectNodes.visibility, 'public')
+				)
+			);
 
 	const wantsExpandedTerms = (query: Record<string, string | undefined>) =>
 		query.expand === 'terms';

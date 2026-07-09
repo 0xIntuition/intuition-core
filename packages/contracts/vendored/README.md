@@ -25,6 +25,13 @@ packages/contracts/scripts/regen-vendored.sh
 The script compiles from the npm package's own `./src/*` export — never from a
 git clone — so artifacts are always reproducible from the pinned version.
 
+**Licensing**: the OpenZeppelin artifacts are MIT. `AtomWarden`,
+`WrappedTrust`, and `MultiVaultSizeFit` are compiled from
+[`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2)
+source, which is **BUSL-1.1** — these compiled artifacts inherit that license
+(both this repo and the contracts are 0xIntuition projects; the artifacts are
+vendored here solely to deploy the protocol to development chains).
+
 **Upstream plan**: these files disappear once `@0xintuition/contracts-v2`
 exports `AtomWarden`/`WrappedTrust` and the OZ infra bytecodes (tracked for
 `1.0.0-alpha.1`; see `docs/local-devnet.md` follow-ups).
