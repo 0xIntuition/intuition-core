@@ -23,6 +23,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MultiVaultMigrationModeBytecode } from '@0xintuition/contracts-v2/bytecodes';
 import { type Address, createPublicClient, formatEther, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -57,7 +58,9 @@ const account = privateKeyToAccount(privateKey as `0x${string}`);
 
 // Trust token: "fresh" forces a new WrappedTrust; an address reuses it;
 // unset falls back to the target's canonical WTRUST when one exists.
-const trustTokenEnv = process.env.TRUST_TOKEN?.trim();
+// `TRUST_TOKEN=` (set but empty, common in env templates) must behave like
+// unset — fall through to the canonical token, never silently deploy fresh.
+const trustTokenEnv = process.env.TRUST_TOKEN?.trim() || undefined;
 const trustToken: Address | undefined =
 	trustTokenEnv === 'fresh'
 		? undefined
@@ -82,6 +85,29 @@ if (liveChainId !== target.chainId) {
 	console.error(`error: RPC reports chain ${liveChainId}, expected ${target.chainId}`);
 	process.exit(1);
 }
+// Anvil accepts our production-size bytecode only with
+// --disable-code-size-limit. Probe via eth_estimateGas BEFORE the first
+// transaction: failing mid-sequence would consume nonces and shift the
+// deterministic addresses the docs rely on.
+if (isLocal) {
+	try {
+		await publicClient.estimateGas({
+			account: account.address,
+			data: MultiVaultMigrationModeBytecode,
+		});
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (/code.?size/i.test(message)) {
+			console.error(
+				'error: this anvil rejects production-size contracts. Restart it with:\n' +
+					'  anvil --disable-code-size-limit'
+			);
+			process.exit(1);
+		}
+		throw error;
+	}
+}
+
 const balance = await publicClient.getBalance({ address: account.address });
 console.log(`==> Balance:  ${formatEther(balance)} ${target.currencySymbol}`);
 if (!isLocal && balance === 0n) {
@@ -98,6 +124,15 @@ async function existingDeployment() {
 	}
 	try {
 		const state = parseDeploymentState(readFileSync(stateFile, 'utf8'), target.chainId);
+		// A state file from a different deployer (copied, or stale from another
+		// operator) must not be reused: the acceptance test would spend funds
+		// against an instance whose admin keys belong to someone else.
+		if (state.deployer && state.deployer.toLowerCase() !== account.address.toLowerCase()) {
+			console.log(
+				`==> Ignoring ${stateFile}: recorded deployer ${state.deployer} is not ${account.address}.`
+			);
+			return null;
+		}
 		const code = await publicClient.getCode({ address: state.MultiVault });
 		return code && code !== '0x' ? state : null;
 	} catch {
@@ -124,7 +159,13 @@ await runCreateAtomAcceptance({ rpcUrl, account, multiVault: state.MultiVault, t
 console.log('==> DONE');
 console.log('');
 console.log('Point the Core indexer at this instance (.env):');
-console.log(`  INTUITION_RPC_URL=${isLocal ? 'http://anvil:8545' : rpcUrl}`);
+if (isLocal) {
+	console.log(
+		'  INTUITION_RPC_URL=http://anvil:8545   # docker compose (use http://localhost:8545 for native)'
+	);
+} else {
+	console.log(`  INTUITION_RPC_URL=${rpcUrl}`);
+}
 console.log(`  CHAIN_ID=${target.chainId}`);
 console.log(`  MULTIVAULT_CONTRACT_ADDRESS=${state.MultiVault}`);
 console.log(`  MULTIVAULT_START_BLOCK=${state.deployBlock}`);
