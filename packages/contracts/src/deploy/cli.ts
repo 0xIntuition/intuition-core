@@ -32,6 +32,7 @@ import { DEPLOY_TARGETS, type DeployTarget } from './config';
 import { deployIntuitionSystem, targetChain } from './system';
 
 // Anvil dev account #0 — the universal Foundry dev key, safe only for local chains.
+// gitleaks:allow (publicly documented, pre-funded only on local anvil)
 const ANVIL_DEV_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
 const targetKey = (process.env.DEPLOY_TARGET ?? 'anvil') as DeployTarget['key'];

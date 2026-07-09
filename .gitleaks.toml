@@ -1,0 +1,14 @@
+# Gitleaks configuration — extends the default ruleset with a reviewed
+# allowlist. CI runs `gitleaks git` over commit ranges (.github/workflows/ci.yml).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reviewed non-secrets"
+regexes = [
+  # Foundry/anvil dev account #0 private key — universal, publicly documented
+  # (https://getfoundry.sh), pre-funded only on local anvil chains. Used by the
+  # devnet deployer default and the local-devnet docs. Never a real secret.
+  '''0?x?ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80''',
+]

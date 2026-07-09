@@ -17,6 +17,12 @@ export type ApiConfig = {
 	 * reads). 0 disables rate limiting. Keys can carry their own override.
 	 */
 	rateLimitRpm: number;
+	/**
+	 * Trust the x-forwarded-for header for anonymous rate-limit buckets. Only
+	 * enable behind a reverse proxy that overwrites the header — otherwise
+	 * clients can mint a fresh bucket per request and bypass limits entirely.
+	 */
+	trustProxy: boolean;
 };
 
 function parseAuthMode(raw: string | undefined): ApiAuthMode {
@@ -42,5 +48,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 			.filter(Boolean),
 		authMode: parseAuthMode(env.API_AUTH),
 		rateLimitRpm: Number.parseInt(env.API_RATE_LIMIT_RPM ?? '120', 10),
+		trustProxy: (env.API_TRUST_PROXY ?? '').trim() === '1',
 	};
 }

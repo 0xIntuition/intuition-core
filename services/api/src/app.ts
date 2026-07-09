@@ -17,6 +17,7 @@ import {
 import { and, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { Hono } from 'hono';
+import { getConnInfo } from 'hono/bun';
 import { cors } from 'hono/cors';
 import { type ApiKeyIdentity, bearerToken, resolveApiKey } from './auth';
 import type { ApiConfig } from './config';
@@ -35,6 +36,11 @@ const GATED_PUBLIC_PATHS = new Set(['/health', '/api/schema']);
 
 export function isGatedPublicPath(path: string): boolean {
 	return GATED_PUBLIC_PATHS.has(path);
+}
+
+/** Escape LIKE metacharacters so user search text matches literally. */
+function escapeLikePattern(input: string): string {
+	return input.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 }
 
 function parsePagination(query: Record<string, string | undefined>) {
@@ -151,9 +157,20 @@ export function createApp(config: ApiConfig) {
 		}
 
 		const identity = c.get('apiKey');
-		const bucket = identity
-			? `key:${identity.keyId}`
-			: `ip:${c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'}`;
+		// x-forwarded-for is client-controlled; only honor it when the operator
+		// says a trusted proxy sets it (API_TRUST_PROXY=1). Otherwise bucket by
+		// the socket address so spoofed headers can't mint fresh buckets.
+		let anonymousBucket: string;
+		if (config.trustProxy) {
+			anonymousBucket = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+		} else {
+			try {
+				anonymousBucket = getConnInfo(c).remote.address ?? 'unknown';
+			} catch {
+				anonymousBucket = 'unknown';
+			}
+		}
+		const bucket = identity ? `key:${identity.keyId}` : `ip:${anonymousBucket}`;
 		const limit = identity?.rateLimitRpm ?? config.rateLimitRpm;
 
 		const decision = limiter.check(bucket, limit);
@@ -260,7 +277,7 @@ export function createApp(config: ApiConfig) {
 			filters.push(eq(nodes.classificationType, query.classification_type));
 		}
 		if (query.q) {
-			filters.push(ilike(nodes.searchText, `%${query.q}%`));
+			filters.push(ilike(nodes.searchText, `%${escapeLikePattern(query.q)}%`));
 		}
 
 		const rows = await db
