@@ -53,5 +53,6 @@ npm-debug.log*
 # Devnet: local clone of intuition-contracts-v2 + deployment state
 devnet/contracts-v2/
 devnet/deployments-devnet.json
+devnet/deployments-testnet.json
 .vendor-build/
 .vendor-build-sizefit/

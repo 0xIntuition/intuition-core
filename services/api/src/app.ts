@@ -586,11 +586,31 @@ export function createApp(config: ApiConfig) {
 
 	// Append-only activity feed: node/triple/predicate/artifact creations,
 	// onchain and offchain. Filterable by entity kind/type/id.
+	// Events inherit the public read model of their entity: node/triple events
+	// are served only while that entity is active+public (so moderation hides
+	// its history too), artifact events only when the owning atom is public;
+	// predicate events are registry-public.
+	const publicEvents = or(
+		and(
+			eq(kgEvents.entityKind, 'node'),
+			sql`EXISTS (SELECT 1 FROM ${nodes} WHERE ${nodes.id} = ${kgEvents.entityId} AND ${publicNodes})`
+		),
+		and(
+			eq(kgEvents.entityKind, 'triple'),
+			sql`EXISTS (SELECT 1 FROM ${triples} WHERE ${triples.id} = ${kgEvents.entityId} AND ${publicTriples})`
+		),
+		and(
+			eq(kgEvents.entityKind, 'artifact'),
+			sql`EXISTS (SELECT 1 FROM ${artifacts} JOIN ${nodes} ON ${nodes.id} = ${artifacts.nodeId} WHERE ${artifacts.id} = ${kgEvents.entityId} AND ${publicNodes})`
+		),
+		eq(kgEvents.entityKind, 'predicate')
+	);
+
 	app.get('/api/events', async (c) => {
 		const query = c.req.query();
 		const { limit, offset } = parsePagination(query);
 
-		const filters = [];
+		const filters = [publicEvents];
 		if (query.entity_kind) {
 			filters.push(eq(kgEvents.entityKind, query.entity_kind));
 		}
@@ -616,7 +636,7 @@ export function createApp(config: ApiConfig) {
 				payload: kgEvents.payload,
 			})
 			.from(kgEvents)
-			.where(filters.length > 0 ? and(...filters) : undefined)
+			.where(and(...filters))
 			.orderBy(desc(kgEvents.eventTime), desc(kgEvents.id))
 			.limit(limit)
 			.offset(offset);

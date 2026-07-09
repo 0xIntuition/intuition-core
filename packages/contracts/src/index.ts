@@ -1,14 +1,6 @@
 export * from './abis';
 export * from './addresses';
 export {
-	AtomWardenArtifact,
-	TimelockControllerArtifact,
-	TransparentUpgradeableProxyArtifact,
-	UpgradeableBeaconArtifact,
-	type VendoredArtifact,
-	WrappedTrustArtifact,
-} from './vendored';
-export {
 	getMultiVaultAbi,
 	getMultiVaultAbiJson,
 	MULTIVAULT_CONTRACT_NAME,
@@ -16,3 +8,11 @@ export {
 	type MultiVaultAbiItem,
 	type MultiVaultRindexerEvent,
 } from './multivault';
+export {
+	AtomWardenArtifact,
+	TimelockControllerArtifact,
+	TransparentUpgradeableProxyArtifact,
+	UpgradeableBeaconArtifact,
+	type VendoredArtifact,
+	WrappedTrustArtifact,
+} from './vendored';
