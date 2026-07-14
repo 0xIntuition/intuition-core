@@ -24,5 +24,4 @@ COPY . .
 RUN bun install --frozen-lockfile
 
 WORKDIR /repo/packages/contracts
-USER bun
 CMD ["bun", "run", "src/deploy/cli.ts"]

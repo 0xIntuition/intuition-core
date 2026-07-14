@@ -25,7 +25,7 @@ namespace management, and another artifact surface to verify.
 | `intuition-core-rindexer-ingestion` | `docker/Dockerfile.ingestion` | `indexer` | prepared |
 | `intuition-core-projections` | `docker/Dockerfile.projections` | `projections` | prepared |
 | `intuition-core-timescale-migrations` | `docker/Dockerfile.timescale-migrations` | inherited Postgres image user | prepared |
-| `intuition-core-devnet-deployer` | `docker/Dockerfile.devnet` | `bun` | local-only |
+| `intuition-core-devnet-deployer` | `docker/Dockerfile.devnet` | root | local-only; writes a bind-mounted `/state` file |
 
 ## OCI Labels
 
