@@ -1,17 +1,28 @@
 [package]
+name = "intuition-curves"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version = "1.85"
+description = "Off-chain Rust parity library for Intuition bonding curves"
+repository = "https://github.com/0xIntuition/intuition-core"
+homepage = "https://github.com/0xIntuition/intuition-core"
+documentation = "https://docs.rs/intuition-curves"
+readme = "README.md"
+keywords = ["intuition", "bonding-curves", "ethereum", "web3"]
+categories = ["cryptography::cryptocurrencies", "mathematics"]
+
+[lib]
 name = "curves"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-description = "Rust parity library for Intuition bonding curves"
+path = "src/lib.rs"
 
 [dependencies]
-alloy-primitives = { version = "1.5", features = ["std", "serde"] }
+alloy-primitives = { workspace = true, features = ["std", "serde"] }
 num-bigint = "0.4"
 num-traits = "0.2"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "2.0"
+serde = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-serde_json = "1.0"
-
+serde_json = { workspace = true }

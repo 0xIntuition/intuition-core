@@ -17,6 +17,7 @@ atom intelligence pipeline, and query API, stood up with one command.
 [Explorer](#the-explorer) ·
 [How it works](#how-it-works) ·
 [API](#the-query-api) ·
+[Artifacts](#public-artifacts) ·
 [Contracts](./docs/contracts.md) ·
 [Docs](./docs) ·
 [Contributing](./CONTRIBUTING.md)
@@ -434,6 +435,22 @@ Capabilities are opt-in; the floor is free.
 | **+ Search** *(coming)* | embeddings | OpenAI or pluggable provider |
 
 Every variable: **[docs/configuration.md](./docs/configuration.md)**.
+
+## Public artifacts
+
+Core is moving from source-only distribution to verified public artifacts.
+
+| Artifact | Status | Notes |
+| --- | --- | --- |
+| `intuition-curves` | crates.io-ready | Bonding-curve parity library. Package name is public; Rust imports remain `curves`. |
+| Service crates | source-only | Runtime crates stay in source and image form until public API boundaries are split. |
+| API/workers/atom-services images | prepared | Dockerfiles have pinned Bun bases, OCI labels, and hardened contexts. |
+| Indexer/projections/migration images | prepared | Rust runtime images are prepared for GHCR publishing and digest verification. |
+
+Release process: **[docs/release-process.md](./docs/release-process.md)**.
+Container image details: **[docs/container-images.md](./docs/container-images.md)**.
+Rust crate details: **[crates/README.md](./crates/README.md)**.
+Scoped indexing plan: **[docs/indexing-scope.md](./docs/indexing-scope.md)**.
 
 ## Repository layout
 

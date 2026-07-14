@@ -42,6 +42,35 @@ jobs:
           docker compose config -q
           docker compose -f docker-compose.datastores.yml config -q
 
+  rust:
+    name: Cargo fmt · Clippy · Test · Docs · Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-workspaces: ". -> target"
+
+      - name: Cargo format
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Cargo test
+        run: cargo test --workspace
+
+      - name: Cargo docs
+        run: cargo doc --workspace --no-deps
+
+      - name: Publish dry-run
+        run: cargo publish -p intuition-curves --dry-run
+
   secrets:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest

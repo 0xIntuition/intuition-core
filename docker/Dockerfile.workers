@@ -2,7 +2,20 @@
 # Build context: repo root (Bun workspace). The worker mode is passed as the
 # container command, e.g. `kg-parse-worker`.
 
-FROM oven/bun:1-alpine
+FROM oven/bun:1.3.11-alpine
+
+ARG VERSION=dev
+ARG VCS_REF=unknown
+ARG CREATED=unknown
+LABEL org.opencontainers.image.title="Intuition Core Workers" \
+      org.opencontainers.image.description="Parse, classify, and enrich workers for Intuition Core atoms" \
+      org.opencontainers.image.source="https://github.com/0xIntuition/intuition-core" \
+      org.opencontainers.image.url="https://github.com/0xIntuition/intuition-core" \
+      org.opencontainers.image.documentation="https://github.com/0xIntuition/intuition-core/tree/main/docs" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${CREATED}"
 
 RUN apk add --no-cache curl
 
@@ -17,5 +30,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -f "http://localhost:${WORKERS_HEALTHCHECK_PORT:-${WORKERS_PORT:-4110}}/healthz" || exit 1
 
 WORKDIR /repo/services/workers
+USER bun
 ENTRYPOINT ["bun", "src/index.ts"]
 CMD ["kg-parse-worker"]

@@ -9,6 +9,10 @@ Start here:
 | **[local-devnet.md](./local-devnet.md)** | fully self-contained: Anvil + the real contracts + your own indexed chain |
 | **[architecture.md](./architecture.md)** | the pipeline, the two databases, deterministic identity, reliability model |
 | **[configuration.md](./configuration.md)** | every environment variable, by service and tier |
+| **[release-process.md](./release-process.md)** | crate/image release order, verification, rollback, and deferred artifacts |
+| **[container-images.md](./container-images.md)** | public image names, OCI labels, registry choice, and context rules |
+| **[indexing-scope.md](./indexing-scope.md)** | layered operator scope: ingestion, projections, processing, and read filters |
+| **[classification-taxonomy.md](./classification-taxonomy.md)** | music and podcast domain taxonomy for scoped processing |
 | **[contracts.md](./contracts.md)** | contract artifact source of truth, ABI sync, and package consumption |
 | **[enrichment-providers.md](./enrichment-providers.md)** | what works keyless, and how to get each provider key |
 | **[writing-a-classification-plugin.md](./writing-a-classification-plugin.md)** | extend classification to your domain — with a runnable example package |

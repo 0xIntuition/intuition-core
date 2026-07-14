@@ -1,4 +1,4 @@
-# `backend/curves`
+# `intuition-curves`
 
 Canonical off-chain bonding-curve library for Intuition backend services.
 
@@ -11,12 +11,18 @@ The crate mirrors the Solidity surface for:
 It keeps the pure parity layer separate from optional fee-aware quoting helpers so backend
 code can reuse the contract math directly and only opt into fee simulation when needed.
 
-## Workspace strategy
+## Crate naming
 
-`backend/curves` is a standalone Cargo crate with its own manifest. This matches the
-existing backend layout where `backend/indexing-services` has an isolated workspace and
-`backend/atom-parser-service` is also standalone. Commands should target
-`backend/curves/Cargo.toml` directly.
+The public package name is `intuition-curves`. The Rust library target remains
+`curves`, so existing consumers can continue importing:
+
+```rust
+use curves::{Curve, CurveState, OffsetProgressiveCurve, U256};
+```
+
+This crate is the first Core Rust package prepared for crates.io. The service
+crates remain image-distributed for now because they depend on runtime config,
+databases, and generated indexer code.
 
 ## Scope
 
@@ -33,17 +39,16 @@ existing backend layout where `backend/indexing-services` has an isolated worksp
 
 ## Recommended Adoption Points
 
-- `backend/indexing-services`: centralize share-price, market-cap, and preview logic in Rust
+- `crates/projections`: centralize share-price, market-cap, and preview logic in Rust
   rather than re-encoding curve formulas in projection code.
-- `backend/e2e-tests`: use this crate for off-chain expected-value previews when contract
-  interactions need a Rust-side oracle or regression fixtures.
+- Contract and integration tests: use this crate for off-chain expected-value previews when
+  contract interactions need a Rust-side oracle or regression fixtures.
 - Future backend services: prefer taking `CurveState { total_assets, total_shares }` plus a
   curve config and calling the crate directly instead of open-coding ratios or progressive math.
 
 ## Adoption Status
 
-- Landed in `backend/indexing-services` for market-cap normalization inside projections.
-- Landed in `backend/e2e-tests` as a consumer-side exact market-cap helper for regression checks.
+- Landed in `crates/projections` for market-cap normalization inside projections.
 - Broader app and service migration is intentionally deferred to a follow-up adoption ticket so
   this crate can stay the parity source of truth without expanding this ticket into a repository-
   wide refactor.
@@ -68,7 +73,9 @@ assert!(shares > U256::ZERO);
 Run validation with:
 
 ```bash
-cargo fmt --manifest-path backend/curves/Cargo.toml --all --check
-cargo test --manifest-path backend/curves/Cargo.toml
-cargo test --manifest-path backend/curves/Cargo.toml --test parity
+cargo fmt --all -- --check
+cargo test -p intuition-curves
+cargo test -p intuition-curves --test parity
+cargo package -p intuition-curves
+cargo publish -p intuition-curves --dry-run
 ```
