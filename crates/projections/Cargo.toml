@@ -10,7 +10,7 @@ name = "projections"
 path = "src/main.rs"
 
 [dependencies]
-curves = { path = "../curves" }
+curves = { package = "intuition-curves", path = "../curves" }
 shared = { path = "../shared" }
 tokio = { workspace = true }
 async-trait = { workspace = true }

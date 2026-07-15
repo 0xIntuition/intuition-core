@@ -47,6 +47,19 @@ RUN touch crates/shared/src/lib.rs crates/curves/src/lib.rs crates/rindexer-inge
 # Runtime stage
 FROM debian:trixie-slim
 
+ARG VERSION=dev
+ARG VCS_REF=unknown
+ARG CREATED=unknown
+LABEL org.opencontainers.image.title="Intuition Core Rindexer Ingestion" \
+      org.opencontainers.image.description="MultiVault chain event ingestion into the Intuition Core event store" \
+      org.opencontainers.image.source="https://github.com/0xIntuition/intuition-core" \
+      org.opencontainers.image.url="https://github.com/0xIntuition/intuition-core" \
+      org.opencontainers.image.documentation="https://github.com/0xIntuition/intuition-core/tree/main/docs" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${CREATED}"
+
 # gettext-base provides envsubst for the manifest templating.
 RUN apt-get update && apt-get install -y \
     ca-certificates \
