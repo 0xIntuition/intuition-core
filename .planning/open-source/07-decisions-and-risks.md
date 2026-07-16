@@ -20,6 +20,9 @@ top-level docker-compose. Rationale and alternatives in [03 §1](./03-target-arc
 drift becomes structurally impossible. Detail in [04 §2](./04-extraction-reconciliation-security.md).
 **Why it matters:** touches the production deploy pipeline (`intuition-v2` → GHCR → `gcp-deployment`);
 highest-coordination item. Do not start Phase 3's cut-over work without this signed off.
+**Non-production exception:** dev/staging can run digest-pinned Core image trials under
+[`docs/v2-dev-staging-image-consumption.md`](../../docs/v2-dev-staging-image-consumption.md) after
+release-candidate image verification passes. This does not approve production cut-over.
 
 ### D3 — License · REC
 **Recommendation:** **MIT**, matching the published `packages` repo (`Copyright Intuition Systems`).
