@@ -34,6 +34,7 @@ thesis real instead of aspirational.
 | 06 | [`06-roadmap-and-workstreams.md`](./06-roadmap-and-workstreams.md) | Whole team, PM | The phased multi-week plan, workstreams, owners, governance, launch coordination |
 | 07 | [`07-decisions-and-risks.md`](./07-decisions-and-risks.md) | Eng leads, CTO | Decision log (open + resolved) and risk register |
 | 08 | [`08-master-checklist.md`](./08-master-checklist.md) | Execution | The full to-do list, by phase |
+| 09 | [`09-intuition-curves-publish-attempt.md`](./09-intuition-curves-publish-attempt.md) | Engineers | ENG-13598 publish evidence, crates.io checksum, ownership, docs.rs, and clean-consumer verification |
 
 ---
 

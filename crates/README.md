@@ -5,7 +5,7 @@ services.
 
 | Crate | Distribution | Notes |
 | --- | --- | --- |
-| `intuition-curves` | crates.io target | Bonding-curve parity library. The package name is public; the Rust library target remains `curves`. |
+| `intuition-curves` | crates.io | Bonding-curve parity library. Version `0.1.0` is published; the package name is public and the Rust library target remains `curves`. |
 | `shared` | source-only | Common runtime config and domain types. Not yet a stable public API. |
 | `rindexer-ingestion` | container image target | Chain event ingestion service with generated rindexer code. |
 | `projections` | container image target | Event-store projection service. |
@@ -26,4 +26,5 @@ cargo publish -p intuition-curves --dry-run
 ## Publishing
 
 Only publish crates that have explicit metadata, package dry-run coverage, and
-a release note entry. For Week 1, that means `intuition-curves` only.
+a release note entry. For the first public Rust release, that means
+`intuition-curves` only.
