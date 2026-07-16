@@ -38,9 +38,10 @@ make up-published IMAGE_TAG=vX.Y.Z
 make smoke-published IMAGE_TAG=vX.Y.Z
 ```
 
-Use semver or release-candidate tags for local trials. Use digest pins copied
-from the publish workflow summary for production or reproducible release
-verification. See [container-images.md](./container-images.md#running-published-images).
+Published-image Make targets require explicit semver or release-candidate tags
+for local trials. Use digest pins copied from the publish workflow summary for
+production or reproducible release verification. See
+[container-images.md](./container-images.md#running-published-images).
 
 What comes up:
 

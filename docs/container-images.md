@@ -112,10 +112,10 @@ not a public runtime artifact. The override uses Docker Compose's `!reset`
 merge tag, so use current Docker Compose v2 rather than the legacy
 `docker-compose` v1 binary.
 
-Use tags for local trials and release-candidate smoke runs. Use digest-pinned
-images for production, incident reproduction, or any release note that must be
-auditable. Digest pins come from the publish workflow summary after artifact
-verification completes.
+There is no implicit `latest` fallback. Use explicit tags for local trials and
+release-candidate smoke runs. Use digest-pinned images for production, incident
+reproduction, or any release note that must be auditable. Digest pins come from
+the publish workflow summary after artifact verification completes.
 
 Tag mode:
 

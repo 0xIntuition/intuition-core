@@ -236,8 +236,9 @@ make up-published IMAGE_TAG=vX.Y.Z
 make smoke-published IMAGE_TAG=vX.Y.Z
 ```
 
-Use digest pins instead of tags for production or reproducible release
-verification. See [container image details](./docs/container-images.md#running-published-images).
+Published-image Make targets require an explicit tag. Use digest pins instead
+of tags for production or reproducible release verification. See
+[container image details](./docs/container-images.md#running-published-images).
 
 Prefer native services with a TUI? Install
 [`process-compose`](https://f1bonacc1.github.io/process-compose/installation/)
