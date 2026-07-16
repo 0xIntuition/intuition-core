@@ -1,4 +1,9 @@
 import type { ClassifiedAtomInput } from '@0xintuition/atom-enrichment';
+import {
+	getProcessingScopeDomains,
+	type ProcessingDomain,
+	type ProcessingScopePreset,
+} from '../shared/processing-scope';
 import type { WorkerClassificationResult } from './classification';
 import type { CompactParseResult } from './parse';
 import { resolveFallbackUrl, resolveStructuredDocumentTarget } from './structured-targets';
@@ -12,12 +17,40 @@ export const SPOTIFY_TRACK_ARTIFACT_TYPE_ALLOWLIST = [
 	'wikipedia',
 	'wikidata',
 ] as const;
+export const MUSIC_SCOPE_ARTIFACT_TYPE_ALLOWLIST = [
+	'opengraph',
+	'spotify',
+	'musicbrainz',
+	'apple-music',
+	'wikipedia',
+	'wikidata',
+] as const;
+export const PODCAST_SCOPE_ARTIFACT_TYPE_ALLOWLIST = [
+	'opengraph',
+	'spotify',
+	'apple-music',
+	'podcast-index',
+	'wikipedia',
+	'wikidata',
+] as const;
 
 export type EnrichmentPlan = {
 	classificationResult: WorkerClassificationResult;
 	targetUrl: string | undefined;
 	structuredDocument: CompactParseResult['structuredDocument'];
 };
+
+export type ScopedEnrichmentDecision =
+	| {
+			shouldEnrich: true;
+			artifactTypes?: string[];
+			matchedDomains: ProcessingDomain[];
+	  }
+	| {
+			shouldEnrich: false;
+			reason: string;
+			matchedDomains: ProcessingDomain[];
+	  };
 
 export function deriveEnrichmentPlan(input: {
 	parseResult: CompactParseResult | null;
@@ -82,6 +115,7 @@ function resolveAtomType(value: string | undefined): ClassifiedAtomInput['atomTy
 		case 'company':
 		case 'product':
 		case 'song':
+		case 'podcast':
 		case 'software':
 		case 'unknown':
 			return normalized;
@@ -105,6 +139,150 @@ export function getArtifactTypeAllowListForEnrichmentPlan(
 	}
 
 	return undefined;
+}
+
+export function evaluateEnrichmentProcessingScope(input: {
+	plan: EnrichmentPlan;
+	scope: ProcessingScopePreset;
+}): ScopedEnrichmentDecision {
+	const scopeDomains = getProcessingScopeDomains(input.scope);
+	if (!scopeDomains) {
+		return {
+			shouldEnrich: true,
+			artifactTypes: getArtifactTypeAllowListForEnrichmentPlan(input.plan),
+			matchedDomains: resolveProcessingDomainsForEnrichmentPlan(input.plan),
+		};
+	}
+
+	const allowedDomains = new Set(scopeDomains);
+	const matchedDomains = resolveProcessingDomainsForEnrichmentPlan(input.plan).filter((domain) =>
+		allowedDomains.has(domain)
+	);
+
+	if (matchedDomains.length === 0) {
+		return {
+			shouldEnrich: false,
+			matchedDomains: [],
+			reason: `Processing scope "${input.scope}" skipped enrichment for ${describeClassification(input.plan)} because it does not match ${formatScopeDomains(scopeDomains)}.`,
+		};
+	}
+
+	return {
+		shouldEnrich: true,
+		artifactTypes: getArtifactTypeAllowListForProcessingDomains(matchedDomains),
+		matchedDomains,
+	};
+}
+
+function resolveProcessingDomainsForEnrichmentPlan(plan: EnrichmentPlan): ProcessingDomain[] {
+	const domains = new Set<ProcessingDomain>();
+	const schemaType = normalizeDomainKey(
+		plan.classificationResult.schemaType ?? readStructuredSchemaType(plan)
+	);
+	const category = normalizeDomainKey(plan.classificationResult.category);
+
+	if (schemaType && MUSIC_SCHEMA_TYPES.has(schemaType)) {
+		domains.add('music');
+	}
+	if (category && MUSIC_CATEGORIES.has(category)) {
+		domains.add('music');
+	}
+	if (schemaType && PODCAST_SCHEMA_TYPES.has(schemaType)) {
+		domains.add('podcast');
+	}
+	if (category && PODCAST_CATEGORIES.has(category)) {
+		domains.add('podcast');
+	}
+
+	const providerDomain = resolveProviderDomain(plan.targetUrl);
+	if (providerDomain) {
+		domains.add(providerDomain);
+	}
+
+	return Array.from(domains);
+}
+
+function getArtifactTypeAllowListForProcessingDomains(domains: ProcessingDomain[]): string[] {
+	const artifactTypes = new Set<string>();
+	for (const domain of domains) {
+		const allowList =
+			domain === 'music'
+				? MUSIC_SCOPE_ARTIFACT_TYPE_ALLOWLIST
+				: PODCAST_SCOPE_ARTIFACT_TYPE_ALLOWLIST;
+		for (const artifactType of allowList) {
+			artifactTypes.add(artifactType);
+		}
+	}
+	return Array.from(artifactTypes);
+}
+
+const MUSIC_SCHEMA_TYPES = new Set(['musicrecording', 'musicalbum', 'musicgroup']);
+const PODCAST_SCHEMA_TYPES = new Set(['podcastseries', 'podcastepisode']);
+const MUSIC_CATEGORIES = new Set(['music', 'song', 'track', 'album', 'artist', 'playlist']);
+const PODCAST_CATEGORIES = new Set(['podcast', 'show', 'episode']);
+
+function resolveProviderDomain(value: string | undefined): ProcessingDomain | undefined {
+	if (!value) {
+		return undefined;
+	}
+
+	try {
+		const url = new URL(value);
+		const host = url.hostname.toLowerCase();
+		const segments = url.pathname
+			.split('/')
+			.map((segment) => segment.trim().toLowerCase())
+			.filter(Boolean);
+		const firstSegment = segments[0];
+
+		if (host === 'open.spotify.com') {
+			if (firstSegment === 'show' || firstSegment === 'episode') {
+				return 'podcast';
+			}
+			if (
+				firstSegment === 'track' ||
+				firstSegment === 'album' ||
+				firstSegment === 'artist' ||
+				firstSegment === 'playlist'
+			) {
+				return 'music';
+			}
+		}
+
+		if (host === 'podcastindex.org' || host === 'podcasts.apple.com') {
+			return 'podcast';
+		}
+	} catch {
+		return undefined;
+	}
+
+	return undefined;
+}
+
+function describeClassification(plan: EnrichmentPlan): string {
+	return `classification "${plan.classificationResult.schemaType ?? plan.classificationResult.category ?? 'Unknown'}"`;
+}
+
+function formatScopeDomains(domains: readonly ProcessingDomain[]): string {
+	if (domains.length === 1) {
+		return `${domains[0]} domain`;
+	}
+	return `${domains.join(' or ')} domains`;
+}
+
+function readStructuredSchemaType(plan: EnrichmentPlan): string | undefined {
+	return typeof plan.structuredDocument?.schemaType === 'string'
+		? plan.structuredDocument.schemaType
+		: undefined;
+}
+
+function normalizeDomainKey(value: string | undefined): string | undefined {
+	return (
+		value
+			?.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9]/g, '') || undefined
+	);
 }
 
 function isSpotifyTrackUrl(value: string | undefined): boolean {

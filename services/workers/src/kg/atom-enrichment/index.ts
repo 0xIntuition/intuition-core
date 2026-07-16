@@ -13,7 +13,7 @@ import {
 import {
 	buildClassifiedInputFromPlan,
 	deriveEnrichmentPlan,
-	getArtifactTypeAllowListForEnrichmentPlan,
+	evaluateEnrichmentProcessingScope,
 } from '../../core/enrichment';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
@@ -112,6 +112,27 @@ export async function runKgEnrichmentWorker(input: {
 				classificationResult,
 				rawInput: claimed.data ?? claimed.dataHex,
 			});
+			const scopeDecision = evaluateEnrichmentProcessingScope({
+				plan,
+				scope: input.config.processingScope,
+			});
+			if (!scopeDecision.shouldEnrich) {
+				await input.circuits.database.execute(() =>
+					markNodeProcessingStageSkipped(input.db, {
+						stage: 'enrichment',
+						nodeId: claimed.id,
+						runId,
+						reason: scopeDecision.reason,
+					})
+				);
+				input.metrics.increment('skipped', 'enrichment');
+				logger.info('kg enrichment skipped by processing scope', {
+					scope: input.config.processingScope,
+					reason: scopeDecision.reason,
+				});
+				return;
+			}
+
 			const classifiedInput = buildClassifiedInputFromPlan(plan);
 			if (!classifiedInput) {
 				await input.circuits.database.execute(() =>
@@ -127,12 +148,11 @@ export async function runKgEnrichmentWorker(input: {
 			}
 
 			const engine = enrichmentRuntime.createEngine(input.config.defaultPreset);
-			const artifactTypes = getArtifactTypeAllowListForEnrichmentPlan(plan);
 			const enrichment = await input.circuits.runtime.execute(() =>
 				engine.enrich({
 					input: classifiedInput,
 					runtime: 'server',
-					...(artifactTypes ? { artifactTypes } : {}),
+					...(scopeDecision.artifactTypes ? { artifactTypes: scopeDecision.artifactTypes } : {}),
 					traceId: runId,
 				})
 			);

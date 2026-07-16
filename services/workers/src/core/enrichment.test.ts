@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	buildClassifiedInputFromPlan,
 	deriveEnrichmentPlan,
+	evaluateEnrichmentProcessingScope,
 	getArtifactTypeAllowListForEnrichmentPlan,
 } from './enrichment';
 
@@ -98,6 +99,21 @@ describe('KG enrichment core', () => {
 		expect(input?.atomType).toBe('software');
 	});
 
+	test('normalizes podcast classification category when building enrichment input', () => {
+		const input = buildClassifiedInputFromPlan({
+			targetUrl: 'https://open.spotify.com/show/123',
+			structuredDocument: undefined,
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'PodcastSeries',
+				category: 'podcast',
+			},
+		});
+
+		expect(input?.atomType).toBe('podcast');
+	});
+
 	test('uses sameAs as enrichment target when structured data has no url field', () => {
 		const plan = deriveEnrichmentPlan({
 			rawInput: null,
@@ -163,5 +179,100 @@ describe('KG enrichment core', () => {
 		});
 
 		expect(input).toBeNull();
+	});
+
+	test('keeps full processing scope behavior unchanged', () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: 'https://example.com',
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'WebSite',
+				category: 'thing',
+				targetUrl: 'https://example.com',
+			},
+			parseResult: null,
+		});
+
+		expect(evaluateEnrichmentProcessingScope({ plan, scope: 'full' })).toEqual({
+			shouldEnrich: true,
+			artifactTypes: ['opengraph', 'favicon', 'brand'],
+			matchedDomains: [],
+		});
+	});
+
+	test('allows music scope rows and narrows artifacts to music providers', () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: {
+				status: 'recognized',
+				source: 'inline_json',
+				schemaType: 'MusicRecording',
+				category: 'song',
+				targetUrl: 'https://open.spotify.com/track/123',
+			},
+			parseResult: null,
+		});
+
+		expect(evaluateEnrichmentProcessingScope({ plan, scope: 'music' })).toEqual({
+			shouldEnrich: true,
+			artifactTypes: [
+				'opengraph',
+				'spotify',
+				'musicbrainz',
+				'apple-music',
+				'wikipedia',
+				'wikidata',
+			],
+			matchedDomains: ['music'],
+		});
+	});
+
+	test('allows podcast scope rows and narrows artifacts to podcast providers', () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'WebPage',
+				category: 'thing',
+				targetUrl: 'https://podcasts.apple.com/us/podcast/example/id123',
+			},
+			parseResult: null,
+		});
+
+		expect(evaluateEnrichmentProcessingScope({ plan, scope: 'podcasts' })).toEqual({
+			shouldEnrich: true,
+			artifactTypes: [
+				'opengraph',
+				'spotify',
+				'apple-music',
+				'podcast-index',
+				'wikipedia',
+				'wikidata',
+			],
+			matchedDomains: ['podcast'],
+		});
+	});
+
+	test('skips non-matching rows with an explainable processing scope reason', () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: 'https://github.com/0xIntuition/intuition-core',
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'SoftwareSourceCode',
+				category: 'software',
+				targetUrl: 'https://github.com/0xIntuition/intuition-core',
+			},
+			parseResult: null,
+		});
+
+		expect(evaluateEnrichmentProcessingScope({ plan, scope: 'music-and-podcasts' })).toEqual({
+			shouldEnrich: false,
+			matchedDomains: [],
+			reason:
+				'Processing scope "music-and-podcasts" skipped enrichment for classification "SoftwareSourceCode" because it does not match music or podcast domains.',
+		});
 	});
 });
