@@ -255,6 +255,73 @@ describe('KG enrichment core', () => {
 		});
 	});
 
+	test('allows generic Apple Music URLs in music scope', () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'WebPage',
+				category: 'thing',
+				targetUrl: 'https://music.apple.com/us/album/example/123',
+			},
+			parseResult: null,
+		});
+
+		expect(evaluateEnrichmentProcessingScope({ plan, scope: 'music' })).toEqual({
+			shouldEnrich: true,
+			artifactTypes: [
+				'opengraph',
+				'spotify',
+				'musicbrainz',
+				'apple-music',
+				'wikipedia',
+				'wikidata',
+			],
+			matchedDomains: ['music'],
+		});
+	});
+
+	test('allows www-prefixed podcast provider URLs in podcast scope', () => {
+		const applePlan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'WebPage',
+				category: 'thing',
+				targetUrl: 'https://www.podcasts.apple.com/us/podcast/example/id123',
+			},
+			parseResult: null,
+		});
+		const podcastIndexPlan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: {
+				status: 'recognized',
+				source: 'runtime',
+				schemaType: 'WebPage',
+				category: 'thing',
+				targetUrl: 'https://www.podcastindex.org/podcast/12345',
+			},
+			parseResult: null,
+		});
+
+		for (const plan of [applePlan, podcastIndexPlan]) {
+			expect(evaluateEnrichmentProcessingScope({ plan, scope: 'podcasts' })).toEqual({
+				shouldEnrich: true,
+				artifactTypes: [
+					'opengraph',
+					'spotify',
+					'apple-music',
+					'podcast-index',
+					'wikipedia',
+					'wikidata',
+				],
+				matchedDomains: ['podcast'],
+			});
+		}
+	});
+
 	test('skips non-matching rows with an explainable processing scope reason', () => {
 		const plan = deriveEnrichmentPlan({
 			rawInput: 'https://github.com/0xIntuition/intuition-core',

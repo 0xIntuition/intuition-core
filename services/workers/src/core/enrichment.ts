@@ -228,7 +228,7 @@ function resolveProviderDomain(value: string | undefined): ProcessingDomain | un
 
 	try {
 		const url = new URL(value);
-		const host = url.hostname.toLowerCase();
+		const host = url.hostname.toLowerCase().replace(/^www\./, '');
 		const segments = url.pathname
 			.split('/')
 			.map((segment) => segment.trim().toLowerCase())
@@ -247,6 +247,10 @@ function resolveProviderDomain(value: string | undefined): ProcessingDomain | un
 			) {
 				return 'music';
 			}
+		}
+
+		if (host === 'music.apple.com') {
+			return 'music';
 		}
 
 		if (host === 'podcastindex.org' || host === 'podcasts.apple.com') {
