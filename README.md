@@ -460,6 +460,7 @@ Core is moving from source-only distribution to verified public artifacts.
 
 Release process: **[docs/release-process.md](./docs/release-process.md)**.
 Container image details: **[docs/container-images.md](./docs/container-images.md)**.
+v2 migration map: **[docs/v2-migration-map.md](./docs/v2-migration-map.md)**.
 Rust crate details: **[crates/README.md](./crates/README.md)**.
 Scoped indexing plan: **[docs/indexing-scope.md](./docs/indexing-scope.md)**.
 
