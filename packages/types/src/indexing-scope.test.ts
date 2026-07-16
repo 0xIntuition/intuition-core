@@ -50,6 +50,18 @@ describe('IndexingScope schema', () => {
 		expect(dryRun.rindexer.includeEvents).toEqual(['AtomCreated', 'TripleCreated']);
 		expect(dryRun.processing.rindexerBoundary).toBe('processing-scope-only');
 		expect(dryRun.processing.classifications).toEqual(['music', 'podcast']);
+		expect(dryRun.projections.outputs).toContainEqual({
+			name: 'core_entities',
+			reason: 'selected',
+			requiredEvents: ['AtomCreated', 'TripleCreated'],
+			status: 'available',
+		});
+		expect(dryRun.projections.outputs).toContainEqual({
+			name: 'vault_state',
+			reason: 'not-in-bundle',
+			requiredEvents: ['Deposited', 'Redeemed', 'SharePriceChanged'],
+			status: 'unavailable',
+		});
 		expect(dryRun.warnings).toContain(
 			'Domain filters are processing-scope only. rindexer will still ingest the configured chain events.'
 		);
@@ -88,6 +100,112 @@ describe('IndexingScope schema', () => {
 			'ProtocolFeeAccrued',
 		]);
 		expect(dryRun.rindexer.env).not.toHaveProperty('MULTIVAULT_END_BLOCK');
+	});
+
+	test('explains available and unavailable outputs for a valid market bundle', () => {
+		const dryRun = buildIndexingScopeDryRun({
+			scope: {
+				preset: 'market-only',
+				ingestion: {
+					chain_id: 13_579,
+					rpc_url: 'https://rpc-testnet.intuition.systems',
+					contract: '0xeBc49d356B7f64D888130D85CC6D17114a6843ec',
+					start_block: 9_030_416,
+				},
+			},
+		});
+
+		expect(dryRun.projections.include).toContain('vault_state');
+		expect(dryRun.projections.include).toContain('leaderboard_refresh');
+		expect(dryRun.projections.include).not.toContain('term_aggregates');
+		expect(dryRun.projections.outputs).toContainEqual({
+			name: 'vault_state',
+			reason: 'selected',
+			requiredEvents: ['Deposited', 'Redeemed', 'SharePriceChanged'],
+			status: 'available',
+		});
+		expect(dryRun.projections.outputs).toContainEqual({
+			name: 'term_aggregates',
+			reason: 'not-in-bundle',
+			requiredEvents: ['TripleCreated', 'SharePriceChanged'],
+			status: 'unavailable',
+		});
+	});
+
+	test('rejects market bundles missing required financial events', () => {
+		const result = safeParseIndexingScopeConfig({
+			scope: {
+				preset: 'market-only',
+				ingestion: {
+					chain_id: 13_579,
+					rpc_url: 'https://rpc-testnet.intuition.systems',
+					contract: '0xeBc49d356B7f64D888130D85CC6D17114a6843ec',
+					start_block: 9_030_416,
+					events: {
+						include: ['Deposited', 'Redeemed'],
+						exclude: [],
+					},
+				},
+				projections: {
+					bundle: 'market-only',
+				},
+			},
+		});
+
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues.map((issue) => issue.message)).toContain(
+				'projection bundle "market-only" requires events: Deposited, Redeemed, SharePriceChanged; missing: SharePriceChanged'
+			);
+		}
+	});
+
+	test('rejects explicit market projections when the ingestion scope cannot satisfy them', () => {
+		const result = safeParseIndexingScopeConfig({
+			scope: {
+				preset: 'kg-only',
+				ingestion: {
+					chain_id: 13_579,
+					rpc_url: 'https://rpc-testnet.intuition.systems',
+					contract: '0xeBc49d356B7f64D888130D85CC6D17114a6843ec',
+					start_block: 9_030_416,
+				},
+				projections: {
+					include: ['vault_state'],
+				},
+			},
+		});
+
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues.map((issue) => issue.message)).toContain(
+				'projection event requirements are not satisfied: vault_state missing Deposited, Redeemed, SharePriceChanged'
+			);
+		}
+	});
+
+	test('rejects protocol stats without graph and fee events', () => {
+		const result = safeParseIndexingScopeConfig({
+			scope: {
+				preset: 'market-only',
+				ingestion: {
+					chain_id: 13_579,
+					rpc_url: 'https://rpc-testnet.intuition.systems',
+					contract: '0xeBc49d356B7f64D888130D85CC6D17114a6843ec',
+					start_block: 9_030_416,
+				},
+				projections: {
+					include: ['protocol_stats'],
+				},
+			},
+		});
+
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues.map((issue) => issue.message)).toContain(
+				'projection event requirements are not satisfied: protocol_stats missing AtomCreated, TripleCreated'
+			);
+		}
 	});
 
 	test('redacts RPC URL credentials and token-like query parameters in dry-run output', () => {

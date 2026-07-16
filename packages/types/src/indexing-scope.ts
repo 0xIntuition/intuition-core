@@ -123,6 +123,38 @@ export const indexingScopeConfigSchema = z
 				path: ['scope', 'ingestion', 'events'],
 			});
 		}
+
+		const projectionBundle = resolveProjectionBundle(config);
+		const bundleMissingEvents = missingEvents(
+			eventsForProjectionBundle(projectionBundle),
+			effectiveEvents
+		);
+		if (bundleMissingEvents.length > 0) {
+			ctx.addIssue({
+				code: 'custom',
+				message: `projection bundle "${projectionBundle}" requires events: ${eventsForProjectionBundle(projectionBundle).join(', ')}; missing: ${bundleMissingEvents.join(', ')}`,
+				path: ['scope', 'projections', 'bundle'],
+			});
+		}
+
+		const projectionIssues = resolveEnabledProjections(config)
+			.map((projection) => ({
+				missingEvents: missingEvents(eventsForProjection(projection), effectiveEvents),
+				projection,
+			}))
+			.filter(({ missingEvents }) => missingEvents.length > 0);
+
+		if (projectionIssues.length > 0) {
+			ctx.addIssue({
+				code: 'custom',
+				message: `projection event requirements are not satisfied: ${projectionIssues
+					.map(
+						({ missingEvents, projection }) => `${projection} missing ${missingEvents.join(', ')}`
+					)
+					.join('; ')}`,
+				path: ['scope', 'projections'],
+			});
+		}
 	});
 
 export type MultiVaultEvent = z.infer<typeof multiVaultEventSchema>;
@@ -131,6 +163,13 @@ export type ProjectionName = z.infer<typeof projectionNameSchema>;
 export type ProcessingClassification = z.infer<typeof processingClassificationSchema>;
 export type ProviderScope = z.infer<typeof providerScopeSchema>;
 export type IndexingScopeConfig = z.infer<typeof indexingScopeConfigSchema>;
+
+export type ProjectionOutputStatus = {
+	name: ProjectionName;
+	status: 'available' | 'unavailable';
+	reason: 'selected' | 'excluded-by-config' | 'not-in-bundle';
+	requiredEvents: MultiVaultEvent[];
+};
 
 export type IndexingScopeDryRun = {
 	preset: IndexingScopePreset;
@@ -159,6 +198,7 @@ export type IndexingScopeDryRun = {
 		bundle: IndexingScopePreset;
 		include: ProjectionName[];
 		exclude: ProjectionName[];
+		outputs: ProjectionOutputStatus[];
 	};
 	processing: {
 		classifications: ProcessingClassification[];
@@ -199,15 +239,18 @@ const PRESET_PROJECTIONS = {
 		'user_activity_batch',
 		'core_entities',
 	],
-	'kg-only': ['event_log', 'account_registry', 'activity_marker', 'core_entities'],
+	'kg-only': ['event_log', 'account_registry', 'core_entities'],
 	'market-only': [
 		'event_log',
 		'account_registry',
 		'vault_holders_index',
-		'term_aggregates',
-		'protocol_stats',
+		'signals_analytics',
+		'leaderboard_marker',
 		'vault_state',
 		'position_tracking',
+		'vault_state:dual',
+		'vault_holders_index:dual',
+		'leaderboard_refresh',
 	],
 	'no-analytics': [
 		'event_log',
@@ -220,10 +263,39 @@ const PRESET_PROJECTIONS = {
 		'position_tracking',
 		'core_entities',
 	],
-	music: ['event_log', 'account_registry', 'activity_marker', 'core_entities'],
-	podcasts: ['event_log', 'account_registry', 'activity_marker', 'core_entities'],
-	'music-and-podcasts': ['event_log', 'account_registry', 'activity_marker', 'core_entities'],
+	music: ['event_log', 'account_registry', 'core_entities'],
+	podcasts: ['event_log', 'account_registry', 'core_entities'],
+	'music-and-podcasts': ['event_log', 'account_registry', 'core_entities'],
 } as const satisfies Record<IndexingScopePreset, readonly ProjectionName[]>;
+
+const BUNDLE_REQUIRED_EVENTS = {
+	full: ALL_EVENTS,
+	'kg-only': ['AtomCreated', 'TripleCreated'],
+	'market-only': ['Deposited', 'Redeemed', 'SharePriceChanged'],
+	'no-analytics': ALL_EVENTS,
+	music: ['AtomCreated', 'TripleCreated'],
+	podcasts: ['AtomCreated', 'TripleCreated'],
+	'music-and-podcasts': ['AtomCreated', 'TripleCreated'],
+} as const satisfies Record<IndexingScopePreset, readonly MultiVaultEvent[]>;
+
+const PROJECTION_REQUIRED_EVENTS = {
+	event_log: [],
+	account_registry: [],
+	vault_holders_index: ['Deposited', 'Redeemed'],
+	signals_analytics: ['Deposited', 'Redeemed'],
+	term_aggregates: ['TripleCreated', 'SharePriceChanged'],
+	protocol_stats: ALL_EVENTS,
+	activity_marker: ['AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed'],
+	leaderboard_marker: ['Deposited', 'Redeemed', 'SharePriceChanged'],
+	vault_state: ['Deposited', 'Redeemed', 'SharePriceChanged'],
+	position_tracking: ['Deposited', 'Redeemed'],
+	'vault_state:dual': ['Deposited', 'Redeemed', 'SharePriceChanged'],
+	'vault_holders_index:dual': ['Deposited', 'Redeemed'],
+	leaderboard_refresh: ['Deposited', 'Redeemed', 'SharePriceChanged'],
+	funnel_tracker: ['AtomCreated', 'TripleCreated', 'Deposited'],
+	user_activity_batch: ['AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed'],
+	core_entities: ['AtomCreated', 'TripleCreated'],
+} as const satisfies Record<ProjectionName, readonly MultiVaultEvent[]>;
 
 const PRESET_PROCESSING_CLASSIFICATIONS = {
 	full: [],
@@ -247,8 +319,9 @@ export function buildIndexingScopeDryRun(input: unknown): IndexingScopeDryRun {
 	const config = parseIndexingScopeConfig(input);
 	const { ingestion, preset, processing, projections } = config.scope;
 	const includeEvents = resolveEvents(config);
-	const projectionBundle = projections.bundle ?? preset;
-	const projectionInclude = projections.include ?? [...PRESET_PROJECTIONS[projectionBundle]];
+	const projectionBundle = resolveProjectionBundle(config);
+	const projectionInclude = projections.include ?? projectionsForBundle(projectionBundle);
+	const enabledProjections = resolveEnabledProjections(config);
 	const processingClassifications =
 		processing.classifications.include.length > 0
 			? processing.classifications.include
@@ -289,8 +362,9 @@ export function buildIndexingScopeDryRun(input: unknown): IndexingScopeDryRun {
 		},
 		projections: {
 			bundle: projectionBundle,
-			include: projectionInclude.filter((projection) => !projections.exclude.includes(projection)),
+			include: enabledProjections,
 			exclude: projections.exclude,
+			outputs: buildProjectionOutputs(projectionInclude, projections.exclude),
 		},
 		processing: {
 			classifications: processingClassifications,
@@ -339,12 +413,77 @@ function eventsForPreset(preset: IndexingScopePreset): MultiVaultEvent[] {
 	return [...PRESET_EVENTS[preset]];
 }
 
+function resolveProjectionBundle(config: IndexingScopeConfig): IndexingScopePreset {
+	return config.scope.projections.bundle ?? config.scope.preset;
+}
+
+function projectionsForBundle(bundle: IndexingScopePreset): ProjectionName[] {
+	return [...PRESET_PROJECTIONS[bundle]];
+}
+
+function resolveEnabledProjections(config: IndexingScopeConfig): ProjectionName[] {
+	const { projections } = config.scope;
+	const projectionInclude =
+		projections.include ?? projectionsForBundle(resolveProjectionBundle(config));
+	return projectionInclude.filter((projection) => !projections.exclude.includes(projection));
+}
+
+function eventsForProjectionBundle(bundle: IndexingScopePreset): MultiVaultEvent[] {
+	return [...BUNDLE_REQUIRED_EVENTS[bundle]];
+}
+
+function eventsForProjection(projection: ProjectionName): MultiVaultEvent[] {
+	return [...PROJECTION_REQUIRED_EVENTS[projection]];
+}
+
+function missingEvents(
+	requiredEvents: readonly MultiVaultEvent[],
+	includeEvents: readonly MultiVaultEvent[]
+): MultiVaultEvent[] {
+	return requiredEvents.filter((event) => !includeEvents.includes(event));
+}
+
 function applyEventExclusions(
 	include: readonly MultiVaultEvent[],
 	exclude: readonly MultiVaultEvent[]
 ): MultiVaultEvent[] {
 	const excluded = new Set(exclude);
 	return include.filter((event) => !excluded.has(event));
+}
+
+function buildProjectionOutputs(
+	projectionInclude: readonly ProjectionName[],
+	projectionExclude: readonly ProjectionName[]
+): ProjectionOutputStatus[] {
+	const selected = new Set(projectionInclude);
+	const excluded = new Set(projectionExclude);
+
+	return projectionNameSchema.options.map((projection) => {
+		if (excluded.has(projection)) {
+			return {
+				name: projection,
+				reason: 'excluded-by-config',
+				requiredEvents: eventsForProjection(projection),
+				status: 'unavailable',
+			};
+		}
+
+		if (selected.has(projection)) {
+			return {
+				name: projection,
+				reason: 'selected',
+				requiredEvents: eventsForProjection(projection),
+				status: 'available',
+			};
+		}
+
+		return {
+			name: projection,
+			reason: 'not-in-bundle',
+			requiredEvents: eventsForProjection(projection),
+			status: 'unavailable',
+		};
+	});
 }
 
 function buildWarnings(input: {

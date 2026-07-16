@@ -24,8 +24,8 @@ may skip market projections or non-music enrichment providers.
 | --- | --- | --- | --- | --- |
 | `full` | All supported MultiVault events in configured block range. | All Core projections. | All parsers, classifiers, enrichers with available keys. | No domain filter. |
 | `kg-only` | Atom/triple identity events required for graph reconstruction. | Core entity and KG projections only. | Parse/classify/enrich graph atoms. | Graph endpoints. |
-| `market-only` | Financial events required for vault/accounting outputs. | Market, positions, protocol stats. | Optional atom processing only for labels. | Market endpoints. |
-| `no-analytics` | Same as `full`. | Disable product analytics and leaderboard-style projections. | Same as `full`. | No analytics endpoints. |
+| `market-only` | Deposit, redeem, and share-price events required for vault/accounting outputs. | Market, positions, holders, and leaderboard outputs that do not require graph identity events. | Optional atom processing only for labels. | Market endpoints. |
+| `no-analytics` | Same as `full`. | Disable product analytics and leaderboard-style batch projections. | Same as `full`. | No analytics endpoints. |
 | `music` | Events needed to discover atoms/triples. | KG projections; market projections optional. | Music taxonomy only. | Music-classified atoms and artifacts. |
 | `podcasts` | Events needed to discover atoms/triples. | KG projections; market projections optional. | Podcast taxonomy only. | Podcast-classified atoms and artifacts. |
 | `music-and-podcasts` | Events needed to discover atoms/triples. | KG projections; market projections optional. | Music and podcast taxonomies. | Music or podcast atoms and artifacts. |
@@ -36,6 +36,12 @@ If an operator disables financial events such as deposits, redeems, fees, or
 vault-share updates, market/accounting outputs become partial or unavailable.
 The system must surface that as a scoped capability, not as zero balances or
 empty market data.
+
+The dry-run validator rejects selected market/accounting projections unless the
+effective ingestion event set includes the required deposit, redeem, and
+share-price events. Valid configs also report each projection output as
+available or unavailable so operators can see which read models will exist
+before indexing starts.
 
 ## rindexer Boundary
 
