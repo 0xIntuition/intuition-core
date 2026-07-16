@@ -26,6 +26,7 @@ If you are building engine or plugin logic, import from
 ```ts
 import {} from '@0xintuition/types/classification'
 import {} from '@0xintuition/types/enrichment'
+import {} from '@0xintuition/types/indexing-scope'
 ```
 
 - `@0xintuition/types/classification`
@@ -33,6 +34,8 @@ import {} from '@0xintuition/types/enrichment'
 - `@0xintuition/types/enrichment`
   Consumer-facing enrichment request/result contracts, normalized provider data
   types, artifact unions, and classification-to-enrichment handoff helpers
+- `@0xintuition/types/indexing-scope`
+  Operator-facing scope config schema, parser, and rindexer dry-run renderer
 
 ## Examples
 

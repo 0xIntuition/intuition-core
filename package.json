@@ -17,6 +17,7 @@
 		"explore": "scripts/explore-data.sh",
 		"smoke": "scripts/smoke-test.sh",
 		"smoke:index": "scripts/smoke-index.sh",
+		"scope:dry-run": "bun run scripts/scope-dry-run.ts",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
 		"dev": "turbo run dev",

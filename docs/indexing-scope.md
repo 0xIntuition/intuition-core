@@ -47,11 +47,27 @@ Use rindexer filters to avoid writing events the node will never need. Use
 processing scope to reduce expensive downstream classification, enrichment, and
 artifact storage.
 
+## Dry-Run Validator
+
+Validate an `IndexingScope` JSON config before starting ingestion:
+
+```bash
+make scope-dry-run
+make scope-dry-run SCOPE_CONFIG=./my-scope.json
+```
+
+The dry-run prints the rendered rindexer hard filters, equivalent
+`CHAIN_ID`/`MULTIVAULT_*` environment values, projection bundle selections, and
+processing policy placeholders. Domain filters such as `music` and `podcast`
+are always reported as processing-scope-only; they do not become rindexer event
+filters.
+
+Concrete schema and examples: **[indexing-scope-config.md](./indexing-scope-config.md)**.
+
 ## Open Decisions
 
-- Exact config file name and schema for the first `IndexingScope` validator.
-- Whether presets should expand into generated rindexer manifests or only
-  validate hand-written manifests.
+- Whether presets should expand into generated rindexer manifests used at
+  runtime or remain dry-run validation artifacts.
 - Whether query-scope presets belong in the API service config or explorer/app
   clients.
 - How to represent partial market capability in API responses.
