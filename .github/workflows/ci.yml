@@ -68,6 +68,14 @@ jobs:
       - name: Cargo docs
         run: cargo doc --workspace --no-deps
 
+      - name: Install cargo-deny
+        env:
+          CARGO_DENY_VERSION: 0.20.2
+        run: cargo install cargo-deny --version "${CARGO_DENY_VERSION}" --locked
+
+      - name: Cargo deny
+        run: cargo deny --exclude-unpublished check
+
       - name: Publish dry-run
         run: cargo publish -p intuition-curves --dry-run
 
@@ -103,14 +111,12 @@ jobs:
           if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             gitleaks git \
               --config .gitleaks.toml \
-            --config .gitleaks.toml \
               --log-opts="${{ github.sha }}~1..${{ github.sha }}" \
               --redact \
               --verbose
           else
             gitleaks git \
               --config .gitleaks.toml \
-            --config .gitleaks.toml \
               --log-opts="${{ github.event.before }}..${{ github.sha }}" \
               --redact \
               --verbose

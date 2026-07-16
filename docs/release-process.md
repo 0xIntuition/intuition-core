@@ -23,7 +23,8 @@ release complete.
 
 1. Confirm CI is green on the release commit:
    `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
-   `cargo test --workspace`, `cargo doc --workspace --no-deps`, and
+   `cargo test --workspace`, `cargo doc --workspace --no-deps`,
+   `cargo deny --exclude-unpublished check`, and
    `cargo publish -p intuition-curves --dry-run`.
 2. Check the package contents locally:
    `cargo package -p intuition-curves --list`.
@@ -78,8 +79,24 @@ yank reason plus replacement version in the changelog.
 
 ## Cargo Deny
 
-`cargo deny` is deferred for Week 1 because this repo does not yet include a
-`deny.toml`, and introducing a policy file needs a separate license/advisory
-review. The immediate gate is package safety: format, clippy, tests, docs, and
-`cargo publish --dry-run`. A future ticket should add `deny.toml` before
-broader crate publication.
+`cargo deny --exclude-unpublished check` is part of the Rust CI gate. The
+policy covers advisories, licenses, banned dependency patterns, and dependency
+sources for crates that are eligible for public publication.
+
+The current public crate surface is `intuition-curves`; service/runtime crates
+such as `rindexer-ingestion`, `projections`, and the internal `shared` crate are
+marked `publish = false` and remain image/source distributed until they have
+separate public API reviews. Do not remove `publish = false` from those crates
+without first making the full dependency graph pass `cargo deny check`.
+
+Known full-workspace blockers outside the first crate publish gate:
+
+- `projections` depends on SurrealDB crates that currently resolve to BUSL-1.1
+  license files. This needs a separate dependency/legal decision before
+  `projections` can become a publishable crate.
+- `rindexer-ingestion` depends on the git-tagged `rindexer` crate. Full
+  workspace source checks should either move to a crates.io release or add an
+  explicit reviewed git-source policy.
+- The unpublished service graph includes RustSec advisories in transitive TLS
+  and messaging dependencies. Those must be resolved or explicitly reviewed
+  before widening the deny gate beyond publishable crates.

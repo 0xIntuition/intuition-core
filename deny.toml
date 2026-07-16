@@ -1,0 +1,41 @@
+# Cargo supply-chain policy for Intuition Core.
+#
+# This file gates advisories, licenses, duplicate dependencies, and source
+# registries before public Rust crates are published.
+
+[graph]
+all-features = false
+
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "Transitive proc-macro dependency of the current latest alloy-primitives used by intuition-curves; unmaintained advisory has no safe upgrade and no runtime impact." },
+]
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+ignore = false
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+deny = []
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
