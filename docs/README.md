@@ -10,6 +10,7 @@ Start here:
 | **[architecture.md](./architecture.md)** | the pipeline, the two databases, deterministic identity, reliability model |
 | **[configuration.md](./configuration.md)** | every environment variable, by service and tier |
 | **[release-process.md](./release-process.md)** | crate/image release order, verification, rollback, and deferred artifacts |
+| **[rust-crate-boundaries.md](./rust-crate-boundaries.md)** | public Rust crate split for primitives/events and what stays service-local |
 | **[container-images.md](./container-images.md)** | public image names, OCI labels, registry choice, and context rules |
 | **[indexing-scope.md](./indexing-scope.md)** | layered operator scope: ingestion, projections, processing, and read filters |
 | **[classification-taxonomy.md](./classification-taxonomy.md)** | music and podcast domain taxonomy for scoped processing |

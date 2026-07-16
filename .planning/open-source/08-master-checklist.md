@@ -71,7 +71,7 @@
 - [ ] Schedule/execute D2 deploy-source cut-over (fast-follow OK)
 
 ## Fast-follows (post-launch)
-- [ ] Publish `curves` / `shared` to crates.io (D8)
+- [ ] Publish `curves` / split `shared` public primitives-events crates to crates.io (D8)
 - [ ] Publish `database-*` packages to npm if demand (D7)
 - [ ] Complete D2 Phase B cut-over for all services
 - [ ] First community plugin merged (leading adoption indicator)
