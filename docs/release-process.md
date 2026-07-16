@@ -58,18 +58,20 @@ Publish order:
 1. Publish a GitHub release, or manually run the `Publish Images` workflow from
    the matching Git tag ref with a `version` input of `vX.Y.Z` or
    `vX.Y.Z-rc.N`.
-2. Confirm the workflow pushed all six service images to GHCR.
-3. Confirm every image has a `sha-<12-char-sha>` tag matching the release
-   commit. Versioned runs must also have the semver tag.
+2. Confirm the workflow pushed and verified all six service images to GHCR.
+3. Copy every image digest and verified tag-to-digest mapping from the workflow
+   summary into the release notes.
 4. Publish `latest` only for stable `vX.Y.Z` releases. Release candidates must
    never move `latest`.
-5. Generate SBOM/provenance where the publishing workflow supports it.
+5. Confirm BuildKit SBOM/provenance and GitHub provenance attestation steps ran
+   for each image.
 6. Pull every image by digest from a clean environment.
 7. Inspect OCI labels and confirm `org.opencontainers.image.revision` matches
    the release commit.
 8. Run `docker compose config -q` against the compose file that consumes the
    published tags.
-9. Record image tags, digests, and verification links in the release notes.
+9. Record image tags, digests, attestation checks, and verification links in the
+   release notes.
 
 ## Rollback And Yank Policy
 

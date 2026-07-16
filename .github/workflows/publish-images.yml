@@ -36,7 +36,9 @@ jobs:
     name: Publish ${{ matrix.service }}
     runs-on: ubuntu-latest
     permissions:
+      attestations: write
       contents: read
+      id-token: write
       packages: write
     strategy:
       fail-fast: false
@@ -45,21 +47,27 @@ jobs:
           - service: api
             image: intuition-core-api
             dockerfile: docker/Dockerfile.api
+            smoke: test -d /repo/services/api && bun --version
           - service: atom-services
             image: intuition-core-atom-services
             dockerfile: docker/Dockerfile.atom-services
+            smoke: test -d /repo/services/atom-services && bun --version
           - service: workers
             image: intuition-core-workers
             dockerfile: docker/Dockerfile.workers
+            smoke: test -d /repo/services/workers && bun --version
           - service: rindexer-ingestion
             image: intuition-core-rindexer-ingestion
             dockerfile: docker/Dockerfile.ingestion
+            smoke: test -x /usr/local/bin/rindexer-ingestion && test -r /rindexer/rindexer.yaml.tpl
           - service: projections
             image: intuition-core-projections
             dockerfile: docker/Dockerfile.projections
+            smoke: test -x /usr/local/bin/projections
           - service: timescale-migrations
             image: intuition-core-timescale-migrations
             dockerfile: docker/Dockerfile.timescale-migrations
+            smoke: test -x /run-migrations.sh && test -d /migrations
 
     steps:
       - name: Checkout
@@ -72,7 +80,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -144,7 +152,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        id: build
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -160,19 +169,129 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-          provenance: false
-          sbom: false
+          provenance: mode=max
+          sbom: true
+
+      - name: Generate GitHub provenance attestation
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Verify published artifact
+        id: verify
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}
+          PLATFORMS: ${{ steps.image.outputs.platforms }}
+          SMOKE_COMMAND: ${{ matrix.smoke }}
+          TAGS: ${{ steps.image.outputs.tags }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$DIGEST" ]; then
+            echo "Build step did not return an image digest" >&2
+            exit 1
+          fi
+
+          digest_ref="$IMAGE@$DIGEST"
+
+          retry() {
+            attempts="$1"
+            delay="$2"
+            shift 2
+
+            attempt=1
+            until "$@"; do
+              if [ "$attempt" -ge "$attempts" ]; then
+                return 1
+              fi
+              echo "Attempt $attempt failed; retrying in ${delay}s: $*" >&2
+              sleep "$delay"
+              attempt=$((attempt + 1))
+            done
+          }
+
+          inspect_digest() {
+            docker buildx imagetools inspect "$1" | awk '/^Digest:/ { print $2; exit }'
+          }
+
+          verify_tag_digest() {
+            tag="$1"
+            tag_digest="$(inspect_digest "$tag")"
+            if [ -z "$tag_digest" ]; then
+              echo "Could not resolve digest for tag $tag" >&2
+              return 1
+            fi
+            if [ "$tag_digest" != "$DIGEST" ]; then
+              echo "Tag $tag resolved to $tag_digest, expected $DIGEST" >&2
+              return 1
+            fi
+          }
+
+          retry 6 10 docker buildx imagetools inspect "$digest_ref" >/dev/null
+
+          verified_tags_file="$(mktemp)"
+          while IFS= read -r tag; do
+            if [ -z "$tag" ]; then
+              continue
+            fi
+            retry 6 10 verify_tag_digest "$tag"
+            printf '%s -> %s\n' "$tag" "$DIGEST" >> "$verified_tags_file"
+          done < <(printf '%s\n' "$TAGS")
+
+          if printf '%s' "$PLATFORMS" | tr ',' '\n' | grep -qx 'linux/amd64'; then
+            retry 6 10 docker pull --platform linux/amd64 "$digest_ref"
+            docker run --rm --platform linux/amd64 --entrypoint /bin/sh "$digest_ref" -c "$SMOKE_COMMAND"
+
+            revision="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$digest_ref")"
+            if [ "$revision" != "$GITHUB_SHA" ]; then
+              echo "Image revision label $revision does not match $GITHUB_SHA" >&2
+              exit 1
+            fi
+          else
+            echo "Skipping runtime smoke because linux/amd64 was not requested: $PLATFORMS"
+          fi
+
+          retry 6 10 gh attestation verify "oci://$digest_ref" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "github.com/$GITHUB_REPOSITORY/.github/workflows/publish-images.yml" \
+            --source-ref "$GITHUB_REF" \
+            --source-digest "$GITHUB_SHA"
+
+          {
+            echo "digest=$DIGEST"
+            echo "digest_ref=$digest_ref"
+            echo "verified_tags<<EOF"
+            cat "$verified_tags_file"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Summary
         env:
+          DIGEST: ${{ steps.verify.outputs.digest }}
+          DIGEST_REF: ${{ steps.verify.outputs.digest_ref }}
           SERVICE: ${{ matrix.service }}
           TAGS: ${{ steps.image.outputs.tags }}
+          VERIFIED_TAGS: ${{ steps.verify.outputs.verified_tags }}
         run: |
           {
             echo "### $SERVICE"
             echo
+            echo "Digest: \`$DIGEST\`"
+            echo
+            echo "Digest ref: \`$DIGEST_REF\`"
+            echo
             echo 'Published tags:'
             echo
             printf '%s\n' "$TAGS" | sed 's/^/- `/' | sed 's/$/`/'
+            echo
+            echo 'Verified tag digests:'
+            echo
+            printf '%s\n' "$VERIFIED_TAGS" | sed 's/^/- `/' | sed 's/$/`/'
+            echo
+            echo 'BuildKit SBOM/provenance were requested. GitHub provenance attestation, tag digests, runtime smoke, and revision labels were verified.'
             echo
           } >> "$GITHUB_STEP_SUMMARY"

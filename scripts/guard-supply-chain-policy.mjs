@@ -8,6 +8,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const minReleaseAgeSeconds = 1_209_600;
 const reviewedMinimumReleaseAgeExcludes = new Set(['@0xintuition/contracts-v2']);
+const reviewedOidcPublishWorkflows = new Set(['.github/workflows/publish-images.yml']);
 const failures = [];
 
 const dependencySections = [
@@ -229,7 +230,20 @@ const checkWorkflowPolicy = () => {
 		}
 
 		if (/^\s*id-token:\s*write\b/m.test(workflow)) {
-			addFailure(workflowPath, 'id-token: write requires explicit publish-job review');
+			const relativeWorkflowPath = toRelativePath(workflowPath);
+			if (!reviewedOidcPublishWorkflows.has(relativeWorkflowPath)) {
+				addFailure(workflowPath, 'id-token: write requires explicit publish-job review');
+			} else {
+				if (!/^\s*attestations:\s*write\b/m.test(workflow)) {
+					addFailure(workflowPath, 'reviewed OIDC publish workflow must write attestations');
+				}
+				if (!/^\s*packages:\s*write\b/m.test(workflow)) {
+					addFailure(workflowPath, 'reviewed OIDC publish workflow must write packages');
+				}
+				if (!/\buses:\s*actions\/attest@/m.test(workflow)) {
+					addFailure(workflowPath, 'reviewed OIDC publish workflow must generate attestations');
+				}
+			}
 		}
 
 		lines.forEach((line, index) => {

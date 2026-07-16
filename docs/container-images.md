@@ -47,9 +47,31 @@ manual versioned runs also receive the supplied semver tag. The `latest` tag is
 reserved for stable releases only; release candidates must not move it.
 
 The workflow uses the repository `GITHUB_TOKEN` with `packages: write` on the
-publish job and does not require Docker Hub credentials. SBOM, provenance, and
-post-push digest verification are intentionally handled by the Week 2
-verification follow-up.
+publish job and does not require Docker Hub credentials. It also has a narrow
+`id-token: write` and `attestations: write` allowance for GitHub provenance
+attestation; `bun run guard:supply-chain` only permits that OIDC allowance on
+this reviewed publish workflow.
+
+## Artifact Verification
+
+The publish job enables BuildKit max-level provenance and SBOM attestations on
+the pushed image, then generates a GitHub provenance attestation for the image
+digest. The verification step validates the published digest, tags, runtime
+smoke, revision label, and GitHub attestation. It fails the workflow if:
+
+- the build action does not return a digest;
+- the digest cannot be inspected from GHCR;
+- any published tag resolves to a digest other than the build digest;
+- GitHub provenance attestation verification fails for the digest;
+- the `linux/amd64` runtime smoke check fails when that platform is requested;
+- the pulled image revision label does not match the workflow commit.
+
+The workflow summary records each image digest, digest reference, published
+tags, and verified tag-to-digest mappings. Runtime smoke uses a minimal
+`/bin/sh` command against the digest and checks expected runtime files or
+binaries. If a manual run omits `linux/amd64` from `platforms`, digest and
+attestation verification still run, but the local runtime smoke step is skipped
+because the GitHub-hosted runner cannot execute the requested image platform.
 
 ## OCI Labels
 
@@ -83,16 +105,20 @@ outputs, caches, logs, local databases, scratch files, and untracked review
 reports. Dockerfiles still copy the workspace root because Bun installs and
 Cargo workspace builds depend on root-level manifests and package boundaries.
 
-Before public publishing, verify:
+Before public publishing, verify Compose syntax locally:
 
 ```bash
 docker compose config -q
 docker compose -f docker-compose.datastores.yml config -q
 ```
 
-The verification follow-up must verify each pushed artifact with:
+After publishing, verify an image digest manually with:
 
 ```bash
-docker pull ghcr.io/0xintuition/intuition-core-api@sha256:...
-docker image inspect ghcr.io/0xintuition/intuition-core-api@sha256:...
+docker buildx imagetools inspect ghcr.io/0xintuition/intuition-core-api@sha256:...
+docker pull --platform linux/amd64 ghcr.io/0xintuition/intuition-core-api@sha256:...
+gh attestation verify \
+  oci://ghcr.io/0xintuition/intuition-core-api@sha256:... \
+  --repo 0xIntuition/intuition-core \
+  --signer-workflow github.com/0xIntuition/intuition-core/.github/workflows/publish-images.yml
 ```
