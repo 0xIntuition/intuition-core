@@ -8,7 +8,9 @@ const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const minReleaseAgeSeconds = 1_209_600;
 const reviewedMinimumReleaseAgeExcludes = new Set(['@0xintuition/contracts-v2']);
-const reviewedOidcPublishWorkflows = new Set(['.github/workflows/publish-images.yml']);
+const reviewedOidcPublishJobs = new Map([
+	['.github/workflows/publish-images.yml', 'attest-and-verify'],
+]);
 const failures = [];
 
 const dependencySections = [
@@ -60,6 +62,27 @@ const addFailure = (filePath, message) => {
 };
 
 const readTextFile = (filePath) => fs.readFileSync(filePath, 'utf8');
+
+const getWorkflowJobBlock = (workflow, jobName) => {
+	const lines = workflow.split(/\r?\n/);
+	const jobStartPattern = new RegExp(`^  ${jobName}:\\s*(?:#.*)?$`);
+	const anyJobPattern = /^ {2}[A-Za-z0-9_-]+:\s*(?:#.*)?$/;
+	const startIndex = lines.findIndex((line) => jobStartPattern.test(line));
+
+	if (startIndex === -1) {
+		return null;
+	}
+
+	let endIndex = lines.length;
+	for (let index = startIndex + 1; index < lines.length; index += 1) {
+		if (anyJobPattern.test(lines[index])) {
+			endIndex = index;
+			break;
+		}
+	}
+
+	return lines.slice(startIndex, endIndex).join('\n');
+};
 
 const listFiles = (startPath, predicate) => {
 	if (!fs.existsSync(startPath)) {
@@ -231,17 +254,44 @@ const checkWorkflowPolicy = () => {
 
 		if (/^\s*id-token:\s*write\b/m.test(workflow)) {
 			const relativeWorkflowPath = toRelativePath(workflowPath);
-			if (!reviewedOidcPublishWorkflows.has(relativeWorkflowPath)) {
+			const reviewedJobName = reviewedOidcPublishJobs.get(relativeWorkflowPath);
+			if (!reviewedJobName) {
 				addFailure(workflowPath, 'id-token: write requires explicit publish-job review');
 			} else {
-				if (!/^\s*attestations:\s*write\b/m.test(workflow)) {
+				const reviewedJobBlock = getWorkflowJobBlock(workflow, reviewedJobName);
+				if (!reviewedJobBlock) {
+					addFailure(workflowPath, `reviewed OIDC job ${reviewedJobName} is missing`);
+					continue;
+				}
+
+				const workflowOutsideReviewedJob = workflow.replace(reviewedJobBlock, '');
+				if (/^\s*id-token:\s*write\b/m.test(workflowOutsideReviewedJob)) {
+					addFailure(
+						workflowPath,
+						`id-token: write is only allowed in reviewed job ${reviewedJobName}`
+					);
+				}
+				if (!/^\s*id-token:\s*write\b/m.test(reviewedJobBlock)) {
+					addFailure(workflowPath, `reviewed OIDC job ${reviewedJobName} must write id-token`);
+				}
+				if (!/^\s*attestations:\s*write\b/m.test(reviewedJobBlock)) {
 					addFailure(workflowPath, 'reviewed OIDC publish workflow must write attestations');
 				}
-				if (!/^\s*packages:\s*write\b/m.test(workflow)) {
+				if (!/^\s*packages:\s*write\b/m.test(reviewedJobBlock)) {
 					addFailure(workflowPath, 'reviewed OIDC publish workflow must write packages');
 				}
-				if (!/\buses:\s*actions\/attest@/m.test(workflow)) {
+				if (!/\buses:\s*actions\/attest@/m.test(reviewedJobBlock)) {
 					addFailure(workflowPath, 'reviewed OIDC publish workflow must generate attestations');
+				}
+				if (
+					/\buses:\s*actions\/attest@/m.test(reviewedJobBlock) &&
+					!/^\s*artifact-metadata:\s*write\b/m.test(reviewedJobBlock) &&
+					!/^\s*create-storage-record:\s*false\b/m.test(reviewedJobBlock)
+				) {
+					addFailure(
+						workflowPath,
+						'reviewed OIDC publish workflow must disable storage records or write artifact metadata'
+					);
 				}
 			}
 		}

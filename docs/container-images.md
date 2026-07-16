@@ -1,8 +1,8 @@
 # Container Images
 
-Core services are distributed as source and public GHCR images. Week 1 hardened
-Docker contexts and metadata; Week 2 adds the registry workflow first, then
-artifact verification in a follow-up ticket.
+Core services are distributed as source and public GHCR images. The publish
+workflow builds the service image matrix, pushes immutable digest-backed tags,
+and verifies the published artifacts before release completion.
 
 ## Registry Choice
 
@@ -46,32 +46,39 @@ Every pushed image receives an immutable `sha-<12-char-sha>` tag. Release and
 manual versioned runs also receive the supplied semver tag. The `latest` tag is
 reserved for stable releases only; release candidates must not move it.
 
-The workflow uses the repository `GITHUB_TOKEN` with `packages: write` on the
-publish job and does not require Docker Hub credentials. It also has a narrow
-`id-token: write` and `attestations: write` allowance for GitHub provenance
-attestation; `bun run guard:supply-chain` only permits that OIDC allowance on
-this reviewed publish workflow.
+The workflow uses the repository `GITHUB_TOKEN` with `packages: write` and does
+not require Docker Hub credentials. Build/push runs without OIDC. A separate
+attestation and verification job has the narrow `id-token: write` and
+`attestations: write` allowance required for GitHub provenance attestation;
+`bun run guard:supply-chain` only permits that OIDC allowance on that reviewed
+job. Linked artifact storage records are intentionally disabled with
+`create-storage-record: false`; release evidence is the OCI registry artifact,
+digest/tag checks, and GitHub artifact attestation.
 
 ## Artifact Verification
 
 The publish job enables BuildKit max-level provenance and SBOM attestations on
-the pushed image, then generates a GitHub provenance attestation for the image
-digest. The verification step validates the published digest, tags, runtime
-smoke, revision label, and GitHub attestation. It fails the workflow if:
+the pushed image, then a separate job generates a GitHub provenance attestation
+for the image digest. The verification step validates the published digest,
+tags, requested-platform revision labels, optional runtime smoke, and GitHub
+attestation. It fails the workflow if:
 
 - the build action does not return a digest;
 - the digest cannot be inspected from GHCR;
 - any published tag resolves to a digest other than the build digest;
 - GitHub provenance attestation verification fails for the digest;
-- the `linux/amd64` runtime smoke check fails when that platform is requested;
-- the pulled image revision label does not match the workflow commit.
+- any requested platform image revision label does not match the workflow
+  commit;
+- the `linux/amd64` runtime smoke check fails when that platform is requested.
 
 The workflow summary records each image digest, digest reference, published
-tags, and verified tag-to-digest mappings. Runtime smoke uses a minimal
-`/bin/sh` command against the digest and checks expected runtime files or
-binaries. If a manual run omits `linux/amd64` from `platforms`, digest and
-attestation verification still run, but the local runtime smoke step is skipped
-because the GitHub-hosted runner cannot execute the requested image platform.
+tags, verified tag-to-digest mappings, requested-platform revision-label
+mappings, and runtime smoke status. Runtime smoke uses a minimal `/bin/sh`
+command against the digest and checks expected runtime files or binaries. If a
+manual run omits `linux/amd64` from `platforms`, digest, tag, revision-label,
+and attestation verification still run, but the local runtime smoke step is
+skipped because the GitHub-hosted runner cannot execute the requested image
+platform.
 
 ## OCI Labels
 
@@ -119,6 +126,7 @@ docker buildx imagetools inspect ghcr.io/0xintuition/intuition-core-api@sha256:.
 docker pull --platform linux/amd64 ghcr.io/0xintuition/intuition-core-api@sha256:...
 gh attestation verify \
   oci://ghcr.io/0xintuition/intuition-core-api@sha256:... \
+  --bundle-from-oci \
   --repo 0xIntuition/intuition-core \
   --signer-workflow github.com/0xIntuition/intuition-core/.github/workflows/publish-images.yml
 ```
