@@ -1,8 +1,8 @@
 # Container Images
 
-Core services are distributed as source today and are being prepared for public
-container publishing. Week 1 hardens Docker contexts and metadata; Week 2 adds
-the registry workflow and artifact verification.
+Core services are distributed as source and public GHCR images. Week 1 hardened
+Docker contexts and metadata; Week 2 adds the registry workflow first, then
+artifact verification in a follow-up ticket.
 
 ## Registry Choice
 
@@ -19,13 +19,35 @@ namespace management, and another artifact surface to verify.
 
 | Image | Dockerfile | Runtime user | Publish status |
 | --- | --- | --- | --- |
-| `intuition-core-api` | `docker/Dockerfile.api` | `bun` | prepared |
-| `intuition-core-workers` | `docker/Dockerfile.workers` | `bun` | prepared |
-| `intuition-core-atom-services` | `docker/Dockerfile.atom-services` | `bun` | prepared |
-| `intuition-core-rindexer-ingestion` | `docker/Dockerfile.ingestion` | `indexer` | prepared |
-| `intuition-core-projections` | `docker/Dockerfile.projections` | `projections` | prepared |
-| `intuition-core-timescale-migrations` | `docker/Dockerfile.timescale-migrations` | inherited Postgres image user | prepared |
+| `ghcr.io/0xintuition/intuition-core-api` | `docker/Dockerfile.api` | `bun` | published by workflow |
+| `ghcr.io/0xintuition/intuition-core-workers` | `docker/Dockerfile.workers` | `bun` | published by workflow |
+| `ghcr.io/0xintuition/intuition-core-atom-services` | `docker/Dockerfile.atom-services` | `bun` | published by workflow |
+| `ghcr.io/0xintuition/intuition-core-rindexer-ingestion` | `docker/Dockerfile.ingestion` | `indexer` | published by workflow |
+| `ghcr.io/0xintuition/intuition-core-projections` | `docker/Dockerfile.projections` | `projections` | published by workflow |
+| `ghcr.io/0xintuition/intuition-core-timescale-migrations` | `docker/Dockerfile.timescale-migrations` | inherited Postgres image user | published by workflow |
 | `intuition-core-devnet-deployer` | `docker/Dockerfile.devnet` | root | local-only; writes a bind-mounted `/state` file |
+
+## Publish Workflow
+
+`.github/workflows/publish-images.yml` publishes the service image matrix to
+GHCR. It runs when a GitHub release is published and can also be run manually
+from the Actions tab.
+
+Manual inputs:
+
+- `version`: optional `vX.Y.Z` or `vX.Y.Z-rc.N` tag.
+- `publish_latest`: optional; only valid with a stable `vX.Y.Z` version.
+- `platforms`: optional comma-separated target platforms. The default is
+  `linux/amd64,linux/arm64`.
+
+Every pushed image receives an immutable `sha-<12-char-sha>` tag. Release and
+manual versioned runs also receive the supplied semver tag. The `latest` tag is
+reserved for stable releases only; release candidates must not move it.
+
+The workflow uses the repository `GITHUB_TOKEN` with `packages: write` on the
+publish job and does not require Docker Hub credentials. SBOM, provenance, and
+post-push digest verification are intentionally handled by the Week 2
+verification follow-up.
 
 ## OCI Labels
 
@@ -41,7 +63,7 @@ Public images should carry:
 - `org.opencontainers.image.revision`
 - `org.opencontainers.image.created`
 
-Build args should be supplied by the publish workflow:
+Build args are supplied by the publish workflow:
 
 ```bash
 docker build \
@@ -66,7 +88,7 @@ docker compose config -q
 docker compose -f docker-compose.datastores.yml config -q
 ```
 
-When the publish workflow exists, also verify each pushed artifact with:
+The verification follow-up must verify each pushed artifact with:
 
 ```bash
 docker pull ghcr.io/0xintuition/intuition-core-api@sha256:...
