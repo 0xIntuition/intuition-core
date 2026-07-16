@@ -4,6 +4,8 @@ COMPOSE ?= docker compose
 API_URL ?= http://localhost:3000
 KEY_NAME ?= me
 ACCOUNT ?= 0xYourWallet
+PUBLISHED_COMPOSE ?= docker-compose.yml:docker-compose.published.yml
+IMAGE_TAG ?= latest
 
 .DEFAULT_GOAL := help
 
@@ -27,9 +29,17 @@ install: ## Install Bun workspace dependencies with the frozen lockfile.
 up: ## Start the default Docker Compose stack in the background.
 	$(COMPOSE) up -d
 
+.PHONY: up-published
+up-published: ## Start Docker Compose from published GHCR images. Override IMAGE_TAG as needed.
+	INTUITION_CORE_IMAGE_TAG=$(IMAGE_TAG) COMPOSE_FILE=$(PUBLISHED_COMPOSE) $(COMPOSE) up -d
+
 .PHONY: index
 index: ## Start Docker Compose with the indexing profile in the background.
 	$(COMPOSE) --profile indexing up -d
+
+.PHONY: index-published
+index-published: ## Start the indexing profile from published GHCR images. Override IMAGE_TAG as needed.
+	INTUITION_CORE_IMAGE_TAG=$(IMAGE_TAG) COMPOSE_FILE=$(PUBLISHED_COMPOSE) $(COMPOSE) --profile indexing up -d
 
 .PHONY: devnet
 devnet: ## Start the local anvil chain and deploy the Intuition contracts onto it.
@@ -59,9 +69,21 @@ status: ## Show Docker Compose service status.
 smoke: ## Run the local API/workers/triples integration smoke test.
 	@scripts/smoke-test.sh
 
+.PHONY: smoke-published
+smoke-published: ## Run the API/workers/triples smoke test against published GHCR images.
+	@INTUITION_CORE_IMAGE_TAG=$(IMAGE_TAG) COMPOSE_FILE=$(PUBLISHED_COMPOSE) SMOKE_BUILD=0 scripts/smoke-test.sh
+
 .PHONY: smoke-index
 smoke-index: ## Run the bounded public testnet indexing smoke test.
 	@scripts/smoke-index.sh
+
+.PHONY: smoke-index-published
+smoke-index-published: ## Run the bounded indexing smoke test against published GHCR images.
+	@INTUITION_CORE_IMAGE_TAG=$(IMAGE_TAG) COMPOSE_FILE=$(PUBLISHED_COMPOSE) SMOKE_BUILD=0 scripts/smoke-index.sh
+
+.PHONY: config-published
+config-published: ## Validate the published-image Docker Compose config.
+	@INTUITION_CORE_IMAGE_TAG=$(IMAGE_TAG) COMPOSE_FILE=$(PUBLISHED_COMPOSE) $(COMPOSE) config -q
 
 .PHONY: explore
 explore: ## Print a guided snapshot of local KG tables, atoms, predicates, and artifacts.

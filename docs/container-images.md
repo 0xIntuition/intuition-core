@@ -80,6 +80,97 @@ and attestation verification still run, but the local runtime smoke step is
 skipped because the GitHub-hosted runner cannot execute the requested image
 platform.
 
+## Running Published Images
+
+Local build mode remains the default:
+
+```bash
+docker compose up
+```
+
+To run a clean checkout from GHCR images instead, layer the published-image
+override:
+
+```bash
+COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml \
+  INTUITION_CORE_IMAGE_TAG=vX.Y.Z \
+  docker compose up -d
+```
+
+Equivalent Make targets are available:
+
+```bash
+make config-published IMAGE_TAG=vX.Y.Z
+make up-published IMAGE_TAG=vX.Y.Z
+make index-published IMAGE_TAG=vX.Y.Z
+```
+
+The override removes local build contexts for public runtime images and sets
+`pull_policy: always` so tag updates are pulled before startup. The local devnet
+deployer remains source-built because it writes local deployment state and is
+not a public runtime artifact. The override uses Docker Compose's `!reset`
+merge tag, so use current Docker Compose v2 rather than the legacy
+`docker-compose` v1 binary.
+
+Use tags for local trials and release-candidate smoke runs. Use digest-pinned
+images for production, incident reproduction, or any release note that must be
+auditable. Digest pins come from the publish workflow summary after artifact
+verification completes.
+
+Tag mode:
+
+```bash
+INTUITION_CORE_IMAGE_TAG=vX.Y.Z \
+  COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml \
+  docker compose up -d
+```
+
+Digest mode sets full image references per service:
+
+```bash
+export INTUITION_CORE_API_IMAGE=ghcr.io/0xintuition/intuition-core-api@sha256:...
+export INTUITION_CORE_ATOM_SERVICES_IMAGE=ghcr.io/0xintuition/intuition-core-atom-services@sha256:...
+export INTUITION_CORE_WORKERS_IMAGE=ghcr.io/0xintuition/intuition-core-workers@sha256:...
+export INTUITION_CORE_RINDEXER_INGESTION_IMAGE=ghcr.io/0xintuition/intuition-core-rindexer-ingestion@sha256:...
+export INTUITION_CORE_PROJECTIONS_IMAGE=ghcr.io/0xintuition/intuition-core-projections@sha256:...
+export INTUITION_CORE_TIMESCALE_MIGRATIONS_IMAGE=ghcr.io/0xintuition/intuition-core-timescale-migrations@sha256:...
+export COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml
+
+docker compose up -d
+```
+
+### Published-Image Smoke Checklist
+
+Run the same critical path as local build mode, without rebuilding:
+
+```bash
+make smoke-published IMAGE_TAG=vX.Y.Z
+```
+
+This checks:
+
+- API health at `/health`;
+- API stats at `/api/stats`;
+- API key creation inside the published API image;
+- atom creation through `POST /api/atoms`;
+- worker processing through parse, classification, and enrichment completion;
+- triple creation and readback through `POST /api/triples` and `GET /api/triples/:id`.
+
+For bounded indexing and projections:
+
+```bash
+make smoke-index-published IMAGE_TAG=vX.Y.Z
+```
+
+This checks:
+
+- the published indexer image can ingest the deterministic public testnet
+  window;
+- the event store receives canonical events;
+- projection checkpoints advance;
+- `core_entities` catches up to the indexed atom/triple events;
+- API stats expose indexed atoms from the KG.
+
 ## OCI Labels
 
 Public images should carry:

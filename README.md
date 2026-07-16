@@ -229,6 +229,16 @@ bun install
 docker compose up        # databases → migrations → seeds → workers → API
 ```
 
+To run from published GHCR images instead of local builds:
+
+```bash
+make up-published IMAGE_TAG=vX.Y.Z
+make smoke-published IMAGE_TAG=vX.Y.Z
+```
+
+Use digest pins instead of tags for production or reproducible release
+verification. See [container image details](./docs/container-images.md#running-published-images).
+
 Prefer native services with a TUI? Install
 [`process-compose`](https://f1bonacc1.github.io/process-compose/installation/)
 and run the local profile:
@@ -444,8 +454,8 @@ Core is moving from source-only distribution to verified public artifacts.
 | --- | --- | --- |
 | `intuition-curves` | crates.io-ready | Bonding-curve parity library. Package name is public; Rust imports remain `curves`. |
 | Service crates | source-only | Runtime crates stay in source and image form until public API boundaries are split. |
-| API/workers/atom-services images | prepared | Dockerfiles have pinned Bun bases, OCI labels, and hardened contexts. |
-| Indexer/projections/migration images | prepared | Rust runtime images are prepared for GHCR publishing and digest verification. |
+| API/workers/atom-services images | GHCR workflow | Published by tag/digest; `docker-compose.published.yml` runs them without local builds. |
+| Indexer/projections/migration images | GHCR workflow | Published by tag/digest; bounded indexing smoke verifies ingestion and projections. |
 
 Release process: **[docs/release-process.md](./docs/release-process.md)**.
 Container image details: **[docs/container-images.md](./docs/container-images.md)**.

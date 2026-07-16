@@ -41,6 +41,8 @@ jobs:
         run: |
           docker compose config -q
           docker compose -f docker-compose.datastores.yml config -q
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose config -q
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose --profile indexing config -q
 
   rust:
     name: Cargo fmt · Clippy · Test · Docs · Package
@@ -54,7 +56,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-workspaces: ". -> target"
+          workspaces: ". -> target"
 
       - name: Cargo format
         run: cargo fmt --all -- --check
