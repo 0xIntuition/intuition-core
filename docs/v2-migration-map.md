@@ -24,7 +24,7 @@ window. This map only identifies safe order, blockers, and validation evidence.
 
 | Artifact | Current v2 source | Core public source | Target state | Blocker | Validation |
 | --- | --- | --- | --- | --- | --- |
-| Bonding curve Rust crate | `intuition-v2/backend/curves` | `intuition-core/crates/curves` as crate `intuition-curves` with Rust library name `curves` | Consume now | ENG-13598 publishes and verifies the crate on crates.io | Replace path dependency with `intuition-curves = "<released>"`, keep `use curves::...` imports, run v2 curve parity tests plus `cargo test -p projections` because projections depend on the crate. |
+| Bonding curve Rust crate | `intuition-v2/backend/curves` | `intuition-core/crates/curves` as crate `intuition-curves` with Rust library name `curves` | Consume now | ENG-13598 publishes and verifies the crate on crates.io | Replace the v2 path dependency with the published `intuition-curves` package, keep `use curves::...` imports, prove `projections` resolves the published package with `cargo tree`, then run the projection consumer tests and any parity fixtures moved to a consumer-owned test path. |
 | Indexing shared Rust crate | `intuition-v2/backend/indexing-services/crates/shared` | `intuition-core/crates/shared` | Defer | No public crate boundary yet; crate is currently a workspace-private support crate for images | If later published, compare typed event models and error classification with v2, then run v2 indexing-services workspace tests and projection smoke. |
 | Rindexer ingestion Rust service | `intuition-v2/backend/indexing-services/crates/rindexer-ingestion` | `intuition-core/crates/rindexer-ingestion`; image `ghcr.io/0xintuition/intuition-core-rindexer-ingestion` | Consume after RC for dev/staging only | ENG-13599/ENG-13600/ENG-13602 image flow must land; v2 generated ABI/rindexer artifacts differ; production cut-over requires D2/platform decision | Run `make smoke-index-published IMAGE_TAG=<rc>` in Core, then v2 dev/staging bounded window with the image digest pinned. Validate event count, canonical event range, `projection_checkpoints`, and API-visible indexed atoms. |
 | Projections Rust service | `intuition-v2/backend/indexing-services/crates/projections` | `intuition-core/crates/projections`; image `ghcr.io/0xintuition/intuition-core-projections` | Consume after RC for dev/staging only | Core intentionally disables some product analytics/dual-write defaults; v2 production uses private Surreal/product behavior; production cut-over requires D2/platform decision | Run Core published indexing smoke, then v2 dev/staging with digest-pinned image. Validate `core_entities`, market read models needed by v2, checkpoint advancement, dead-letter counts, and rollback to v2 source-built image. |
@@ -69,10 +69,16 @@ Required validation:
 
 ```bash
 cd intuition-v2/backend
-cargo update -p intuition-curves
-cargo test -p curves
+cargo update -p intuition-curves --precise <released-version>
+cargo tree -p projections | rg "intuition-curves v<released-version>"
 cargo test -p projections
 ```
+
+Do not use `cargo test -p curves` as cut-over evidence if the old local v2 crate
+still exists in the workspace; that tests the workspace package, not necessarily
+the published package. If v2-only parity fixtures remain under the old local
+crate, move them to a consumer-owned test path or verify them in Core before
+removing the path dependency.
 
 If the lockfile or crate name resolution pulls an unexpected version, revert the
 dependency change and pin the exact published version in a follow-up PR.
