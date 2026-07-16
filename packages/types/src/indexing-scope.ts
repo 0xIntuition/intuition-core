@@ -114,6 +114,15 @@ export const indexingScopeConfigSchema = z
 				path: ['scope', 'ingestion', 'events'],
 			});
 		}
+
+		const effectiveEvents = applyEventExclusions(include, events.exclude);
+		if (effectiveEvents.length === 0) {
+			ctx.addIssue({
+				code: 'custom',
+				message: 'events include/exclude must resolve to at least one event',
+				path: ['scope', 'ingestion', 'events'],
+			});
+		}
 	});
 
 export type MultiVaultEvent = z.infer<typeof multiVaultEventSchema>;
@@ -323,12 +332,19 @@ ${eventLines}
 function resolveEvents(config: IndexingScopeConfig): MultiVaultEvent[] {
 	const { events } = config.scope.ingestion;
 	const include = events.include ?? eventsForPreset(config.scope.preset);
-	const excluded = new Set(events.exclude);
-	return include.filter((event) => !excluded.has(event));
+	return applyEventExclusions(include, events.exclude);
 }
 
 function eventsForPreset(preset: IndexingScopePreset): MultiVaultEvent[] {
 	return [...PRESET_EVENTS[preset]];
+}
+
+function applyEventExclusions(
+	include: readonly MultiVaultEvent[],
+	exclude: readonly MultiVaultEvent[]
+): MultiVaultEvent[] {
+	const excluded = new Set(exclude);
+	return include.filter((event) => !excluded.has(event));
 }
 
 function buildWarnings(input: {

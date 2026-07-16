@@ -189,4 +189,28 @@ describe('IndexingScope schema', () => {
 			);
 		}
 	});
+
+	test('rejects configs whose effective event set is empty after exclusions', () => {
+		const result = safeParseIndexingScopeConfig({
+			scope: {
+				preset: 'kg-only',
+				ingestion: {
+					chain_id: 13_579,
+					rpc_url: 'https://rpc-testnet.intuition.systems',
+					contract: '0xeBc49d356B7f64D888130D85CC6D17114a6843ec',
+					start_block: 9_030_416,
+					events: {
+						exclude: ['AtomCreated', 'TripleCreated'],
+					},
+				},
+			},
+		});
+
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues.map((issue) => issue.message)).toContain(
+				'events include/exclude must resolve to at least one event'
+			);
+		}
+	});
 });
