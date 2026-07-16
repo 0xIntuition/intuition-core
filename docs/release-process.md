@@ -55,8 +55,9 @@ Recommended public image names:
 
 Publish order:
 
-1. Publish a GitHub release, or manually run the `Publish Images` workflow with
-   a `version` input of `vX.Y.Z` or `vX.Y.Z-rc.N`.
+1. Publish a GitHub release, or manually run the `Publish Images` workflow from
+   the matching Git tag ref with a `version` input of `vX.Y.Z` or
+   `vX.Y.Z-rc.N`.
 2. Confirm the workflow pushed all six service images to GHCR.
 3. Confirm every image has a `sha-<12-char-sha>` tag matching the release
    commit. Versioned runs must also have the semver tag.

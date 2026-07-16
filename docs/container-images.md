@@ -35,7 +35,9 @@ from the Actions tab.
 
 Manual inputs:
 
-- `version`: optional `vX.Y.Z` or `vX.Y.Z-rc.N` tag.
+- `version`: optional `vX.Y.Z` or `vX.Y.Z-rc.N` tag. Manual versioned
+  publishes must be run from the matching Git tag ref. Omit this input for
+  branch-based SHA-only publishes.
 - `publish_latest`: optional; only valid with a stable `vX.Y.Z` version.
 - `platforms`: optional comma-separated target platforms. The default is
   `linux/amd64,linux/arm64`.
