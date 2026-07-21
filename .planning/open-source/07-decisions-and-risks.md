@@ -51,8 +51,9 @@ stack is self-contained. Publishing them to npm is a fast-follow if external con
 schemas standalone.
 
 ### D8 — crates.io for Rust libs · REC (fast-follow)
-**Recommendation:** publish `curves` / `shared` to crates.io **after** v1; vendoring `curves` into
-`node` is sufficient to ship. Track, don't block.
+**Recommendation:** publish `curves` first. Do not publish the monolithic `shared` crate; split it
+into narrow public primitives/events crates after v1, with service-local config/DB helpers kept
+private. Vendoring `curves` into `node` is sufficient to ship. Track, don't block.
 
 ## 2. Risk register
 

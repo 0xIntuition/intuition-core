@@ -10,6 +10,7 @@ Start here:
 | **[architecture.md](./architecture.md)** | the pipeline, the two databases, deterministic identity, reliability model |
 | **[configuration.md](./configuration.md)** | every environment variable, by service and tier |
 | **[release-process.md](./release-process.md)** | crate/image release order, verification, rollback, and deferred artifacts |
+| **[rust-crate-boundaries.md](./rust-crate-boundaries.md)** | public Rust crate split for primitives/events and what stays service-local |
 | **[container-images.md](./container-images.md)** | public image names, OCI labels, registry choice, and context rules |
 | **[v2-migration-map.md](./v2-migration-map.md)** | redundant v2 artifact map, target states, cut-over gates, and rollback requirements |
 | **[v2-dev-staging-image-consumption.md](./v2-dev-staging-image-consumption.md)** | non-production v2 plan for digest-pinned Core image trials |

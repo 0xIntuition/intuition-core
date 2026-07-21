@@ -10,7 +10,7 @@ release complete.
 | Bucket | Status | Distribution | Notes |
 | --- | --- | --- | --- |
 | `intuition-curves` | crate-publishable | crates.io | First Rust crate prepared for public publishing. |
-| `shared` | deferred | source-only | Internal domain/config types are not yet a stable public API. |
+| `shared` | deferred | source-only | Split into stable public crates before any publish; see [rust-crate-boundaries.md](./rust-crate-boundaries.md). |
 | `rindexer-ingestion` | image-published target | container image | Runtime service with generated rindexer code and chain config. |
 | `projections` | image-published target | container image | Runtime service with DB migrations and projection config. |
 | `api` | image-published target | container image | Bun service image. |
@@ -34,8 +34,9 @@ release complete.
 5. Record the crate version and registry checksum in `CHANGELOG.md` release
    notes.
 
-Do not publish `shared`, `rindexer-ingestion`, or `projections` as crates until
-they have explicit public API tickets and package dry-runs of their own.
+Do not publish `shared`, `rindexer-ingestion`, or `projections` as crates.
+`shared` must first be split into narrow public crates (`intuition-core-primitives`
+and `intuition-core-events`) with package dry-runs of their own.
 
 ## Container Publish Order
 
