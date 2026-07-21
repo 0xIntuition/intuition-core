@@ -29,6 +29,20 @@ bun install
 docker compose up
 ```
 
+To skip local service builds and run published GHCR images from a clean
+checkout, use the published-image override:
+
+```bash
+cp example.env .env
+make up-published IMAGE_TAG=vX.Y.Z
+make smoke-published IMAGE_TAG=vX.Y.Z
+```
+
+Published-image Make targets require explicit semver or release-candidate tags
+for local trials. Use digest pins copied from the publish workflow summary for
+production or reproducible release verification. See
+[container-images.md](./container-images.md#running-published-images).
+
 What comes up:
 
 | Service | Port | What it is |

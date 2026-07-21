@@ -1,0 +1,53 @@
+# Published-image override.
+#
+# Use with:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml docker compose up
+#
+# The default docker-compose.yml keeps local build mode. This override removes
+# build contexts for public runtime artifacts and pulls verified GHCR images.
+
+services:
+  migrate:
+    build: !reset null
+    image: ${INTUITION_CORE_API_IMAGE:-ghcr.io/0xintuition/intuition-core-api:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_API_IMAGE}}
+    pull_policy: always
+
+  timescale-migrate:
+    build: !reset null
+    image: ${INTUITION_CORE_TIMESCALE_MIGRATIONS_IMAGE:-ghcr.io/0xintuition/intuition-core-timescale-migrations:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_TIMESCALE_MIGRATIONS_IMAGE}}
+    pull_policy: always
+
+  api:
+    build: !reset null
+    image: ${INTUITION_CORE_API_IMAGE:-ghcr.io/0xintuition/intuition-core-api:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_API_IMAGE}}
+    pull_policy: always
+
+  atom-services:
+    build: !reset null
+    image: ${INTUITION_CORE_ATOM_SERVICES_IMAGE:-ghcr.io/0xintuition/intuition-core-atom-services:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_ATOM_SERVICES_IMAGE}}
+    pull_policy: always
+
+  workers-parse:
+    build: !reset null
+    image: ${INTUITION_CORE_WORKERS_IMAGE:-ghcr.io/0xintuition/intuition-core-workers:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_WORKERS_IMAGE}}
+    pull_policy: always
+
+  workers-classification:
+    build: !reset null
+    image: ${INTUITION_CORE_WORKERS_IMAGE:-ghcr.io/0xintuition/intuition-core-workers:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_WORKERS_IMAGE}}
+    pull_policy: always
+
+  workers-enrichment:
+    build: !reset null
+    image: ${INTUITION_CORE_WORKERS_IMAGE:-ghcr.io/0xintuition/intuition-core-workers:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_WORKERS_IMAGE}}
+    pull_policy: always
+
+  indexer:
+    build: !reset null
+    image: ${INTUITION_CORE_RINDEXER_INGESTION_IMAGE:-ghcr.io/0xintuition/intuition-core-rindexer-ingestion:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_RINDEXER_INGESTION_IMAGE}}
+    pull_policy: always
+
+  projections:
+    build: !reset null
+    image: ${INTUITION_CORE_PROJECTIONS_IMAGE:-ghcr.io/0xintuition/intuition-core-projections:${INTUITION_CORE_IMAGE_TAG:?set INTUITION_CORE_IMAGE_TAG or INTUITION_CORE_PROJECTIONS_IMAGE}}
+    pull_policy: always

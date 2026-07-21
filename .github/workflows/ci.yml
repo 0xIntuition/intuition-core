@@ -41,6 +41,48 @@ jobs:
         run: |
           docker compose config -q
           docker compose -f docker-compose.datastores.yml config -q
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose config -q
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose --profile indexing config -q
+          published_json=$(mktemp)
+          published_indexing_json=$(mktemp)
+          published_digest_json=$(mktemp)
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose config --format json > "$published_json"
+          COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose --profile indexing config --format json > "$published_indexing_json"
+          INTUITION_CORE_API_IMAGE=ghcr.io/0xintuition/intuition-core-api@sha256:0000000000000000000000000000000000000000000000000000000000000000 COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml INTUITION_CORE_IMAGE_TAG=ci docker compose config --format json > "$published_digest_json"
+          # shellcheck disable=SC2016
+          bun -e '
+          const [defaultPath, indexingPath, digestPath] = process.argv.slice(1);
+          const expected = {
+            "api": "ghcr.io/0xintuition/intuition-core-api:ci",
+            "migrate": "ghcr.io/0xintuition/intuition-core-api:ci",
+            "timescale-migrate": "ghcr.io/0xintuition/intuition-core-timescale-migrations:ci",
+            "atom-services": "ghcr.io/0xintuition/intuition-core-atom-services:ci",
+            "workers-parse": "ghcr.io/0xintuition/intuition-core-workers:ci",
+            "workers-classification": "ghcr.io/0xintuition/intuition-core-workers:ci",
+            "workers-enrichment": "ghcr.io/0xintuition/intuition-core-workers:ci",
+          };
+          const indexingExpected = {
+            ...expected,
+            "indexer": "ghcr.io/0xintuition/intuition-core-rindexer-ingestion:ci",
+            "projections": "ghcr.io/0xintuition/intuition-core-projections:ci",
+          };
+          const assertPublishedServices = async (path, services) => {
+            const compose = JSON.parse(await Bun.file(path).text());
+            for (const [name, image] of Object.entries(services)) {
+              const service = compose.services?.[name];
+              if (!service) throw new Error(`missing published service: ${name}`);
+              if (service.build !== undefined) throw new Error(`${name} still has a build context`);
+              if (service.pull_policy !== "always") throw new Error(`${name} pull_policy is not always`);
+              if (service.image !== image) throw new Error(`${name} image mismatch: ${service.image}`);
+            }
+          };
+          await assertPublishedServices(defaultPath, expected);
+          await assertPublishedServices(indexingPath, indexingExpected);
+          const digestCompose = JSON.parse(await Bun.file(digestPath).text());
+          const apiDigest = "ghcr.io/0xintuition/intuition-core-api@sha256:0000000000000000000000000000000000000000000000000000000000000000";
+          if (digestCompose.services.api.image !== apiDigest) throw new Error("api digest override was not preserved");
+          if (digestCompose.services.migrate.image !== apiDigest) throw new Error("migrate digest override was not preserved");
+          ' "$published_json" "$published_indexing_json" "$published_digest_json"
 
   rust:
     name: Cargo fmt · Clippy · Test · Docs · Package
@@ -54,7 +96,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-workspaces: ". -> target"
+          workspaces: ". -> target"
 
       - name: Cargo format
         run: cargo fmt --all -- --check

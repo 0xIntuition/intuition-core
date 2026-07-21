@@ -4,6 +4,10 @@ COMPOSE ?= docker compose
 API_URL ?= http://localhost:3000
 KEY_NAME ?= me
 ACCOUNT ?= 0xYourWallet
+override PUBLISHED_COMPOSE := docker-compose.yml:docker-compose.published.yml
+IMAGE_TAG ?=
+
+export IMAGE_TAG
 
 .DEFAULT_GOAL := help
 
@@ -19,6 +23,19 @@ bootstrap: ## Run preflight checks, install dependencies, start Compose, and wai
 bootstrap-index: ## Run bootstrap with the indexing profile enabled.
 	@scripts/bootstrap.sh --indexing
 
+.PHONY: require-image-tag
+require-image-tag:
+	@if [ -z "$$IMAGE_TAG" ]; then \
+		printf 'IMAGE_TAG is required for published-image Make targets, for example: make up-published IMAGE_TAG=vX.Y.Z\n' >&2; \
+		exit 1; \
+	fi
+	@case "$$IMAGE_TAG" in \
+		*[!A-Za-z0-9._-]*) \
+			printf 'IMAGE_TAG may only contain letters, numbers, dots, underscores, and hyphens. Use full INTUITION_CORE_*_IMAGE refs for digest pins.\n' >&2; \
+			exit 1; \
+			;; \
+	esac
+
 .PHONY: install
 install: ## Install Bun workspace dependencies with the frozen lockfile.
 	bun install --frozen-lockfile
@@ -27,9 +44,17 @@ install: ## Install Bun workspace dependencies with the frozen lockfile.
 up: ## Start the default Docker Compose stack in the background.
 	$(COMPOSE) up -d
 
+.PHONY: up-published
+up-published: require-image-tag ## Start Docker Compose from published GHCR images. Requires IMAGE_TAG.
+	COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" $(COMPOSE) up -d
+
 .PHONY: index
 index: ## Start Docker Compose with the indexing profile in the background.
 	$(COMPOSE) --profile indexing up -d
+
+.PHONY: index-published
+index-published: require-image-tag ## Start the indexing profile from published GHCR images. Requires IMAGE_TAG.
+	COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" $(COMPOSE) --profile indexing up -d
 
 .PHONY: devnet
 devnet: ## Start the local anvil chain and deploy the Intuition contracts onto it.
@@ -59,9 +84,21 @@ status: ## Show Docker Compose service status.
 smoke: ## Run the local API/workers/triples integration smoke test.
 	@scripts/smoke-test.sh
 
+.PHONY: smoke-published
+smoke-published: require-image-tag ## Run the API/workers/triples smoke test against published GHCR images.
+	@COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" SMOKE_BUILD=0 scripts/smoke-test.sh
+
 .PHONY: smoke-index
 smoke-index: ## Run the bounded public testnet indexing smoke test.
 	@scripts/smoke-index.sh
+
+.PHONY: smoke-index-published
+smoke-index-published: require-image-tag ## Run the bounded indexing smoke test against published GHCR images.
+	@COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" SMOKE_BUILD=0 scripts/smoke-index.sh
+
+.PHONY: config-published
+config-published: require-image-tag ## Validate the published-image Docker Compose config.
+	@COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" $(COMPOSE) config -q
 
 .PHONY: explore
 explore: ## Print a guided snapshot of local KG tables, atoms, predicates, and artifacts.
