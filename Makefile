@@ -4,6 +4,7 @@ COMPOSE ?= docker compose
 API_URL ?= http://localhost:3000
 KEY_NAME ?= me
 ACCOUNT ?= 0xYourWallet
+SCOPE_CONFIG ?= docs/indexing-scope.example.json
 override PUBLISHED_COMPOSE := docker-compose.yml:docker-compose.published.yml
 IMAGE_TAG ?=
 
@@ -95,6 +96,10 @@ smoke-index: ## Run the bounded public testnet indexing smoke test.
 .PHONY: smoke-index-published
 smoke-index-published: require-image-tag ## Run the bounded indexing smoke test against published GHCR images.
 	@COMPOSE_FILE="$(PUBLISHED_COMPOSE)" INTUITION_CORE_IMAGE_TAG="$$IMAGE_TAG" SMOKE_BUILD=0 scripts/smoke-index.sh
+
+.PHONY: scope-dry-run
+scope-dry-run: ## Validate an IndexingScope config and print rindexer dry-run output. Override SCOPE_CONFIG.
+	@bun run scope:dry-run "$(SCOPE_CONFIG)"
 
 .PHONY: config-published
 config-published: require-image-tag ## Validate the published-image Docker Compose config.

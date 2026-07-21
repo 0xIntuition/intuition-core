@@ -1,0 +1,30 @@
+{
+	"scope": {
+		"preset": "music-and-podcasts",
+		"ingestion": {
+			"chain_id": 13579,
+			"rpc_url": "https://testnet.rpc.intuition.systems",
+			"contract": "0xeBc49d356B7f64D888130D85CC6D17114a6843ec",
+			"start_block": 9030416,
+			"end_block": 9030916,
+			"events": {
+				"include": ["AtomCreated", "TripleCreated"],
+				"exclude": []
+			}
+		},
+		"projections": {
+			"bundle": "kg-only",
+			"include": ["event_log", "account_registry", "core_entities"],
+			"exclude": []
+		},
+		"processing": {
+			"classifications": {
+				"include": ["music", "podcast"]
+			},
+			"providers": {
+				"include": ["opengraph", "jsonld", "spotify", "podcast-index"],
+				"require_keys": false
+			}
+		}
+	}
+}

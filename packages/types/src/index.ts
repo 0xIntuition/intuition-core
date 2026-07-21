@@ -25,6 +25,9 @@ export * from './enrichment';
 // Re-export feed/recommendation types for convenience
 // Prefer using '@0xintuition/types/feed' for tree-shaking
 export * from './feed';
+// Re-export indexing scope contracts for operator dry-run validation
+// Prefer using '@0xintuition/types/indexing-scope' for tree-shaking
+export * from './indexing-scope';
 // Re-export onboarding contracts for convenience
 // Prefer using '@0xintuition/types/onboarding' for tree-shaking
 export * from './onboarding';
