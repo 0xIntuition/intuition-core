@@ -1,0 +1,178 @@
+name: Publish Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional release tag to publish, for example v0.1.0-rc.1 or v0.1.0"
+        required: false
+        type: string
+      publish_latest:
+        description: "Also publish latest. Only valid with a stable vX.Y.Z version."
+        required: false
+        default: false
+        type: boolean
+      platforms:
+        description: "Comma-separated target platforms"
+        required: false
+        default: "linux/amd64,linux/arm64"
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-images-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: 0xintuition
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            image: intuition-core-api
+            dockerfile: docker/Dockerfile.api
+          - service: atom-services
+            image: intuition-core-atom-services
+            dockerfile: docker/Dockerfile.atom-services
+          - service: workers
+            image: intuition-core-workers
+            dockerfile: docker/Dockerfile.workers
+          - service: rindexer-ingestion
+            image: intuition-core-rindexer-ingestion
+            dockerfile: docker/Dockerfile.ingestion
+          - service: projections
+            image: intuition-core-projections
+            dockerfile: docker/Dockerfile.projections
+          - service: timescale-migrations
+            image: intuition-core-timescale-migrations
+            dockerfile: docker/Dockerfile.timescale-migrations
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare tags
+        id: image
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_LATEST: ${{ inputs.publish_latest }}
+          DISPATCH_PLATFORMS: ${{ inputs.platforms }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}
+        run: |
+          set -eu
+
+          short_sha="$(git rev-parse --short=12 HEAD)"
+          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          platforms="${DISPATCH_PLATFORMS:-linux/amd64,linux/arm64}"
+          version=""
+          publish_latest="false"
+
+          if [ "$EVENT_NAME" = "release" ]; then
+            version="$RELEASE_TAG"
+            if [ "$RELEASE_PRERELEASE" != "true" ]; then
+              publish_latest="true"
+            fi
+          elif [ -n "$DISPATCH_VERSION" ]; then
+            version="$DISPATCH_VERSION"
+            publish_latest="$DISPATCH_LATEST"
+          fi
+
+          if [ -n "$version" ] && ! printf '%s' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "Unsupported version tag: $version" >&2
+            echo "Expected vX.Y.Z or vX.Y.Z-rc.N" >&2
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$version" ]; then
+            if [ "$REF_TYPE" != "tag" ] || [ "$REF_NAME" != "$version" ]; then
+              echo "Manual versioned publishes must run from the matching Git tag ref" >&2
+              echo "Selected ref: $REF_TYPE/$REF_NAME; requested version: $version" >&2
+              exit 1
+            fi
+          fi
+
+          if [ "$publish_latest" = "true" ] && ! printf '%s' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "latest is reserved for stable vX.Y.Z releases" >&2
+            exit 1
+          fi
+
+          {
+            echo "created=$created"
+            echo "platforms=$platforms"
+            echo "version=${version:-sha-$short_sha}"
+            echo "tags<<EOF"
+            echo "$IMAGE:sha-$short_sha"
+            if [ -n "$version" ]; then
+              echo "$IMAGE:$version"
+            fi
+            if [ "$publish_latest" = "true" ]; then
+              echo "$IMAGE:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ steps.image.outputs.platforms }}
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.image.outputs.version }}
+            VCS_REF=${{ github.sha }}
+            CREATED=${{ steps.image.outputs.created }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.image.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          provenance: false
+          sbom: false
+
+      - name: Summary
+        env:
+          SERVICE: ${{ matrix.service }}
+          TAGS: ${{ steps.image.outputs.tags }}
+        run: |
+          {
+            echo "### $SERVICE"
+            echo
+            echo 'Published tags:'
+            echo
+            printf '%s\n' "$TAGS" | sed 's/^/- `/' | sed 's/$/`/'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
