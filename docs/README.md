@@ -12,6 +12,7 @@ Start here:
 | **[release-process.md](./release-process.md)** | crate/image release order, verification, rollback, and deferred artifacts |
 | **[container-images.md](./container-images.md)** | public image names, OCI labels, registry choice, and context rules |
 | **[v2-migration-map.md](./v2-migration-map.md)** | redundant v2 artifact map, target states, cut-over gates, and rollback requirements |
+| **[v2-dev-staging-image-consumption.md](./v2-dev-staging-image-consumption.md)** | non-production v2 plan for digest-pinned Core image trials |
 | **[indexing-scope.md](./indexing-scope.md)** | layered operator scope: ingestion, projections, processing, and read filters |
 | **[indexing-scope-config.md](./indexing-scope-config.md)** | dry-run config schema for rindexer hard filters and processing-scope placeholders |
 | **[classification-taxonomy.md](./classification-taxonomy.md)** | music and podcast domain taxonomy for scoped processing |

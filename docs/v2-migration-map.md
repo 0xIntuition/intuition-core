@@ -89,6 +89,12 @@ The first image candidates are `rindexer-ingestion` and `projections`, with
 `timescale-migrations` as a supporting one-shot image. They should be used only
 with digest pins copied from the Core publish workflow summary.
 
+Use [v2-dev-staging-image-consumption.md](./v2-dev-staging-image-consumption.md)
+as the implementation plan for non-production trials. That plan keeps
+production blocked on D2/platform approval and defines the exact digest,
+compatibility, rollout, and rollback evidence required before any follow-up
+`intuition-v2` or `gcp-deployment` ticket can start.
+
 Minimum gate before v2 dev/staging consumption:
 
 1. Core PRs for image publishing, artifact verification, and published Compose
