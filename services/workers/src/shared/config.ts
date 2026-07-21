@@ -1,5 +1,6 @@
 import { enrichmentPresetSchema } from '@0xintuition/atom-services/contracts';
 import { z } from 'zod/v4';
+import { PROCESSING_SCOPE_PRESETS, type ProcessingScopePreset } from './processing-scope';
 
 const workerConfigSchema = z
 	.object({
@@ -28,6 +29,7 @@ const workerConfigSchema = z
 		WORKERS_PARSE_VERSION: z.string().min(1).max(64).default('v1'),
 		WORKERS_ENRICHMENT_VERSION: z.string().min(1).max(64).default('v1'),
 		WORKERS_DEFAULT_PRESET: enrichmentPresetSchema.default('default'),
+		WORKERS_PROCESSING_SCOPE: z.enum(PROCESSING_SCOPE_PRESETS).default('full'),
 		WORKERS_CACHE_PROVIDER: z.enum(['memory', 'none', 'upstash']).default('memory'),
 		WORKERS_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).default(500),
 		WORKERS_CLASSIFICATION_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).optional(),
@@ -92,6 +94,7 @@ export type WorkerConfig = {
 	parseVersion: string;
 	enrichmentVersion: string;
 	defaultPreset: z.infer<typeof enrichmentPresetSchema>;
+	processingScope: ProcessingScopePreset;
 	cacheProvider: 'memory' | 'none' | 'upstash';
 	memoryCacheMaxEntries: number;
 	classificationMemoryCacheMaxEntries: number;
@@ -141,6 +144,7 @@ export function loadWorkerConfig(
 		parseVersion: parsed.WORKERS_PARSE_VERSION,
 		enrichmentVersion: parsed.WORKERS_ENRICHMENT_VERSION,
 		defaultPreset: parsed.WORKERS_DEFAULT_PRESET,
+		processingScope: parsed.WORKERS_PROCESSING_SCOPE,
 		cacheProvider: parsed.WORKERS_CACHE_PROVIDER,
 		memoryCacheMaxEntries: parsed.WORKERS_MEMORY_CACHE_MAX_ENTRIES,
 		classificationMemoryCacheMaxEntries:

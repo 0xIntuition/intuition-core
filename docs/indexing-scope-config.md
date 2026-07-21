@@ -112,6 +112,7 @@ The dry-run prints an `outputs` array under `projections`. Each entry is marked
 | `MULTIVAULT_START_BLOCK` | ingestion | Inclusive start. |
 | `MULTIVAULT_END_BLOCK` | ingestion | Optional bounded range. |
 | `DISABLED_PROJECTIONS` | projections | Current projection exclusion mechanism. |
+| `WORKERS_PROCESSING_SCOPE` | processing | Prototype worker-side preset: `full`, `music`, `podcasts`, or `music-and-podcasts`. Default is `full`. |
 | Provider API keys | processing | Enable richer artifacts for selected providers. |
 
 ## Example Outcomes
@@ -124,3 +125,25 @@ outside the music taxonomy can be skipped or deprioritized.
 
 `no-analytics` should not change graph correctness. It only disables analytics
 read models and related worker paths.
+
+## Worker Prototype Notes
+
+The first worker-side processing scope is intentionally narrow:
+
+- Parse and classification still run broadly so atom identity and classification
+  evidence are preserved.
+- `WORKERS_PROCESSING_SCOPE=music`, `podcasts`, or `music-and-podcasts` gates
+  only the enrichment worker after classification.
+- Matching rows enrich with a provider/artifact allowlist for the selected
+  domains. Non-matching rows are marked `enrichment_status = skipped` with a
+  `SKIPPED` reason in `enrichment_error`.
+- This does not backfill existing enriched artifacts, delete artifacts for rows
+  that no longer match the scope, or change read/API filters.
+
+Remaining migration/backfill decisions:
+
+- whether changing processing scope should requeue previously skipped rows;
+- whether existing artifacts outside the new scope should be retained, hidden,
+  or deleted in a separate cleanup job;
+- how read/query APIs should expose domain match state without leaking
+  provider-specific implementation details.
