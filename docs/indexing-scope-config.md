@@ -24,6 +24,7 @@ The dry-run prints:
 - the MultiVault event handlers included in the rendered manifest preview
 - environment variables equivalent to the current rindexer template
 - projection bundle include/exclude selections
+- per-projection output availability and each output's required event set
 - processing-scope classifications and providers, with an explicit note that
   they are not rindexer hard filters
 
@@ -74,8 +75,13 @@ operator logs do not leak bearer tokens, API keys, or embedded passwords.
 - `end_block`, when set, must be greater than or equal to `start_block`.
 - `events.include` and `events.exclude` must use supported MultiVault event
   names and cannot overlap.
+- The selected projection bundle must have every required event in the effective
+  ingestion event set.
 - Projection bundle and include/exclude entries must use known Core projection
   names.
+- Every selected projection must have its required event set available. Market
+  and accounting outputs fail loudly without `Deposited`, `Redeemed`, and
+  `SharePriceChanged`.
 - Processing classification values must map to the taxonomy in
   `classification-taxonomy.md`.
 - Provider keys are optional by default. A provider without a key should degrade
@@ -83,9 +89,19 @@ operator logs do not leak bearer tokens, API keys, or embedded passwords.
 - Read scope must not imply that source data was deleted; it only limits the
   API or app view.
 
-Projection bundle/event sufficiency checks are intentionally shallow in this
-MVP. Full projection-required event validation is tracked separately by the W3
-projection bundle validation ticket.
+## Projection Bundle Semantics
+
+| Bundle | Required events | Available outputs |
+| --- | --- | --- |
+| `full` | All supported MultiVault events. | Every Core projection. |
+| `kg-only` | `AtomCreated`, `TripleCreated`. | Event log for indexed events, account registry for graph actors, core KG entities. |
+| `market-only` | `Deposited`, `Redeemed`, `SharePriceChanged`. | Vault state, holder indexes, positions, leaderboard markers/refresh, and market analytics that do not require graph identity events. |
+| `no-analytics` | All supported MultiVault events. | Core graph and market projections; product analytics and leaderboard-style batch outputs remain unavailable. |
+| `music`, `podcasts`, `music-and-podcasts` | `AtomCreated`, `TripleCreated`. | KG outputs plus processing-scope filters for the selected taxonomy. |
+
+The dry-run prints an `outputs` array under `projections`. Each entry is marked
+`available` when selected by the bundle and not excluded, or `unavailable` with
+`not-in-bundle` / `excluded-by-config` when the output will not be produced.
 
 ## Existing Config Mapping
 
