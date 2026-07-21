@@ -383,6 +383,7 @@ jobs:
               exit 1
             fi
             printf '%s -> %s\n' "$platform" "$revision" >> "$verified_platforms_file"
+            docker image rm "$digest_ref" >/dev/null 2>&1 || true
           done < "$normalized_platforms_file"
 
           if grep -qx 'linux/amd64' "$normalized_platforms_file"; then
