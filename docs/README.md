@@ -11,6 +11,7 @@ Start here:
 | **[configuration.md](./configuration.md)** | every environment variable, by service and tier |
 | **[release-process.md](./release-process.md)** | crate/image release order, verification, rollback, and deferred artifacts |
 | **[container-images.md](./container-images.md)** | public image names, OCI labels, registry choice, and context rules |
+| **[v2-migration-map.md](./v2-migration-map.md)** | redundant v2 artifact map, target states, cut-over gates, and rollback requirements |
 | **[indexing-scope.md](./indexing-scope.md)** | layered operator scope: ingestion, projections, processing, and read filters |
 | **[classification-taxonomy.md](./classification-taxonomy.md)** | music and podcast domain taxonomy for scoped processing |
 | **[contracts.md](./contracts.md)** | contract artifact source of truth, ABI sync, and package consumption |
