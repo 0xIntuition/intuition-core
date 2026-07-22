@@ -10,6 +10,10 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Added
 
+- Published `intuition-curves` v0.1.0 to crates.io and verified the registry
+  artifact, docs.rs build, Intuition team ownership, and a clean consumer build.
+  crates.io checksum:
+  `7c37020dc56bd772e645bcb51d5eef5bcc9f0f5d1e2b514b22be44def2c08001`.
 - Prepared `intuition-curves` crate metadata for crates.io publication.
 - Added Cargo CI gates for format, clippy, workspace tests, docs, and crate
   package dry-runs.
@@ -23,8 +27,6 @@ digests, schema or migration changes, config changes, and verification evidence.
 - Publishing service crates to crates.io. Core services remain distributed as
   container images until their public library boundaries are split from runtime
   concerns.
-- Publishing container images. Week 1 prepares the Dockerfiles and docs; the
-  publishing workflow and registry verification are tracked in Week 2.
 
 ## Release Note Template
 

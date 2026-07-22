@@ -9,7 +9,7 @@ release complete.
 
 | Bucket | Status | Distribution | Notes |
 | --- | --- | --- | --- |
-| `intuition-curves` | crate-publishable | crates.io | First Rust crate prepared for public publishing. |
+| `intuition-curves` | published | crates.io | First public Rust crate; v0.1.0 is published and owned by `github:0xintuition:devs`. |
 | `shared` | deferred | source-only | Split into stable public crates before any publish; see [rust-crate-boundaries.md](./rust-crate-boundaries.md). |
 | `rindexer-ingestion` | image-published target | container image | Runtime service with generated rindexer code and chain config. |
 | `projections` | image-published target | container image | Runtime service with DB migrations and projection config. |
@@ -30,9 +30,17 @@ release complete.
    `cargo package -p intuition-curves --list`.
 3. Publish `intuition-curves`:
    `cargo publish -p intuition-curves`.
-4. Verify the crate exists on crates.io and docs.rs has started building docs.
+4. Verify the crate exists on crates.io, docs.rs has built docs, the Intuition
+   GitHub team is an owner, and a clean consumer can compile against the
+   published version.
 5. Record the crate version and registry checksum in `CHANGELOG.md` release
    notes.
+
+Current published crate evidence:
+
+| Crate | Version | Checksum | Verification |
+| --- | --- | --- | --- |
+| `intuition-curves` | `0.1.0` | `7c37020dc56bd772e645bcb51d5eef5bcc9f0f5d1e2b514b22be44def2c08001` | crates.io API, docs.rs `curves` docs, `github:0xintuition:devs` owner, clean consumer `cargo check` |
 
 Do not publish `shared`, `rindexer-ingestion`, or `projections` as crates.
 `shared` must first be split into narrow public crates (`intuition-core-primitives`
