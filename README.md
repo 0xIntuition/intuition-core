@@ -65,7 +65,7 @@ Use an immutable SHA tag or a release tag for published-image mode:
 
 ```bash
 COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml \
-  INTUITION_CORE_IMAGE_TAG=sha-<12-char-sha> \
+  INTUITION_CORE_IMAGE_TAG=sha-REPLACE_WITH_12_CHAR_SHA \
   docker compose up -d
 ```
 
