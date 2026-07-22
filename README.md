@@ -88,13 +88,13 @@ docker compose up -d
 
 | Image | Purpose | Required env when run directly |
 | --- | --- | --- |
-| `ghcr.io/0xintuition/intuition-core-api` | Query and write API over the KG database. Compose also reuses this image for the one-shot KG migration job. | `DATABASE_KG_URL`. Optional: `API_PORT`, `API_AUTH`, `API_ALLOWED_ORIGINS`, `API_RATE_LIMIT_RPM`, `API_TRUST_PROXY`. |
-| `ghcr.io/0xintuition/intuition-core-atom-services` | Stateless HTTP service for atom classification, enrichment, and combined processing. | None for the keyless provider set. Optional: `ATOM_SERVICES_PORT`, `ATOM_SERVICES_AUTH_TOKEN`, rate-limit/cache/preset variables, provider keys listed below. |
-| `ghcr.io/0xintuition/intuition-core-workers` | Background KG node pipeline. Run with `kg-parse-worker`, `kg-classification-worker`, or `kg-enrichment-worker`. | `DATABASE_KG_URL`. Optional: `WORKERS_PORT`, per-mode health ports, concurrency/retry/cache/preset variables, provider keys listed below. |
-| `ghcr.io/0xintuition/intuition-core-rindexer-ingestion` | MultiVault chain ingestion into the Timescale event store. Used by the `indexing` Compose profile. | `DATABASE_URL`, `INTUITION_RPC_URL`, `CHAIN_ID`, `MULTIVAULT_CONTRACT_ADDRESS`, `MULTIVAULT_START_BLOCK`. Optional: `MULTIVAULT_END_BLOCK`, `RINDEXER_HEALTH_PORT`, `METRICS_PORT`. |
-| `ghcr.io/0xintuition/intuition-core-projections` | Event-store projections into read models and KG tables. Used by the `indexing` Compose profile. | `DATABASE_URL`. Set `DATABASE_KG_URL` to write `kg.nodes` and `kg.events`; Compose sets it. Optional: `SURREAL_DB_URL`, `PROJECTIONS_METRICS_PORT`, `ENABLED_PROJECTIONS`, `DISABLED_PROJECTIONS`, pool and interval tuning variables. |
-| `ghcr.io/0xintuition/intuition-core-timescale-migrations` | One-shot Timescale migration runner for `migrations/timescale/*.sql`. | `DATABASE_URL`. |
-| `intuition-core-devnet-deployer` | Local-only one-shot deployer for the devnet Anvil profile. It writes `devnet/deployments-devnet.json`; this image is not published to GHCR. | `RPC_URL`, `STATE_FILE` when run outside the provided `devnet-deploy` Compose service. |
+| [`ghcr.io/0xintuition/intuition-core-api`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-api) | Query and write API over the KG database. Compose also reuses this image for the one-shot KG migration job. | `DATABASE_KG_URL`. Optional: `API_PORT`, `API_AUTH`, `API_ALLOWED_ORIGINS`, `API_RATE_LIMIT_RPM`, `API_TRUST_PROXY`. |
+| [`ghcr.io/0xintuition/intuition-core-atom-services`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-atom-services) | Stateless HTTP service for atom classification, enrichment, and combined processing. | None for the keyless provider set. Optional: `ATOM_SERVICES_PORT`, `ATOM_SERVICES_AUTH_TOKEN`, rate-limit/cache/preset variables, provider keys listed below. |
+| [`ghcr.io/0xintuition/intuition-core-workers`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-workers) | Background KG node pipeline. Run with `kg-parse-worker`, `kg-classification-worker`, or `kg-enrichment-worker`. | `DATABASE_KG_URL`. Optional: `WORKERS_PORT`, per-mode health ports, concurrency/retry/cache/preset variables, provider keys listed below. |
+| [`ghcr.io/0xintuition/intuition-core-rindexer-ingestion`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-rindexer-ingestion) | MultiVault chain ingestion into the Timescale event store. Used by the `indexing` Compose profile. | `DATABASE_URL`, `INTUITION_RPC_URL`, `CHAIN_ID`, `MULTIVAULT_CONTRACT_ADDRESS`, `MULTIVAULT_START_BLOCK`. Optional: `MULTIVAULT_END_BLOCK`, `RINDEXER_HEALTH_PORT`, `METRICS_PORT`. |
+| [`ghcr.io/0xintuition/intuition-core-projections`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-projections) | Event-store projections into read models and KG tables. Used by the `indexing` Compose profile. | `DATABASE_URL`. Set `DATABASE_KG_URL` to write `kg.nodes` and `kg.events`; Compose sets it. Optional: `SURREAL_DB_URL`, `PROJECTIONS_METRICS_PORT`, `ENABLED_PROJECTIONS`, `DISABLED_PROJECTIONS`, pool and interval tuning variables. |
+| [`ghcr.io/0xintuition/intuition-core-timescale-migrations`](https://github.com/0xIntuition/intuition-core/pkgs/container/intuition-core-timescale-migrations) | One-shot Timescale migration runner for `migrations/timescale/*.sql`. | `DATABASE_URL`. |
+| [`intuition-core-devnet-deployer`](./docker/Dockerfile.devnet) | Local-only one-shot deployer for the devnet Anvil profile. It writes `devnet/deployments-devnet.json`; this image is not published to GHCR. | `RPC_URL`, `STATE_FILE` when run outside the provided `devnet-deploy` Compose service. |
 
 Provider and cache keys are optional. Without them, keyless providers still run
 and paid/API-backed plugins skip or degrade gracefully:
@@ -122,9 +122,9 @@ UPSTASH_REDIS_REST_TOKEN
 
 | Image | Purpose | Compose env |
 | --- | --- | --- |
-| `timescale/timescaledb-ha:pg17` | Runs both `postgres-kg` and `timescale`. The image includes TimescaleDB, pgvector, and PostGIS. | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`; host ports are controlled by `POSTGRES_KG_HOST_PORT` and `TIMESCALE_HOST_PORT`. |
-| `redis:7-alpine` | Redis for indexer leader election. | No required env; host port is controlled by `REDIS_HOST_PORT`. |
-| `ghcr.io/foundry-rs/foundry:stable` | Anvil chain for the optional local `devnet` profile. | No required env; Compose passes the command and stores chain state in the `anvil_data` volume. |
+| [`timescale/timescaledb-ha:pg17`](https://hub.docker.com/r/timescale/timescaledb-ha) | Runs both `postgres-kg` and `timescale`. The image includes TimescaleDB, pgvector, and PostGIS. | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`; host ports are controlled by `POSTGRES_KG_HOST_PORT` and `TIMESCALE_HOST_PORT`. |
+| [`redis:7-alpine`](https://hub.docker.com/_/redis) | Redis for indexer leader election. | No required env; host port is controlled by `REDIS_HOST_PORT`. |
+| [`ghcr.io/foundry-rs/foundry:stable`](https://github.com/foundry-rs/foundry/pkgs/container/foundry) | Anvil chain for the optional local `devnet` profile. | No required env; Compose passes the command and stores chain state in the `anvil_data` volume. |
 
 See [Container Images](./docs/container-images.md) for publishing rules,
 artifact verification, digest examples, and the published-image smoke checklist.
