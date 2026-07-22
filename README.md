@@ -14,6 +14,7 @@ atom intelligence pipeline, and query API, stood up with one command.
 [![Databases: Postgres + TimescaleDB](https://img.shields.io/badge/databases-Postgres%20%2B%20TimescaleDB-336791?logo=postgresql&logoColor=white)](./docs/architecture.md)
 
 [Quick start](#quick-start) ·
+[Docker images](#docker-images) ·
 [Explorer](#the-explorer) ·
 [How it works](#how-it-works) ·
 [API](#the-query-api) ·
@@ -52,6 +53,81 @@ Intuition testnet RPC is public and keyless).
 [![Explorer dashboard — service health, worker pipeline, live data](./docs/assets/dashboard.png)](#the-explorer)
 
 <p align="center"><em>The built-in <a href="#the-explorer">explorer</a>: your node at a glance — live service health, pipeline throughput, and the freshest atoms.</em></p>
+
+## Docker images
+
+Core runs from Docker Compose by default. Local build mode uses the Dockerfiles
+in this repository; published-image mode pulls the same runtime services from
+GHCR. Compose supplies the datastore URLs for the normal stack, so the required
+variables below matter when you run an image directly or override Compose.
+
+Use an immutable SHA tag or a release tag for published-image mode:
+
+```bash
+COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml \
+  INTUITION_CORE_IMAGE_TAG=sha-<12-char-sha> \
+  docker compose up -d
+```
+
+For production or incident reproduction, pin each service by digest instead of
+using a moving tag:
+
+```bash
+export INTUITION_CORE_API_IMAGE=ghcr.io/0xintuition/intuition-core-api@sha256:...
+export INTUITION_CORE_ATOM_SERVICES_IMAGE=ghcr.io/0xintuition/intuition-core-atom-services@sha256:...
+export INTUITION_CORE_WORKERS_IMAGE=ghcr.io/0xintuition/intuition-core-workers@sha256:...
+export INTUITION_CORE_RINDEXER_INGESTION_IMAGE=ghcr.io/0xintuition/intuition-core-rindexer-ingestion@sha256:...
+export INTUITION_CORE_PROJECTIONS_IMAGE=ghcr.io/0xintuition/intuition-core-projections@sha256:...
+export INTUITION_CORE_TIMESCALE_MIGRATIONS_IMAGE=ghcr.io/0xintuition/intuition-core-timescale-migrations@sha256:...
+export COMPOSE_FILE=docker-compose.yml:docker-compose.published.yml
+
+docker compose up -d
+```
+
+### Core-built images
+
+| Image | Purpose | Required env when run directly |
+| --- | --- | --- |
+| `ghcr.io/0xintuition/intuition-core-api` | Query and write API over the KG database. Compose also reuses this image for the one-shot KG migration job. | `DATABASE_KG_URL`. Optional: `API_PORT`, `API_AUTH`, `API_ALLOWED_ORIGINS`, `API_RATE_LIMIT_RPM`, `API_TRUST_PROXY`. |
+| `ghcr.io/0xintuition/intuition-core-atom-services` | Stateless HTTP service for atom classification, enrichment, and combined processing. | None for the keyless provider set. Optional: `ATOM_SERVICES_PORT`, `ATOM_SERVICES_AUTH_TOKEN`, rate-limit/cache/preset variables, provider keys listed below. |
+| `ghcr.io/0xintuition/intuition-core-workers` | Background KG node pipeline. Run with `kg-parse-worker`, `kg-classification-worker`, or `kg-enrichment-worker`. | `DATABASE_KG_URL`. Optional: `WORKERS_PORT`, per-mode health ports, concurrency/retry/cache/preset variables, provider keys listed below. |
+| `ghcr.io/0xintuition/intuition-core-rindexer-ingestion` | MultiVault chain ingestion into the Timescale event store. Used by the `indexing` Compose profile. | `DATABASE_URL`, `INTUITION_RPC_URL`, `CHAIN_ID`, `MULTIVAULT_CONTRACT_ADDRESS`, `MULTIVAULT_START_BLOCK`. Optional: `MULTIVAULT_END_BLOCK`, `RINDEXER_HEALTH_PORT`, `METRICS_PORT`. |
+| `ghcr.io/0xintuition/intuition-core-projections` | Event-store projections into read models and KG tables. Used by the `indexing` Compose profile. | `DATABASE_URL`. Set `DATABASE_KG_URL` to write `kg.nodes` and `kg.events`; Compose sets it. Optional: `SURREAL_DB_URL`, `PROJECTIONS_METRICS_PORT`, `ENABLED_PROJECTIONS`, `DISABLED_PROJECTIONS`, pool and interval tuning variables. |
+| `ghcr.io/0xintuition/intuition-core-timescale-migrations` | One-shot Timescale migration runner for `migrations/timescale/*.sql`. | `DATABASE_URL`. |
+| `intuition-core-devnet-deployer` | Local-only one-shot deployer for the devnet Anvil profile. It writes `devnet/deployments-devnet.json`; this image is not published to GHCR. | `RPC_URL`, `STATE_FILE` when run outside the provided `devnet-deploy` Compose service. |
+
+Provider and cache keys are optional. Without them, keyless providers still run
+and paid/API-backed plugins skip or degrade gracefully:
+
+```text
+GITHUB_TOKEN
+SPOTIFY_CLIENT_ID
+SPOTIFY_CLIENT_SECRET
+SPOTIFY_MARKET
+ETHERSCAN_API_KEY
+TMDB_API_KEY
+COINGECKO_API_KEY
+YOUTUBE_API_KEY
+GOOGLE_PLACES_API_KEY
+X_BEARER_TOKEN
+BRANDFETCH_API_KEY
+PODCAST_INDEX_API_KEY
+PODCAST_INDEX_API_SECRET
+CANOPY_API_KEY
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
+```
+
+### Supporting images
+
+| Image | Purpose | Compose env |
+| --- | --- | --- |
+| `timescale/timescaledb-ha:pg17` | Runs both `postgres-kg` and `timescale`. The image includes TimescaleDB, pgvector, and PostGIS. | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`; host ports are controlled by `POSTGRES_KG_HOST_PORT` and `TIMESCALE_HOST_PORT`. |
+| `redis:7-alpine` | Redis for indexer leader election. | No required env; host port is controlled by `REDIS_HOST_PORT`. |
+| `ghcr.io/foundry-rs/foundry:stable` | Anvil chain for the optional local `devnet` profile. | No required env; Compose passes the command and stores chain state in the `anvil_data` volume. |
+
+See [Container Images](./docs/container-images.md) for publishing rules,
+artifact verification, digest examples, and the published-image smoke checklist.
 
 ## Quick start
 
