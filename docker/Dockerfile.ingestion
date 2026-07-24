@@ -1,8 +1,9 @@
 # rindexer-ingestion — chain events → TimescaleDB event store.
 # Build context: repo root.
 
-# Build stage
-FROM rustlang/rust:nightly-slim AS builder
+# Build stage. Match the stable toolchain used by CI and pin the multi-arch
+# manifest so release builds cannot silently pick up a broken nightly compiler.
+FROM rust:1.97.1-slim-bookworm@sha256:99e09cb2284e2ddbb73a995deee3e91783fd04d177602ccf6eab326d778ee777 AS builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
