@@ -55,6 +55,7 @@ automatically.
 | `WORKERS_PARSE_REMOTE_FETCH` | `true` | fetch remote URLs during parse |
 | `WORKERS_PARSE_ALLOW_HTTP` | `false` | plain-http fetches off by default |
 | `WORKERS_PARSE_IPFS_GATEWAY_BASE_URL` | unset | optional IPFS gateway |
+| `WORKERS_PROCESSING_SCOPE` | `full` | `full`, `music`, `podcasts`, or `music-and-podcasts`; scoped modes gate enrichment only |
 
 ## Atom services (`services/atom-services`)
 

@@ -109,6 +109,9 @@ services:
     command: ["kg-parse-worker"]
     environment: &workers-env
       DATABASE_KG_URL: postgresql://intuition:intuition@postgres-kg:5432/intuition_kg
+      # full | music | podcasts | music-and-podcasts. Scoped modes only gate
+      # enrichment; parse and classification intentionally remain broad.
+      WORKERS_PROCESSING_SCOPE: ${WORKERS_PROCESSING_SCOPE:-full}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
       SPOTIFY_MARKET: ${SPOTIFY_MARKET:-}

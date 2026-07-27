@@ -4,6 +4,7 @@ Start here:
 
 | Guide | What it covers |
 | --- | --- |
+| **[releases/v0.1.0-rc.2.md](./releases/v0.1.0-rc.2.md)** | current RC artifacts, immutable digests, operator recipes, support notes, and known limitations |
 | **[run-your-own-node.md](./run-your-own-node.md)** | clone → boot → first atom → triples → classify/enrich → index the chain |
 | **[api-reference.md](./api-reference.md)** | every endpoint with real request/response payloads and error shapes |
 | **[local-devnet.md](./local-devnet.md)** | fully self-contained: Anvil + the real contracts + your own indexed chain |
