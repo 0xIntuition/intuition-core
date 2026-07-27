@@ -128,6 +128,9 @@ UPSTASH_REDIS_REST_TOKEN
 
 See [Container Images](./docs/container-images.md) for publishing rules,
 artifact verification, digest examples, and the published-image smoke checklist.
+For the current release candidate's exact digests and copy-pasteable deployment
+recipes, see the
+[`v0.1.0-rc.2` operator guide](./docs/releases/v0.1.0-rc.2.md).
 
 ## Quick start
 

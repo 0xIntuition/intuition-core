@@ -88,6 +88,10 @@ Local build mode remains the default:
 docker compose up
 ```
 
+The current verified release candidate is
+[`v0.1.0-rc.2`](./releases/v0.1.0-rc.2.md). Its operator guide records all six
+immutable digests and the commands verified for each supported operating mode.
+
 To run a clean checkout from GHCR images instead, layer the published-image
 override:
 

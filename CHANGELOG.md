@@ -35,7 +35,9 @@ This release candidate points to commit
 `v0.1.0-rc.1` image set, whose ingestion image failed to compile after the
 floating nightly Rust builder advanced to a compiler with an internal compiler
 error. The ingestion builder is now pinned to the official Rust 1.97.1
-multi-platform manifest.
+multi-platform manifest. See the
+[`v0.1.0-rc.2` operator guide](./docs/releases/v0.1.0-rc.2.md) for exact
+digest pins, deployment recipes, support notes, and known limitations.
 
 ### Artifacts
 
