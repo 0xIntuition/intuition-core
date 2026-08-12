@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-
 use alloy::sol;
 
 sol!(
@@ -7,8 +5,9 @@ sol!(
     RindexerMultiVaultGen,
     r#"[
 	{
-		"type": "receive",
-		"stateMutability": "payable"
+		"type": "constructor",
+		"inputs": [],
+		"stateMutability": "nonpayable"
 	},
 	{
 		"type": "function",
@@ -77,7 +76,7 @@ sol!(
 	},
 	{
 		"type": "function",
-		"name": "MIGRATOR_ROLE",
+		"name": "PAUSER_ROLE",
 		"inputs": [],
 		"outputs": [
 			{
@@ -155,7 +154,7 @@ sol!(
 			}
 		],
 		"outputs": [],
-		"stateMutability": "nonpayable"
+		"stateMutability": "payable"
 	},
 	{
 		"type": "function",
@@ -196,6 +195,44 @@ sol!(
 	},
 	{
 		"type": "function",
+		"name": "atomCreatedAt",
+		"inputs": [
+			{
+				"name": "atomId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			}
+		],
+		"outputs": [
+			{
+				"name": "createdAt",
+				"type": "uint48",
+				"internalType": "uint48"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "atomCreators",
+		"inputs": [
+			{
+				"name": "atomId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			}
+		],
+		"outputs": [
+			{
+				"name": "creator",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
 		"name": "atomDepositFractionAmount",
 		"inputs": [
 			{
@@ -212,112 +249,6 @@ sol!(
 			}
 		],
 		"stateMutability": "view"
-	},
-	{
-		"type": "function",
-		"name": "batchSetAtomData",
-		"inputs": [
-			{
-				"name": "creators",
-				"type": "address[]",
-				"internalType": "address[]"
-			},
-			{
-				"name": "atomDataArray",
-				"type": "bytes[]",
-				"internalType": "bytes[]"
-			}
-		],
-		"outputs": [],
-		"stateMutability": "nonpayable"
-	},
-	{
-		"type": "function",
-		"name": "batchSetTripleData",
-		"inputs": [
-			{
-				"name": "creators",
-				"type": "address[]",
-				"internalType": "address[]"
-			},
-			{
-				"name": "tripleAtomIds",
-				"type": "bytes32[3][]",
-				"internalType": "bytes32[3][]"
-			}
-		],
-		"outputs": [],
-		"stateMutability": "nonpayable"
-	},
-	{
-		"type": "function",
-		"name": "batchSetUserBalances",
-		"inputs": [
-			{
-				"name": "params",
-				"type": "tuple",
-				"internalType": "struct MultiVaultMigrationMode.BatchSetUserBalancesParams",
-				"components": [
-					{
-						"name": "termIds",
-						"type": "bytes32[][]",
-						"internalType": "bytes32[][]"
-					},
-					{
-						"name": "bondingCurveId",
-						"type": "uint256",
-						"internalType": "uint256"
-					},
-					{
-						"name": "users",
-						"type": "address[]",
-						"internalType": "address[]"
-					},
-					{
-						"name": "userBalances",
-						"type": "uint256[][]",
-						"internalType": "uint256[][]"
-					}
-				]
-			}
-		],
-		"outputs": [],
-		"stateMutability": "nonpayable"
-	},
-	{
-		"type": "function",
-		"name": "batchSetVaultTotals",
-		"inputs": [
-			{
-				"name": "termIds",
-				"type": "bytes32[]",
-				"internalType": "bytes32[]"
-			},
-			{
-				"name": "bondingCurveId",
-				"type": "uint256",
-				"internalType": "uint256"
-			},
-			{
-				"name": "vaultTotals",
-				"type": "tuple[]",
-				"internalType": "struct MultiVaultMigrationMode.VaultTotals[]",
-				"components": [
-					{
-						"name": "totalAssets",
-						"type": "uint256",
-						"internalType": "uint256"
-					},
-					{
-						"name": "totalShares",
-						"type": "uint256",
-						"internalType": "uint256"
-					}
-				]
-			}
-		],
-		"outputs": [],
-		"stateMutability": "nonpayable"
 	},
 	{
 		"type": "function",
@@ -530,8 +461,110 @@ sol!(
 	},
 	{
 		"type": "function",
+		"name": "createAtomsFor",
+		"inputs": [
+			{
+				"name": "creator",
+				"type": "address",
+				"internalType": "address"
+			},
+			{
+				"name": "data",
+				"type": "bytes[]",
+				"internalType": "bytes[]"
+			},
+			{
+				"name": "assets",
+				"type": "uint256[]",
+				"internalType": "uint256[]"
+			}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			}
+		],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
+		"name": "createAtomsWithUris",
+		"inputs": [
+			{
+				"name": "creator",
+				"type": "address",
+				"internalType": "address"
+			},
+			{
+				"name": "data",
+				"type": "bytes[]",
+				"internalType": "bytes[]"
+			},
+			{
+				"name": "assets",
+				"type": "uint256[]",
+				"internalType": "uint256[]"
+			},
+			{
+				"name": "uris",
+				"type": "bytes[][]",
+				"internalType": "bytes[][]"
+			}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			}
+		],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
 		"name": "createTriples",
 		"inputs": [
+			{
+				"name": "subjectIds",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			},
+			{
+				"name": "predicateIds",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			},
+			{
+				"name": "objectIds",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			},
+			{
+				"name": "assets",
+				"type": "uint256[]",
+				"internalType": "uint256[]"
+			}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32[]",
+				"internalType": "bytes32[]"
+			}
+		],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
+		"name": "createTriplesFor",
+		"inputs": [
+			{
+				"name": "creator",
+				"type": "address",
+				"internalType": "address"
+			},
 			{
 				"name": "subjectIds",
 				"type": "bytes32[]",
@@ -665,7 +698,7 @@ sol!(
 		],
 		"outputs": [
 			{
-				"name": "shares",
+				"name": "",
 				"type": "uint256[]",
 				"internalType": "uint256[]"
 			}
@@ -811,6 +844,62 @@ sol!(
 				"name": "",
 				"type": "uint256",
 				"internalType": "uint256"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getAtomCreatedAt",
+		"inputs": [
+			{
+				"name": "termId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint48",
+				"internalType": "uint48"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getAtomCreator",
+		"inputs": [
+			{
+				"name": "termId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			}
+		],
+		"outputs": [
+			{
+				"name": "",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "getAtomUriConfig",
+		"inputs": [],
+		"outputs": [
+			{
+				"name": "maxUriCount",
+				"type": "uint32",
+				"internalType": "uint32"
+			},
+			{
+				"name": "maxUriLength",
+				"type": "uint32",
+				"internalType": "uint32"
 			}
 		],
 		"stateMutability": "view"
@@ -1120,7 +1209,7 @@ sol!(
 	},
 	{
 		"type": "function",
-		"name": "getUserUtilization",
+		"name": "getUserUtilizationForEpoch",
 		"inputs": [
 			{
 				"name": "user",
@@ -1144,7 +1233,7 @@ sol!(
 	},
 	{
 		"type": "function",
-		"name": "getUserUtilizationForEpoch",
+		"name": "getUserUtilizationInEpoch",
 		"inputs": [
 			{
 				"name": "user",
@@ -1323,6 +1412,25 @@ sol!(
 	},
 	{
 		"type": "function",
+		"name": "hasRolledOverSystemUtilization",
+		"inputs": [
+			{
+				"name": "epoch",
+				"type": "uint256",
+				"internalType": "uint256"
+			}
+		],
+		"outputs": [
+			{
+				"name": "hasRolledOver",
+				"type": "bool",
+				"internalType": "bool"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
 		"name": "initialize",
 		"inputs": [
 			{
@@ -1478,6 +1586,78 @@ sol!(
 	},
 	{
 		"type": "function",
+		"name": "isApprovedToCreate",
+		"inputs": [
+			{
+				"name": "sender",
+				"type": "address",
+				"internalType": "address"
+			},
+			{
+				"name": "creator",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"outputs": [
+			{
+				"name": "approved",
+				"type": "bool",
+				"internalType": "bool"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "isApprovedToDeposit",
+		"inputs": [
+			{
+				"name": "sender",
+				"type": "address",
+				"internalType": "address"
+			},
+			{
+				"name": "receiver",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"outputs": [
+			{
+				"name": "approved",
+				"type": "bool",
+				"internalType": "bool"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "isApprovedToRedeem",
+		"inputs": [
+			{
+				"name": "sender",
+				"type": "address",
+				"internalType": "address"
+			},
+			{
+				"name": "receiver",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"outputs": [
+			{
+				"name": "approved",
+				"type": "bool",
+				"internalType": "bool"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
 		"name": "isAtom",
 		"inputs": [
 			{
@@ -1554,6 +1734,19 @@ sol!(
 	},
 	{
 		"type": "function",
+		"name": "lastSystemUtilizationEpoch",
+		"inputs": [],
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256",
+				"internalType": "uint256"
+			}
+		],
+		"stateMutability": "view"
+	},
+	{
+		"type": "function",
 		"name": "maxRedeem",
 		"inputs": [
 			{
@@ -1580,6 +1773,30 @@ sol!(
 			}
 		],
 		"stateMutability": "view"
+	},
+	{
+		"type": "function",
+		"name": "multicall",
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes[]",
+				"internalType": "bytes[]"
+			},
+			{
+				"name": "values",
+				"type": "uint256[]",
+				"internalType": "uint256[]"
+			}
+		],
+		"outputs": [
+			{
+				"name": "results",
+				"type": "bytes[]",
+				"internalType": "bytes[]"
+			}
+		],
+		"stateMutability": "payable"
 	},
 	{
 		"type": "function",
@@ -1817,7 +2034,7 @@ sol!(
 				"internalType": "uint256"
 			}
 		],
-		"stateMutability": "nonpayable"
+		"stateMutability": "payable"
 	},
 	{
 		"type": "function",
@@ -1851,11 +2068,24 @@ sol!(
 		],
 		"outputs": [
 			{
-				"name": "received",
+				"name": "",
 				"type": "uint256[]",
 				"internalType": "uint256[]"
 			}
 		],
+		"stateMutability": "payable"
+	},
+	{
+		"type": "function",
+		"name": "reinitialize",
+		"inputs": [
+			{
+				"name": "_timelock",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"outputs": [],
 		"stateMutability": "nonpayable"
 	},
 	{
@@ -1914,6 +2144,24 @@ sol!(
 						"internalType": "uint256"
 					}
 				]
+			}
+		],
+		"outputs": [],
+		"stateMutability": "nonpayable"
+	},
+	{
+		"type": "function",
+		"name": "setAtomUriConfig",
+		"inputs": [
+			{
+				"name": "maxUriCount",
+				"type": "uint32",
+				"internalType": "uint32"
+			},
+			{
+				"name": "maxUriLength",
+				"type": "uint32",
+				"internalType": "uint32"
 			}
 		],
 		"outputs": [],
@@ -2001,12 +2249,12 @@ sol!(
 	},
 	{
 		"type": "function",
-		"name": "setTermCount",
+		"name": "setTimelock",
 		"inputs": [
 			{
-				"name": "_termCount",
-				"type": "uint256",
-				"internalType": "uint256"
+				"name": "_timelock",
+				"type": "address",
+				"internalType": "address"
 			}
 		],
 		"outputs": [],
@@ -2133,6 +2381,19 @@ sol!(
 		],
 		"outputs": [],
 		"stateMutability": "nonpayable"
+	},
+	{
+		"type": "function",
+		"name": "timelock",
+		"inputs": [],
+		"outputs": [
+			{
+				"name": "",
+				"type": "address",
+				"internalType": "address"
+			}
+		],
+		"stateMutability": "view"
 	},
 	{
 		"type": "function",
@@ -2341,6 +2602,31 @@ sol!(
 	},
 	{
 		"type": "event",
+		"name": "AtomContextRegistered",
+		"inputs": [
+			{
+				"name": "termId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32"
+			},
+			{
+				"name": "registrant",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address"
+			},
+			{
+				"name": "uris",
+				"type": "bytes[]",
+				"indexed": false,
+				"internalType": "bytes[]"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
 		"name": "AtomCreated",
 		"inputs": [
 			{
@@ -2366,6 +2652,25 @@ sol!(
 				"type": "address",
 				"indexed": false,
 				"internalType": "address"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
+		"name": "AtomUriConfigUpdated",
+		"inputs": [
+			{
+				"name": "maxUriCount",
+				"type": "uint32",
+				"indexed": false,
+				"internalType": "uint32"
+			},
+			{
+				"name": "maxUriLength",
+				"type": "uint32",
+				"indexed": false,
+				"internalType": "uint32"
 			}
 		],
 		"anonymous": false
@@ -2874,6 +3179,19 @@ sol!(
 	},
 	{
 		"type": "event",
+		"name": "TimelockSet",
+		"inputs": [
+			{
+				"name": "timelock",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address"
+			}
+		],
+		"anonymous": false
+	},
+	{
+		"type": "event",
 		"name": "TotalUtilizationAdded",
 		"inputs": [
 			{
@@ -3186,6 +3504,16 @@ sol!(
 	},
 	{
 		"type": "error",
+		"name": "MultiVault_AtomUriCountExceeded",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_AtomUriLengthExceeded",
+		"inputs": []
+	},
+	{
+		"type": "error",
 		"name": "MultiVault_BurnFromZeroAddress",
 		"inputs": []
 	},
@@ -3202,6 +3530,11 @@ sol!(
 	{
 		"type": "error",
 		"name": "MultiVault_CannotDirectlyInitializeCounterTriple",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_CreatorNotApproved",
 		"inputs": []
 	},
 	{
@@ -3267,12 +3600,22 @@ sol!(
 	},
 	{
 		"type": "error",
-		"name": "MultiVault_InvalidBondingCurveId",
+		"name": "MultiVault_InvalidAtomUriConfig",
 		"inputs": []
 	},
 	{
 		"type": "error",
 		"name": "MultiVault_InvalidEpoch",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_MulticallValueMismatch",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_NestedMulticall",
 		"inputs": []
 	},
 	{
@@ -3283,6 +3626,16 @@ sol!(
 	{
 		"type": "error",
 		"name": "MultiVault_OnlyAssociatedAtomWallet",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_OnlyTimelock",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_RedeemYieldsNoAssets",
 		"inputs": []
 	},
 	{
@@ -3341,6 +3694,11 @@ sol!(
 				"internalType": "bytes32"
 			}
 		]
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_UnexpectedValue",
+		"inputs": []
 	},
 	{
 		"type": "error",

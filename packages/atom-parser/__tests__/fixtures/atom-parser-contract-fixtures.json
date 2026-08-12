@@ -125,6 +125,40 @@
 				"remote": null,
 				"warnings": []
 			}
+		},
+		{
+			"name": "custom_scheme_colon_bearing_identifier",
+			"input": "did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+			"options": {
+				"remoteFetch": true
+			},
+			"expected": {
+				"kind": "plain_string",
+				"normalizedInput": "did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+				"data": {
+					"original": "did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+					"trimmed": "did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+				},
+				"remote": null,
+				"warnings": []
+			}
+		},
+		{
+			"name": "unsupported_ftp_scheme",
+			"input": "ftp://example.com/archive.bin",
+			"options": {
+				"remoteFetch": true
+			},
+			"expected": {
+				"kind": "plain_string",
+				"normalizedInput": "ftp://example.com/archive.bin",
+				"data": {
+					"original": "ftp://example.com/archive.bin",
+					"trimmed": "ftp://example.com/archive.bin"
+				},
+				"remote": null,
+				"warnings": []
+			}
 		}
 	],
 	"remoteCases": [

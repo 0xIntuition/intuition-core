@@ -1,5 +1,6 @@
 import {
 	type KgActionDb,
+	listIidReconciliationCandidates,
 	listNodeProcessingDeadLetters,
 	type NodeProcessingStage,
 	type NodeProcessingStatus,
@@ -16,7 +17,8 @@ type KgCommandName =
 	| 'kg-dead-letter-enrichment'
 	| 'kg-backfill-parse'
 	| 'kg-backfill-classification'
-	| 'kg-backfill-enrichment';
+	| 'kg-backfill-enrichment'
+	| 'kg-reconcile-iid';
 
 const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-requeue-parse',
@@ -28,6 +30,7 @@ const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-backfill-parse',
 	'kg-backfill-classification',
 	'kg-backfill-enrichment',
+	'kg-reconcile-iid',
 ];
 
 /**
@@ -92,11 +95,142 @@ export async function runKgCommand(db: KgActionDb, args: string[]): Promise<void
 		case 'kg-backfill-enrichment':
 			await runBackfill(db, 'enrichment', rest, command);
 			return;
+		case 'kg-reconcile-iid':
+			await runIidReconciliation(db, rest, command);
+			return;
 		default:
 			throw new Error(
 				`Unknown KG command: ${command ?? '<none>'}. Supported commands: ${KG_COMMANDS.join(', ')}.`
 			);
 	}
+}
+
+type IidReconciliationOptions = {
+	limit: number;
+	after?: string;
+	confirmed: boolean;
+	force: boolean;
+	parseVersion: string;
+	registryVersion: string;
+	resolverVersion: string;
+};
+
+async function runIidReconciliation(
+	db: KgActionDb,
+	rest: string[],
+	command: string
+): Promise<void> {
+	const options = parseIidReconciliationOptions(rest, command);
+	const candidates = await listIidReconciliationCandidates(db, {
+		limit: options.limit,
+		...(options.after ? { after: options.after } : {}),
+	});
+	const nextAfter = candidates.at(-1)?.id;
+	const provenance = {
+		parseVersion: options.parseVersion,
+		registryVersion: options.registryVersion,
+		resolverVersion: options.resolverVersion,
+	};
+
+	if (options.confirmed) {
+		for (const candidate of candidates) {
+			await requeueNodeProcessingStage(db, {
+				stage: 'parse',
+				nodeId: candidate.id,
+				reason: `iid_reconciliation:${JSON.stringify(provenance)}`,
+				cascadeDownstream: true,
+				force: options.force,
+			});
+		}
+	}
+
+	console.log(
+		JSON.stringify({
+			command,
+			mode: options.confirmed ? 'apply' : 'dry-run',
+			count: candidates.length,
+			limit: options.limit,
+			after: options.after ?? null,
+			nextAfter: nextAfter ?? null,
+			provenance,
+			candidates,
+		})
+	);
+}
+
+export function parseIidReconciliationOptions(
+	rest: readonly string[],
+	command = 'kg-reconcile-iid'
+): IidReconciliationOptions {
+	let limit = 100;
+	let after: string | undefined;
+	let confirmed = false;
+	let force = false;
+	let parseVersion = 'unknown';
+	let registryVersion = 'unknown';
+	let resolverVersion = 'unknown';
+
+	for (const arg of rest) {
+		if (arg === '--yes' || arg === '-y') {
+			confirmed = true;
+			continue;
+		}
+		if (arg === '--force') {
+			force = true;
+			continue;
+		}
+		if (arg.startsWith('--limit=')) {
+			limit = parsePositiveIntegerFlag(command, '--limit', arg.slice('--limit='.length), 1_000);
+			continue;
+		}
+		if (arg.startsWith('--after=')) {
+			after = requireFlagValue(command, '--after', arg.slice('--after='.length));
+			continue;
+		}
+		if (arg.startsWith('--parse-version=')) {
+			parseVersion = requireFlagValue(
+				command,
+				'--parse-version',
+				arg.slice('--parse-version='.length)
+			);
+			continue;
+		}
+		if (arg.startsWith('--registry-version=')) {
+			registryVersion = requireFlagValue(
+				command,
+				'--registry-version',
+				arg.slice('--registry-version='.length)
+			);
+			continue;
+		}
+		if (arg.startsWith('--resolver-version=')) {
+			resolverVersion = requireFlagValue(
+				command,
+				'--resolver-version',
+				arg.slice('--resolver-version='.length)
+			);
+			continue;
+		}
+		throw new Error(`${command}: unknown argument "${arg}".`);
+	}
+
+	return {
+		limit,
+		after,
+		confirmed,
+		force,
+		parseVersion,
+		registryVersion,
+		resolverVersion,
+	};
+}
+
+function requireFlagValue(command: string, flag: string, value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		throw new Error(`${command}: ${flag} requires a non-empty value.`);
+	}
+	return trimmed;
 }
 
 async function listDeadLetters(

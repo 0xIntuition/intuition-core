@@ -48,6 +48,20 @@ pub struct AtomCreatedTyped {
 }
 
 #[derive(Debug, Clone)]
+pub struct AtomContextRegisteredTyped {
+    pub block_number: i64,
+    pub block_timestamp: DateTime<Utc>,
+    pub block_hash: String,
+    pub transaction_hash: String,
+    pub log_index: i32,
+    pub registrant: String,
+    pub term_id: BigDecimal,
+    pub term_id_hex: String,
+    /// Ordered JSON array of opaque 0x-prefixed URI byte strings.
+    pub uris: serde_json::Value,
+}
+
+#[derive(Debug, Clone)]
 pub struct TripleCreatedTyped {
     pub block_number: i64,
     pub block_timestamp: DateTime<Utc>,
@@ -363,6 +377,80 @@ impl EventStoreStorage {
             .bind(&term_id_hexes)
             .bind(&atom_datas)
             .bind(&atom_wallets)
+            .bind(&seq_chunk)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Insert AtomContextRegistered events into event_store and the typed table.
+    pub async fn insert_atom_context_registered_events(
+        &self,
+        events: Vec<EventRecord>,
+        typed: Vec<AtomContextRegisteredTyped>,
+    ) -> Result<()> {
+        if events.is_empty() {
+            return Ok(());
+        }
+        info!(
+            "Dual-write inserting {} AtomContextRegistered events",
+            events.len()
+        );
+
+        let mut tx = self.pool.begin().await?;
+
+        Self::bulk_insert_event_store(&mut tx, &events).await?;
+
+        let all_tx_hashes: Vec<String> = typed.iter().map(|t| t.transaction_hash.clone()).collect();
+        let all_log_indices: Vec<i32> = typed.iter().map(|t| t.log_index).collect();
+        let all_block_ts: Vec<DateTime<Utc>> = typed.iter().map(|t| t.block_timestamp).collect();
+        let seq_numbers =
+            Self::fetch_sequence_numbers(&mut tx, &all_tx_hashes, &all_log_indices, &all_block_ts)
+                .await?;
+
+        for (chunk_idx, chunk) in typed.chunks(bulk_chunk_size()).enumerate() {
+            let offset = chunk_idx * bulk_chunk_size();
+            let seq_chunk: Vec<i64> = seq_numbers[offset..offset + chunk.len()].to_vec();
+            let block_numbers: Vec<i64> = chunk.iter().map(|t| t.block_number).collect();
+            let block_timestamps: Vec<DateTime<Utc>> =
+                chunk.iter().map(|t| t.block_timestamp).collect();
+            let block_hashes: Vec<String> = chunk.iter().map(|t| t.block_hash.clone()).collect();
+            let tx_hashes: Vec<String> = chunk.iter().map(|t| t.transaction_hash.clone()).collect();
+            let log_indices: Vec<i32> = chunk.iter().map(|t| t.log_index).collect();
+            let registrants: Vec<String> = chunk.iter().map(|t| t.registrant.clone()).collect();
+            let term_ids: Vec<BigDecimal> = chunk.iter().map(|t| t.term_id.clone()).collect();
+            let term_id_hexes: Vec<String> = chunk.iter().map(|t| t.term_id_hex.clone()).collect();
+            let uris: Vec<serde_json::Value> = chunk.iter().map(|t| t.uris.clone()).collect();
+
+            sqlx::query(
+                r#"
+                INSERT INTO atom_context_registered_events (
+                    block_number, block_timestamp, block_hash,
+                    transaction_hash, log_index,
+                    registrant, term_id, term_id_hex, uris,
+                    sequence_number
+                )
+                SELECT * FROM UNNEST(
+                    $1::BIGINT[], $2::TIMESTAMPTZ[], $3::TEXT[],
+                    $4::TEXT[], $5::INT[],
+                    $6::TEXT[], $7::NUMERIC[], $8::TEXT[], $9::JSONB[],
+                    $10::BIGINT[]
+                )
+                ON CONFLICT (transaction_hash, log_index) DO NOTHING
+                "#,
+            )
+            .bind(&block_numbers)
+            .bind(&block_timestamps)
+            .bind(&block_hashes)
+            .bind(&tx_hashes)
+            .bind(&log_indices)
+            .bind(&registrants)
+            .bind(&term_ids)
+            .bind(&term_id_hexes)
+            .bind(&uris)
             .bind(&seq_chunk)
             .execute(&mut *tx)
             .await?;

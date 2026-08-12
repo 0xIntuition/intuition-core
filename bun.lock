@@ -98,7 +98,7 @@
     "packages/contracts": {
       "name": "@0xintuition/contracts",
       "dependencies": {
-        "@0xintuition/contracts-v2": "1.0.0-alpha.0",
+        "@0xintuition/contracts-v2": "1.1.0-alpha.0",
         "viem": "^2.23.2",
       },
       "devDependencies": {
@@ -110,6 +110,7 @@
     "packages/database-kg": {
       "name": "@0xintuition/database-kg",
       "dependencies": {
+        "@0xintuition/ids": "0.1.0-alpha.0",
         "drizzle-orm": "0.45.1",
         "postgres": "^3.4.7",
         "viem": "^2.23.2",
@@ -229,7 +230,7 @@
 
     "@0xintuition/contracts": ["@0xintuition/contracts@workspace:packages/contracts"],
 
-    "@0xintuition/contracts-v2": ["@0xintuition/contracts-v2@1.0.0-alpha.0", "", { "dependencies": { "@account-abstraction/contracts": "^0.8.0", "@openzeppelin-v4/contracts": "npm:@openzeppelin/contracts@^4.9.6", "@openzeppelin-v4/contracts-upgradeable": "npm:@openzeppelin/contracts-upgradeable@^4.9.6", "@openzeppelin/contracts": "5.4.0", "@openzeppelin/contracts-upgradeable": "5.4.0", "@prb/math": "^4.1.0", "solady": "^0.1.26" } }, "sha512-4uaTwLxr6KwVRFHFibZwicX0Jd/wJJn5U8cYXzXhwqHYqTSIDR+Ahf4vHFBcBhL4YNXZrcPlbM4h4tBVqa4fHw=="],
+    "@0xintuition/contracts-v2": ["@0xintuition/contracts-v2@1.1.0-alpha.0", "", { "dependencies": { "@account-abstraction/contracts": "^0.8.0", "@openzeppelin-v4/contracts": "npm:@openzeppelin/contracts@^4.9.6", "@openzeppelin-v4/contracts-upgradeable": "npm:@openzeppelin/contracts-upgradeable@^4.9.6", "@openzeppelin/contracts": "5.4.0", "@openzeppelin/contracts-upgradeable": "5.4.0", "@prb/math": "^4.1.0", "solady": "^0.1.26" } }, "sha512-vt9GFaFXYAeigLyl/4i6hPpLO4NBrZDyWJrM2M7aHuQ39/qSpxqMmIzetoAtpBWWx4AzM5wccUsXJvVST02saA=="],
 
     "@0xintuition/database-kg": ["@0xintuition/database-kg@workspace:packages/database-kg"],
 
@@ -238,6 +239,8 @@
     "@0xintuition/explorer": ["@0xintuition/explorer@workspace:apps/explorer"],
 
     "@0xintuition/graph-flags": ["@0xintuition/graph-flags@workspace:packages/graph-flags"],
+
+    "@0xintuition/ids": ["@0xintuition/ids@0.1.0-alpha.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-ILFtC1ldVBvQsLGMZ9Tu+rY+VpUYJFqczFbQD/tMTi0vjBjbRoF8LJ/j8iaTJhJOvqBB3yx7sC/dRsAGaEwwwQ=="],
 
     "@0xintuition/tsconfig": ["@0xintuition/tsconfig@workspace:tooling/typescript"],
 

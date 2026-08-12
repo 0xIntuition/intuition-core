@@ -267,6 +267,7 @@ pub async fn start_metrics_server(
     // Initialize metrics with default values for all event types
     let event_types = [
         "AtomCreated",
+        "AtomContextRegistered",
         "TripleCreated",
         "Deposited",
         "Redeemed",

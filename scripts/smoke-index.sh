@@ -14,6 +14,8 @@ Environment:
   API_URL                       API base URL (default: discovered from Compose)
   SMOKE_INDEX_TIMEOUT_SECONDS   Indexing/projection timeout (default: 240)
   SMOKE_BUILD=0                 Reuse existing Docker images instead of rebuilding
+  SMOKE_EXPECT_CONTEXT_EVENT_COUNT
+                                Optional exact AtomContextRegistered raw-event count
   KEEP_SMOKE_STACK=1            Leave containers and volumes running after the test
 USAGE
 }
@@ -33,6 +35,7 @@ esac
 PROJECT_NAME=${SMOKE_INDEX_PROJECT_NAME:-intuition-core-smoke-index}
 API_URL=${API_URL:-}
 TIMEOUT_SECONDS=${SMOKE_INDEX_TIMEOUT_SECONDS:-240}
+EXPECTED_CONTEXT_EVENT_COUNT=${SMOKE_EXPECT_CONTEXT_EVENT_COUNT:-}
 
 # Public, keyless Intuition testnet window used for deterministic smoke runs.
 DEFAULT_INTUITION_RPC_URL=https://testnet.rpc.intuition.systems/http
@@ -90,6 +93,14 @@ validate_positive_integer() {
 		"" | *[!0-9]*) fail "$name must be a positive integer" ;;
 	esac
 	[ "$value" -gt 0 ] || fail "$name must be greater than 0"
+}
+
+validate_non_negative_integer() {
+	name=$1
+	value=$2
+	case "$value" in
+		"" | *[!0-9]*) fail "$name must be a non-negative integer" ;;
+	esac
 }
 
 json_get() {
@@ -244,6 +255,9 @@ validate_positive_integer SMOKE_INDEX_TIMEOUT_SECONDS "$TIMEOUT_SECONDS"
 validate_positive_integer CHAIN_ID "$CHAIN_ID"
 validate_positive_integer MULTIVAULT_START_BLOCK "$MULTIVAULT_START_BLOCK"
 validate_positive_integer MULTIVAULT_END_BLOCK "$MULTIVAULT_END_BLOCK"
+if [ -n "$EXPECTED_CONTEXT_EVENT_COUNT" ]; then
+	validate_non_negative_integer SMOKE_EXPECT_CONTEXT_EVENT_COUNT "$EXPECTED_CONTEXT_EVENT_COUNT"
+fi
 
 printf 'Starting Docker Compose project %s with indexing profile\n' "$PROJECT_NAME"
 compose --profile indexing down -v --remove-orphans >/dev/null 2>&1 || true
@@ -276,5 +290,11 @@ stats_body=$WORK_DIR/stats.json
 api_get /api/stats "$stats_body"
 atom_count=$(json_file_get "$stats_body" data.atoms)
 
-printf 'Index smoke test passed: events=%s checkpoints=%s core_entities_checkpoint=%s/%s atoms=%s window=%s-%s\n' \
-	"$event_count" "$checkpoint_count" "$core_entities_checkpoint" "$core_entities_target_sequence" "$atom_count" "$MULTIVAULT_START_BLOCK" "$MULTIVAULT_END_BLOCK"
+context_event_count=$(timescale_sql "SELECT count(*) FROM event_store WHERE is_canonical = true AND event_type = 'AtomContextRegistered';")
+if [ -n "$EXPECTED_CONTEXT_EVENT_COUNT" ] &&
+	[ "$context_event_count" -ne "$EXPECTED_CONTEXT_EVENT_COUNT" ]; then
+	fail "expected $EXPECTED_CONTEXT_EVENT_COUNT AtomContextRegistered events, got $context_event_count"
+fi
+
+printf 'Index smoke test passed: events=%s context_events=%s checkpoints=%s core_entities_checkpoint=%s/%s atoms=%s window=%s-%s\n' \
+	"$event_count" "$context_event_count" "$checkpoint_count" "$core_entities_checkpoint" "$core_entities_target_sequence" "$atom_count" "$MULTIVAULT_START_BLOCK" "$MULTIVAULT_END_BLOCK"

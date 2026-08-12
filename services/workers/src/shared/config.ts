@@ -30,6 +30,14 @@ const workerConfigSchema = z
 		WORKERS_ENRICHMENT_VERSION: z.string().min(1).max(64).default('v1'),
 		WORKERS_DEFAULT_PRESET: enrichmentPresetSchema.default('default'),
 		WORKERS_PROCESSING_SCOPE: z.enum(PROCESSING_SCOPE_PRESETS).default('full'),
+		WORKERS_IID_READ_ENABLED: z
+			.enum(['true', 'false'])
+			.default('false')
+			.transform((value) => value === 'true'),
+		WORKERS_IID_RESOLUTION_ENABLED: z
+			.enum(['true', 'false'])
+			.default('false')
+			.transform((value) => value === 'true'),
 		WORKERS_CACHE_PROVIDER: z.enum(['memory', 'none', 'upstash']).default('memory'),
 		WORKERS_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).default(500),
 		WORKERS_CLASSIFICATION_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).optional(),
@@ -95,6 +103,8 @@ export type WorkerConfig = {
 	enrichmentVersion: string;
 	defaultPreset: z.infer<typeof enrichmentPresetSchema>;
 	processingScope: ProcessingScopePreset;
+	iidReadEnabled: boolean;
+	iidResolutionEnabled: boolean;
 	cacheProvider: 'memory' | 'none' | 'upstash';
 	memoryCacheMaxEntries: number;
 	classificationMemoryCacheMaxEntries: number;
@@ -145,6 +155,8 @@ export function loadWorkerConfig(
 		enrichmentVersion: parsed.WORKERS_ENRICHMENT_VERSION,
 		defaultPreset: parsed.WORKERS_DEFAULT_PRESET,
 		processingScope: parsed.WORKERS_PROCESSING_SCOPE,
+		iidReadEnabled: parsed.WORKERS_IID_READ_ENABLED,
+		iidResolutionEnabled: parsed.WORKERS_IID_RESOLUTION_ENABLED,
 		cacheProvider: parsed.WORKERS_CACHE_PROVIDER,
 		memoryCacheMaxEntries: parsed.WORKERS_MEMORY_CACHE_MAX_ENTRIES,
 		classificationMemoryCacheMaxEntries:

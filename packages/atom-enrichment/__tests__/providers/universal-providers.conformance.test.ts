@@ -26,6 +26,7 @@ import {
 } from '../../src/plugins/providers';
 import {
 	createMockAtomInput,
+	createMockPluginContext,
 	createMockRequest,
 	runPluginConformanceSuite,
 } from '../../src/testing';
@@ -966,6 +967,32 @@ describe('v1 provider plugins conformance', () => {
 	});
 
 	describe('musicbrainz', () => {
+		it('resolves canonical ISRC hints before classification-name fallback', async () => {
+			const response = await readFixture(
+				'../../src/plugins/providers/musicbrainz/__fixtures__/recording.json'
+			);
+			let requestedUrl = '';
+			const plugin = createMusicBrainzPlugin({
+				fetch: async (url) => {
+					requestedUrl = url;
+					return new Response(JSON.stringify({ recordings: [JSON.parse(response)] }), {
+						headers: { 'content-type': 'application/json' },
+					});
+				},
+			});
+			const request = createMockRequest({
+				input: createMockAtomInput({
+					atomType: 'thing',
+					jsonLd: { '@context': 'https://schema.org', '@type': 'Thing' },
+					hints: { identifiers: { isrc: 'usacm0000001' } },
+				}),
+			});
+
+			expect(plugin.supports(request)).toBe(true);
+			const artifacts = await plugin.enrich(request, createMockPluginContext());
+			expect(requestedUrl).toContain('query=isrc%3AUSACM0000001');
+			expect(artifacts[0]?.artifact_type).toBe('musicbrainz');
+		});
 		it('normalizes musicbrainz recording fixture', async () => {
 			const response = await readFixture(
 				'../../src/plugins/providers/musicbrainz/__fixtures__/recording.json'
@@ -1816,6 +1843,7 @@ function assertRegistryCoverage(registryToCheck: ClassificationRegistry): void {
 	expect(registryToCheck.has('github-user')).toBe(true);
 	expect(registryToCheck.has('npm-package')).toBe(true);
 	expect(registryToCheck.has('musicbrainz')).toBe(true);
+	expect(registryToCheck.has('openlibrary')).toBe(true);
 	expect(registryToCheck.has('spotify')).toBe(true);
 	expect(registryToCheck.has('tmdb')).toBe(true);
 	expect(registryToCheck.has('youtube')).toBe(true);

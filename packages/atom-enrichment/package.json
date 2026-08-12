@@ -19,6 +19,7 @@
 		"./classifications/registry": "./src/classifications/registry.ts",
 		"./classifications/schemas": "./src/classifications/schemas.ts",
 		"./provider-external-data": "./src/provider-external-data.ts",
+		"./provider-plan": "./src/provider-plan.ts",
 		"./slug-aliases": "./src/slug-aliases.ts",
 		"./extraction": "./src/extraction/index.ts"
 	},

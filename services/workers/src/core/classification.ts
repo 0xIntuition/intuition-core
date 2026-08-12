@@ -5,6 +5,12 @@ import {
 	createTypeProfilesPlugin,
 	type JsonLdTypeDefinition,
 } from '@0xintuition/atom-classification';
+import type {
+	IdentityClassificationDecision,
+	IdentityProviderPlan,
+	NormalizedAtomIdentity,
+} from './identity-contract';
+import type { IidSemanticResolution } from './iid-registry';
 import type { CompactParseResult } from './parse';
 import {
 	resolveFallbackUrl,
@@ -26,6 +32,9 @@ export type WorkerClassificationResult = {
 	knownType?: boolean;
 	targetUrl?: string;
 	targetSource?: ClassificationTargetSource;
+	identity?: NormalizedAtomIdentity;
+	identityDecision?: IdentityClassificationDecision;
+	providerPlan?: IdentityProviderPlan;
 };
 
 export type ClassificationPlan = {
@@ -34,6 +43,7 @@ export type ClassificationPlan = {
 	targetUrl: string | undefined;
 	targetSource: ClassificationTargetSource | undefined;
 	usesStructuredDocument: boolean;
+	identity?: NormalizedAtomIdentity;
 };
 
 export function deriveClassificationPlan(input: {
@@ -72,6 +82,7 @@ export function deriveClassificationPlan(input: {
 			targetUrl,
 			targetSource,
 			usesStructuredDocument: true,
+			...(parseResult?.identity ? { identity: parseResult.identity } : {}),
 		};
 	}
 
@@ -86,6 +97,7 @@ export function deriveClassificationPlan(input: {
 		targetUrl: fallbackTarget.url,
 		targetSource: fallbackTarget.source,
 		usesStructuredDocument: false,
+		...(parseResult?.identity ? { identity: parseResult.identity } : {}),
 	};
 }
 
@@ -118,6 +130,24 @@ export function deriveClassificationResultFromRuntime(input: {
 		knownType: !!definition,
 		...(input.targetUrl ? { targetUrl: input.targetUrl } : {}),
 		...(input.targetSource ? { targetSource: input.targetSource } : {}),
+	};
+}
+
+export function deriveIidClassificationResult(input: {
+	identity: NormalizedAtomIdentity;
+	resolution: IidSemanticResolution;
+}): WorkerClassificationResult {
+	const decision = input.resolution.identityDecision;
+
+	return {
+		status: decision.status === 'classified' ? 'recognized' : 'not_applicable',
+		source: 'iid-registry',
+		...(decision.schemaType ? { schemaType: decision.schemaType } : {}),
+		...(decision.category ? { category: decision.category } : {}),
+		knownType: decision.status === 'classified',
+		identity: input.identity,
+		identityDecision: decision,
+		providerPlan: input.resolution.providerPlan,
 	};
 }
 

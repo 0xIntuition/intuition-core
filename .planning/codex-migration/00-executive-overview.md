@@ -1,5 +1,7 @@
 # Executive overview
 
+> Program note (2026-08-10): this document is the original vertical-slice baseline. The authoritative full-program sequencing, public package release lane, and ownership model are in [09-program-roadmap.md](./09-program-roadmap.md). The one-to-two-day scope below is an integration spike, not the production migration schedule.
+
 ## The change in one sentence
 
 Atom data is moving from being the descriptive record to being a deterministic identity anchor; description and display data become a versioned, provenance-bearing projection produced by resolvers and claims around that anchor.
@@ -115,4 +117,3 @@ It should not pretend to finish the entire equivalence product. Candidate genera
 ## Success criteria
 
 The switch is successful when one golden P0 ISRC atom can be minted with context URIs, indexed after replay, classified as `MusicRecording` without reading JSON-LD, enriched through the selected resolver(s), searched and rendered through the API, and joined to any legacy atom carrying the same derived IID—with repeat processing producing no duplicate state.
-
