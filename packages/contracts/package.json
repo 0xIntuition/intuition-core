@@ -18,7 +18,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false -p tsconfig.typecheck.json",
 		"test": "bun test src __tests__",
 		"devnet:deploy": "DEPLOY_TARGET=anvil bun run src/deploy/cli.ts",
-		"vendored:regen": "scripts/regen-vendored.sh",
+		"vendored:regen": "bash scripts/regen-vendored.sh",
 		"ci": "biome check",
 		"lint": "biome lint",
 		"format": "biome format",
@@ -32,7 +32,7 @@
 		"typescript": "catalog:"
 	},
 	"dependencies": {
-		"@0xintuition/contracts-v2": "1.0.0-alpha.0",
+		"@0xintuition/contracts-v2": "1.1.0-alpha.0",
 		"viem": "^2.23.2"
 	}
 }

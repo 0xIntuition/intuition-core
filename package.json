@@ -35,6 +35,7 @@
 		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs",
 		"preinstall": "node scripts/enforce-bun-install.mjs",
 		"devnet:deploy": "bun run --cwd packages/contracts devnet:deploy",
+		"devnet:fixtures:iid": "bun run --cwd packages/contracts scripts/devnet-create-iid-fixtures.ts",
 		"abis:sync": "bun run scripts/sync-abis.ts",
 		"abis:check": "bun run scripts/sync-abis.ts --check",
 		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy"

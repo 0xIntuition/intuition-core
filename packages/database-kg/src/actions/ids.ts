@@ -1,33 +1,16 @@
-import { encodePacked, type Hex, isHex, keccak256, toHex } from 'viem';
+import { calculateAtomId, calculateTripleId } from '@0xintuition/ids';
 import type { TripleInput } from './types';
 
 const PROTOCOL_TERM_ID_RE = /^0x[0-9a-fA-F]{64}$/;
 
 /**
- * Protocol-defined salt for atom ID derivation: `keccak256(toHex('ATOM_SALT'))`.
- */
-const ATOM_SALT: Hex = keccak256(toHex('ATOM_SALT'));
-
-/**
- * Protocol-defined salt for triple ID derivation: `keccak256(toHex('TRIPLE_SALT'))`.
- * Value: `0x23ad11f0a1505378b82984192ad0461e6a012820fc5bf2e4ba16513f8e430552`.
- */
-const TRIPLE_SALT: Hex = keccak256(toHex('TRIPLE_SALT'));
-
-/**
  * Compute a deterministic atom ID from raw atom data.
  *
- * The algorithm mirrors the on-chain derivation:
- * 1. Convert `atomData` to hex if it is a plain string.
- * 2. Hash the hex data with keccak256.
- * 3. Pack `[ATOM_SALT, keccak256(data)]` and hash again.
- *
- * The result is deterministic: identical atom data always produces the same
- * ID regardless of caller or timestamp.
+ * Core intentionally preserves the public helper's boundary: Viem-recognized
+ * `0x...` values are raw bytes and every other string is UTF-8 atom data.
  */
 export function kgAtomId(atomData: string): string {
-	const data: Hex = isHex(atomData) ? atomData : toHex(atomData);
-	return keccak256(encodePacked(['bytes32', 'bytes'], [ATOM_SALT, keccak256(data)]));
+	return calculateAtomId(atomData);
 }
 
 /**
@@ -43,16 +26,10 @@ export function kgAtomId(atomData: string): string {
  * → triple  0x57946a02776dbd4eec339ecf5cdf6e0005b8de381fb3d9a2bf303da083bf5166
  */
 export function kgTripleId(input: TripleInput): string {
-	return keccak256(
-		encodePacked(
-			['bytes32', 'bytes32', 'bytes32', 'bytes32'],
-			[
-				TRIPLE_SALT,
-				normalizeProtocolTermId(input.subject.id, 'subject.id'),
-				normalizeProtocolTermId(input.predicate.id, 'predicate.id'),
-				normalizeProtocolTermId(input.object.id, 'object.id'),
-			]
-		)
+	return calculateTripleId(
+		normalizeProtocolTermId(input.subject.id, 'subject.id'),
+		normalizeProtocolTermId(input.predicate.id, 'predicate.id'),
+		normalizeProtocolTermId(input.object.id, 'object.id')
 	);
 }
 

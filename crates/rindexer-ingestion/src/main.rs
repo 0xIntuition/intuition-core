@@ -79,10 +79,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Set the latest block for all event types
         for event_type in &[
             "AtomCreated",
+            "AtomContextRegistered",
             "TripleCreated",
             "Deposited",
             "Redeemed",
             "SharePriceChanged",
+            "ProtocolFeeAccrued",
         ] {
             metrics::set_latest_block(event_type, latest_block);
         }

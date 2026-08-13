@@ -1,4 +1,4 @@
-import { timescaleFileGroups } from './layout';
+import { timescaleFileGroups, timescaleJsonColumnTypes } from './layout';
 import type {
 	ColumnDefault,
 	ColumnDefinition,
@@ -83,7 +83,10 @@ function renderTable(table: TableDefinition): string {
 	const hasCallback =
 		table.primaryKey.length > 1 || table.indexes.length > 0 || table.uniqueConstraints.length > 0;
 	const renderedColumns = table.columns
-		.map((column) => `\t\t${toCamelCase(column.name)}: ${renderColumn(column, table.primaryKey)},`)
+		.map(
+			(column) =>
+				`\t\t${toCamelCase(column.name)}: ${renderColumn(column, table.name, table.primaryKey)},`
+		)
 		.join('\n');
 
 	if (!hasCallback) {
@@ -124,8 +127,8 @@ function renderTable(table: TableDefinition): string {
 	return `export const ${toCamelCase(table.name)} = pgTable(\n\t'${table.name}',\n\t{\n${renderedColumns}\n\t},\n\t(table) => ({\n${callbackEntries.join('\n')}\n\t})\n);`;
 }
 
-function renderColumn(column: ColumnDefinition, primaryKey: string[]): string {
-	const builder = renderColumnBuilder(column);
+function renderColumn(column: ColumnDefinition, tableName: string, primaryKey: string[]): string {
+	const builder = renderColumnBuilder(column, tableName);
 	const chainedCalls: string[] = [];
 	const isSingleColumnPrimaryKey = primaryKey.length === 1 && primaryKey[0] === column.name;
 
@@ -150,7 +153,7 @@ function renderColumn(column: ColumnDefinition, primaryKey: string[]): string {
 	return chainedCalls.reduce((value, chain) => `${value}.${chain}`, builder);
 }
 
-function renderColumnBuilder(column: ColumnDefinition): string {
+function renderColumnBuilder(column: ColumnDefinition, tableName: string): string {
 	switch (column.type) {
 		case 'bigint':
 			return `bigint('${column.name}', { mode: 'bigint' })`;
@@ -161,7 +164,9 @@ function renderColumnBuilder(column: ColumnDefinition): string {
 		case 'integer':
 			return `integer('${column.name}')`;
 		case 'jsonb':
-			return `jsonb('${column.name}')`;
+			return timescaleJsonColumnTypes[tableName]?.[column.name]
+				? `jsonb('${column.name}').$type<${timescaleJsonColumnTypes[tableName]?.[column.name]}>()`
+				: `jsonb('${column.name}')`;
 		case 'numeric':
 			if (column.precision) {
 				const scale = column.scale ?? 0;

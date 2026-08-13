@@ -12,10 +12,15 @@ import {
 	reapStuckProcessingNodes,
 	releaseClaimedProcessingStageLeases,
 } from '@0xintuition/database-kg/actions';
-import { toCompactParseResult } from '../../core/parse';
+import { type IidInspectionAdapter, parseAtomWithIidRead } from '../../core/iid-inspection';
+import { resolveParseSearchText } from '../../core/parse';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
-import { classifyWorkerError, toProcessingError } from '../../shared/errors';
+import {
+	classifyWorkerError,
+	toProcessingError,
+	WorkerConfigurationError,
+} from '../../shared/errors';
 import {
 	createBoundedScheduler,
 	RECONCILE_BATCH_SIZE_MULTIPLIER,
@@ -43,7 +48,14 @@ export async function runKgParsingWorker(input: {
 		database: CircuitBreaker;
 		runtime: CircuitBreaker;
 	};
+	iidInspection?: IidInspectionAdapter;
 }): Promise<void> {
+	if (input.config.iidReadEnabled && !input.iidInspection) {
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid inspection adapter.'
+		);
+	}
+
 	const processNode = async (nodeId: string) => {
 		const node = await input.circuits.database.execute(() =>
 			getNodeForProcessing(input.db, nodeId)
@@ -101,10 +113,14 @@ export async function runKgParsingWorker(input: {
 				return;
 			}
 
-			const result = await input.circuits.runtime.execute(() =>
-				parseAtom(rawInput, input.config.parseOptions)
-			);
-			const compact = toCompactParseResult(result);
+			const parseOutcome = await parseAtomWithIidRead({
+				rawInput,
+				iidReadEnabled: input.config.iidReadEnabled,
+				...(input.iidInspection ? { adapter: input.iidInspection } : {}),
+				parseLegacy: () =>
+					input.circuits.runtime.execute(() => parseAtom(rawInput, input.config.parseOptions)),
+			});
+			const compact = parseOutcome.result;
 			await input.circuits.database.execute(() =>
 				completeNodeProcessingStage(input.db, {
 					stage: 'parse',
@@ -112,7 +128,10 @@ export async function runKgParsingWorker(input: {
 					runId,
 					data: compact,
 					promotedFields: {
-						searchText: resolveSearchText(compact, rawInput),
+						searchText: resolveParseSearchText(compact),
+						...(compact.identity
+							? { rawType: 'iid' as const, iid: compact.identity.canonical }
+							: {}),
 						...(compact.structuredDocument?.data !== undefined
 							? { dataResolved: compact.structuredDocument.data }
 							: {}),
@@ -124,6 +143,7 @@ export async function runKgParsingWorker(input: {
 			logger.info('kg parse completed', {
 				durationMs: Date.now() - startedAt,
 				kind: compact.kind,
+				...(parseOutcome.fallbackReason ? { iidFallbackReason: parseOutcome.fallbackReason } : {}),
 			});
 		} catch (error) {
 			const classified = classifyWorkerError(error);
@@ -265,38 +285,4 @@ export async function runKgParsingWorker(input: {
 
 function resolveParseInput(node: { data: string | null; dataHex: string | null }): string | null {
 	return node.data ?? node.dataHex ?? null;
-}
-
-function resolveSearchText(
-	compact: ReturnType<typeof toCompactParseResult>,
-	rawInput: string
-): string {
-	const structuredData =
-		compact.structuredDocument?.data &&
-		typeof compact.structuredDocument.data === 'object' &&
-		!Array.isArray(compact.structuredDocument.data)
-			? (compact.structuredDocument.data as Record<string, unknown>)
-			: undefined;
-	const name = resolveString(structuredData?.name);
-	const description = resolveString(structuredData?.description);
-
-	return [name, description, compact.canonicalId, compact.normalizedInput, rawInput]
-		.filter((value): value is string => Boolean(value?.trim()))
-		.join(' ')
-		.slice(0, 20_000);
-}
-
-function resolveString(value: unknown): string | undefined {
-	if (typeof value === 'string' && value.trim().length > 0) {
-		return value.trim();
-	}
-
-	if (Array.isArray(value)) {
-		const first = value.find(
-			(entry): entry is string => typeof entry === 'string' && entry.trim().length > 0
-		);
-		return first?.trim();
-	}
-
-	return undefined;
 }

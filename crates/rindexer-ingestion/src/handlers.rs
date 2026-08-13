@@ -17,14 +17,14 @@ use tracing::{error, info};
 
 use crate::metrics;
 use crate::rindexer_lib::typings::be_v_3_indexer::events::multi_vault::{
-    AtomCreatedEvent, AtomCreatedResult, DepositedEvent, DepositedResult, EventContext,
-    MultiVaultEventType, ProtocolFeeAccruedEvent, ProtocolFeeAccruedResult, RedeemedEvent,
-    RedeemedResult, SharePriceChangedEvent, SharePriceChangedResult, TripleCreatedEvent,
-    TripleCreatedResult,
+    AtomContextRegisteredEvent, AtomContextRegisteredResult, AtomCreatedEvent, AtomCreatedResult,
+    DepositedEvent, DepositedResult, EventContext, MultiVaultEventType, ProtocolFeeAccruedEvent,
+    ProtocolFeeAccruedResult, RedeemedEvent, RedeemedResult, SharePriceChangedEvent,
+    SharePriceChangedResult, TripleCreatedEvent, TripleCreatedResult,
 };
 use crate::storage::{
-    AtomCreatedTyped, DepositedTyped, EventRecord, EventStoreStorage, ProtocolFeeAccruedTyped,
-    RedeemedTyped, SharePriceChangedTyped, TripleCreatedTyped,
+    AtomContextRegisteredTyped, AtomCreatedTyped, DepositedTyped, EventRecord, EventStoreStorage,
+    ProtocolFeeAccruedTyped, RedeemedTyped, SharePriceChangedTyped, TripleCreatedTyped,
 };
 
 /// Start the rindexer with custom event handlers
@@ -56,6 +56,7 @@ pub async fn start_indexer(
 
     // Register all event handlers
     register_atom_created_handler(&manifest_path, &mut registry, storage.clone()).await;
+    register_atom_context_registered_handler(&manifest_path, &mut registry, storage.clone()).await;
     register_triple_created_handler(&manifest_path, &mut registry, storage.clone()).await;
     register_deposited_handler(&manifest_path, &mut registry, storage.clone()).await;
     register_redeemed_handler(&manifest_path, &mut registry, storage.clone()).await;
@@ -135,6 +136,22 @@ fn to_bd(s: &str) -> BigDecimal {
 fn b256_to_bd(b: &alloy::primitives::FixedBytes<32>) -> BigDecimal {
     let num = alloy::primitives::U256::from_be_bytes(b.0);
     BigDecimal::from_str(&num.to_string()).expect("U256 always produces valid decimal")
+}
+
+/// Encode contract bytes without interpreting, normalizing, or validating them.
+fn opaque_bytes_to_hex(bytes: &[u8]) -> String {
+    format!("0x{}", hex::encode(bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::opaque_bytes_to_hex;
+
+    #[test]
+    fn opaque_uri_bytes_are_preserved_as_lowercase_hex() {
+        assert_eq!(opaque_bytes_to_hex(&[0xff, 0x00, b':', 0x80]), "0xff003a80");
+        assert_eq!(opaque_bytes_to_hex(&[]), "0x");
+    }
 }
 
 /// Maximum results to convert + insert per sub-batch inside a handler callback.
@@ -246,6 +263,111 @@ async fn register_atom_created_handler(
         .await;
 
     MultiVaultEventType::AtomCreated(handler)
+        .register(manifest_path, registry)
+        .await;
+}
+
+/// Register AtomContextRegistered event handler.
+async fn register_atom_context_registered_handler(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+    storage: Arc<EventStoreStorage>,
+) {
+    let handler = AtomContextRegisteredEvent::handler(
+        |results: Vec<AtomContextRegisteredResult>,
+         context: Arc<EventContext<Arc<EventStoreStorage>>>| async move {
+            if results.is_empty() {
+                return Ok(());
+            }
+
+            let total = results.len();
+            let storage = &context.extensions;
+
+            for chunk in results.chunks(handler_chunk_size()) {
+                let mut events: Vec<EventRecord> = Vec::with_capacity(chunk.len());
+                let mut typed: Vec<AtomContextRegisteredTyped> = Vec::with_capacity(chunk.len());
+
+                for result in chunk {
+                    let tx = &result.tx_information;
+                    let event = &result.event_data;
+
+                    let registrant = format!("{:?}", event.registrant);
+                    let term_id_bd = b256_to_bd(&event.termId);
+                    let term_id_hex = format!("{:?}", event.termId);
+                    // Preserve contract order and exact bytes. These values are
+                    // deliberately not decoded as UTF-8 or treated as URLs.
+                    let uris: Vec<String> = event
+                        .uris
+                        .iter()
+                        .map(|uri| opaque_bytes_to_hex(uri.as_ref()))
+                        .collect();
+                    let block_ts = timestamp_to_datetime(tx);
+                    let block_hash = format!("{:?}", tx.block_hash);
+                    let transaction_hash = format!("{:?}", tx.transaction_hash);
+                    let block_number = tx.block_number as i64;
+                    let log_index = tx.log_index.to::<i32>();
+
+                    let event_data = json!({
+                        "term_id": &term_id_hex,
+                        "registrant": &registrant,
+                        "uris": &uris,
+                    });
+
+                    events.push(EventRecord {
+                        block_number,
+                        block_timestamp: block_ts,
+                        block_hash: block_hash.clone(),
+                        transaction_hash: transaction_hash.clone(),
+                        log_index,
+                        event_type: "AtomContextRegistered".to_string(),
+                        event_data,
+                    });
+
+                    typed.push(AtomContextRegisteredTyped {
+                        block_number,
+                        block_timestamp: block_ts,
+                        block_hash,
+                        transaction_hash,
+                        log_index,
+                        registrant,
+                        term_id: term_id_bd,
+                        term_id_hex,
+                        uris: json!(uris),
+                    });
+                }
+
+                if let Err(e) = storage
+                    .insert_atom_context_registered_events(events, typed)
+                    .await
+                {
+                    error!("Failed to insert AtomContextRegistered events: {}", e);
+                    return Err(e.to_string());
+                }
+            }
+
+            let max_block = results
+                .iter()
+                .map(|r| r.tx_information.block_number)
+                .max()
+                .unwrap_or(0);
+            metrics::record_events_with_block(
+                "AtomContextRegistered",
+                total as u64,
+                max_block,
+                None,
+            );
+
+            info!(
+                "AtomContextRegistered - INDEXED {} events (block {})",
+                total, max_block
+            );
+            Ok(())
+        },
+        storage.clone(),
+    )
+    .await;
+
+    MultiVaultEventType::AtomContextRegistered(handler)
         .register(manifest_path, registry)
         .await;
 }

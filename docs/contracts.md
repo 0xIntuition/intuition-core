@@ -55,6 +55,14 @@ The facade is intentionally small. It gives backend code a stable import path
 and records which MultiVault events the indexer expects. It should not fork,
 edit, or reinterpret upstream contract artifacts.
 
+The indexer-critical event surface includes `AtomCreated`,
+`AtomContextRegistered`, `TripleCreated`, `Deposited`, `Redeemed`,
+`SharePriceChanged`, and `ProtocolFeeAccrued`. The URI-aware
+`createAtomsWithUris` entrypoint emits `AtomContextRegistered`; its ordered URI
+bytes add creation-time context without participating in the atom's
+deterministic ID. Consumers can read the active URI limits with
+`getAtomUriConfig`.
+
 ## Updating contract artifacts
 
 1. Check the latest published version:

@@ -1,10 +1,20 @@
-import type { ClassifiedAtomInput } from '@0xintuition/atom-enrichment';
+import {
+	type ClassifiedAtomInput,
+	createIdentifierProviderPlan,
+	type EnrichmentRunResult,
+	type IdentifierProviderPlanEntry,
+} from '@0xintuition/atom-enrichment';
 import {
 	getProcessingScopeDomains,
 	type ProcessingDomain,
 	type ProcessingScopePreset,
 } from '../shared/processing-scope';
 import type { WorkerClassificationResult } from './classification';
+import type {
+	IdentityClassificationDecision,
+	IdentityProviderPlan,
+	NormalizedAtomIdentity,
+} from './identity-contract';
 import type { CompactParseResult } from './parse';
 import { resolveFallbackUrl, resolveStructuredDocumentTarget } from './structured-targets';
 
@@ -38,7 +48,28 @@ export type EnrichmentPlan = {
 	classificationResult: WorkerClassificationResult;
 	targetUrl: string | undefined;
 	structuredDocument: CompactParseResult['structuredDocument'];
+	identity?: NormalizedAtomIdentity;
+	identityDecision?: IdentityClassificationDecision;
+	providerPlan?: IdentityProviderPlan;
 };
+
+export type EnrichmentCompletionPromotedFields = {
+	dataResolved: Record<string, unknown>;
+	searchText: string;
+};
+
+export type IidProviderExecutionPlan =
+	| {
+			status: 'ready';
+			plugins: string[];
+			identifiers: Record<string, string>;
+	  }
+	| {
+			status: 'blocked';
+			retriable: boolean;
+			reason: string;
+			entries: IdentifierProviderPlanEntry[];
+	  };
 
 export type ScopedEnrichmentDecision =
 	| {
@@ -52,6 +83,77 @@ export type ScopedEnrichmentDecision =
 			matchedDomains: ProcessingDomain[];
 	  };
 
+export type EnrichmentCompletionDisposition =
+	| { kind: 'complete' }
+	| {
+			kind: 'retryable_failure';
+			diagnostics: EnrichmentDiagnostics;
+	  }
+	| {
+			kind: 'terminal_unresolved';
+			diagnostics: EnrichmentDiagnostics;
+	  };
+
+export type EnrichmentDiagnostics = {
+	errors: EnrichmentRunResult['errors'];
+	skipped: EnrichmentRunResult['skipped'];
+	totalErrors: number;
+	totalSkipped: number;
+	errorsTruncated: boolean;
+	skippedTruncated: boolean;
+};
+
+const MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND = 25;
+const MAX_ENRICHMENT_ERROR_MESSAGE_LENGTH = 1_000;
+const MAX_ENRICHMENT_SKIP_REASON_LENGTH = 256;
+
+/**
+ * A partial run is useful and completes. A run with no artifacts retries only
+ * when every explicit provider failure is marked retryable by the enrichment
+ * engine. A zero-artifact terminal error or all-skipped run is terminally
+ * unresolved; it must never be presented as a successful resolution.
+ */
+export function evaluateEnrichmentCompletion(
+	result: Pick<EnrichmentRunResult, 'artifacts' | 'errors' | 'skipped'>
+): EnrichmentCompletionDisposition {
+	if (
+		result.artifacts.length === 0 &&
+		result.errors.length > 0 &&
+		result.errors.every((error) => error.retriable)
+	) {
+		return { kind: 'retryable_failure', diagnostics: boundEnrichmentDiagnostics(result) };
+	}
+
+	if (result.artifacts.length === 0) {
+		return { kind: 'terminal_unresolved', diagnostics: boundEnrichmentDiagnostics(result) };
+	}
+
+	return { kind: 'complete' };
+}
+
+/**
+ * Keep terminal/retry evidence useful without allowing provider fan-out or
+ * messages to create an unbounded processing-error row.
+ */
+export function boundEnrichmentDiagnostics(
+	result: Pick<EnrichmentRunResult, 'errors' | 'skipped'>
+): EnrichmentDiagnostics {
+	return {
+		errors: result.errors.slice(0, MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND).map((error) => ({
+			...error,
+			message: error.message.slice(0, MAX_ENRICHMENT_ERROR_MESSAGE_LENGTH),
+		})),
+		skipped: result.skipped.slice(0, MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND).map((entry) => ({
+			...entry,
+			reason: entry.reason.slice(0, MAX_ENRICHMENT_SKIP_REASON_LENGTH),
+		})),
+		totalErrors: result.errors.length,
+		totalSkipped: result.skipped.length,
+		errorsTruncated: result.errors.length > MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND,
+		skippedTruncated: result.skipped.length > MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND,
+	};
+}
+
 export function deriveEnrichmentPlan(input: {
 	parseResult: CompactParseResult | null;
 	classificationResult: WorkerClassificationResult;
@@ -63,15 +165,64 @@ export function deriveEnrichmentPlan(input: {
 		structuredTarget.url ??
 		resolveFallbackUrl(input.parseResult, input.rawInput);
 
+	const identity = input.classificationResult.identity ?? input.parseResult?.identity;
 	return {
 		classificationResult: input.classificationResult,
 		targetUrl,
 		structuredDocument: input.parseResult?.structuredDocument,
+		...(identity ? { identity } : {}),
+		...(input.classificationResult.identityDecision
+			? { identityDecision: input.classificationResult.identityDecision }
+			: {}),
+		...(input.classificationResult.providerPlan
+			? { providerPlan: input.classificationResult.providerPlan }
+			: {}),
 	};
 }
 
+/**
+ * Keeps the existing structured-document projection in the enrichment
+ * completion transaction. Identity-derived projections remain deliberately
+ * unplugged until the public resolver package provides resolved presentation
+ * data and provenance.
+ */
+export function buildEnrichmentCompletionPromotedFields(
+	plan: EnrichmentPlan,
+	artifacts: EnrichmentRunResult['artifacts'] = []
+): EnrichmentCompletionPromotedFields | undefined {
+	if (plan.identity) {
+		return buildIdentityPromotedFields(plan, artifacts);
+	}
+
+	if (plan.structuredDocument?.topLevelType !== 'object') {
+		return undefined;
+	}
+
+	const dataResolved = toRecordMaybe(plan.structuredDocument.data);
+	if (!dataResolved) {
+		return undefined;
+	}
+
+	const name = resolveDisplayText(dataResolved.name);
+	const description = resolveDisplayText(dataResolved.description);
+	const searchText = [name, description]
+		.filter((value): value is string => value !== undefined)
+		.join(' ')
+		.slice(0, 20_000);
+	if (!searchText) {
+		return undefined;
+	}
+
+	return { dataResolved, searchText };
+}
+
 export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAtomInput | null {
-	if (!plan.targetUrl && plan.structuredDocument?.topLevelType !== 'object') {
+	const identifiers = collectIdentityIdentifierHints(plan);
+	if (
+		!plan.targetUrl &&
+		plan.structuredDocument?.topLevelType !== 'object' &&
+		Object.keys(identifiers).length === 0
+	) {
 		return null;
 	}
 
@@ -85,6 +236,7 @@ export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAt
 		...(name ? { name } : {}),
 		...(description ? { description } : {}),
 		...(plan.targetUrl ? { url: plan.targetUrl } : {}),
+		...(Object.keys(identifiers).length > 0 ? { identifiers } : {}),
 	};
 
 	return {
@@ -104,6 +256,145 @@ export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAt
 		},
 		...(Object.keys(hints).length > 0 ? { hints } : {}),
 	};
+}
+
+/**
+ * Converts the persisted public-registry plan into the exact plugin request
+ * understood by Core's enrichment runtime. Any registry/runtime drift remains
+ * explicit: unknown providers are terminal and missing deployed plugins are
+ * retryable. The worker never silently falls back to running every plugin.
+ */
+export function buildIidProviderExecutionPlan(input: {
+	plan: EnrichmentPlan;
+	registeredPluginIds: Iterable<string>;
+}): IidProviderExecutionPlan | undefined {
+	if (!input.plan.identity) {
+		return undefined;
+	}
+
+	const providerPlan = input.plan.providerPlan;
+	if (!providerPlan || providerPlan.status !== 'planned' || providerPlan.targets.length === 0) {
+		return {
+			status: 'blocked',
+			retriable: false,
+			reason: 'The IID registry did not provide an executable provider plan.',
+			entries: [],
+		};
+	}
+
+	const execution = createIdentifierProviderPlan({
+		providers: providerPlan.targets.map((target) => target.provider),
+		identifiers: collectIdentityIdentifierHints(input.plan),
+		registeredPluginIds: input.registeredPluginIds,
+	});
+	const blockers = execution.entries.filter((entry) => entry.status !== 'scheduled');
+	if (blockers.length > 0) {
+		const hasTerminalBlocker = blockers.some((entry) => entry.disposition === 'terminal');
+		return {
+			status: 'blocked',
+			retriable: !hasTerminalBlocker,
+			reason: hasTerminalBlocker
+				? 'The IID provider plan contains an unsupported provider capability.'
+				: 'The IID provider plan requires a plugin that is not registered in this runtime.',
+			entries: blockers,
+		};
+	}
+
+	return {
+		status: 'ready',
+		plugins: execution.plugins,
+		identifiers: execution.identifiers,
+	};
+}
+
+function collectIdentityIdentifierHints(plan: EnrichmentPlan): Record<string, string> {
+	const identifiers: Record<string, string> = {};
+	for (const target of plan.providerPlan?.targets ?? []) {
+		for (const hint of target.identifierHints) {
+			const existing = identifiers[hint.kind];
+			if (existing !== undefined && existing !== hint.value) {
+				throw new Error(
+					`IID provider plan supplied conflicting values for identifier hint "${hint.kind}".`
+				);
+			}
+			identifiers[hint.kind] = hint.value;
+		}
+	}
+	return identifiers;
+}
+
+function buildIdentityPromotedFields(
+	plan: EnrichmentPlan,
+	artifacts: EnrichmentRunResult['artifacts']
+): EnrichmentCompletionPromotedFields | undefined {
+	const primary = artifacts[0];
+	if (!primary) {
+		return undefined;
+	}
+
+	const data = toRecordMaybe(primary.data) ?? {};
+	const name = resolveDisplayText(data.name) ?? resolveDisplayText(data.title);
+	const description = resolveDisplayText(data.description) ?? resolveDisplayText(data.summary);
+	const image =
+		resolveHttpUrl(data.image) ??
+		resolveHttpUrl(data.imageUrl) ??
+		resolveHttpUrl(data.coverUrl) ??
+		resolveHttpUrl(data.thumbnailUrl) ??
+		resolveHttpUrl(data.logoUrl);
+	const provider = resolveDisplayText(primary.meta.provider);
+	const sourceUrl = resolveDisplayText(primary.meta.sourceUrl);
+	const searchText = [
+		name,
+		description,
+		resolveDisplayText(data.artistCredit),
+		resolveDisplayText(data.publisher),
+		resolveDisplayList(data.authors),
+	]
+		.filter((value): value is string => value !== undefined)
+		.join(' ')
+		.slice(0, 20_000);
+
+	return {
+		dataResolved: {
+			...(name ? { name } : {}),
+			...(description ? { description } : {}),
+			...(image ? { image } : {}),
+			resolvedAtom: data,
+			resolution: {
+				artifactType: primary.artifact_type,
+				...(provider ? { provider } : {}),
+				...(sourceUrl ? { sourceUrl } : {}),
+				identity: plan.identity?.canonical,
+				providerPlanProvenance: plan.providerPlan?.provenance,
+			},
+		},
+		searchText,
+	};
+}
+
+function resolveDisplayList(value: unknown): string | undefined {
+	if (!Array.isArray(value)) {
+		return undefined;
+	}
+	const displayValues = value
+		.map((entry) => resolveDisplayText(entry))
+		.filter((entry): entry is string => entry !== undefined);
+	return displayValues.length > 0 ? displayValues.join(' ') : undefined;
+}
+
+function resolveHttpUrl(value: unknown): string | undefined {
+	const text = resolveString(value);
+	if (!text) {
+		return undefined;
+	}
+	try {
+		const parsed = new URL(text);
+		return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+			? parsed.toString()
+			: undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 function resolveAtomType(value: string | undefined): ClassifiedAtomInput['atomType'] {

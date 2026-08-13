@@ -196,6 +196,24 @@ describe('local detection: URL', () => {
 		const result = await parseAtom('https://example.com/9780306406157', localOnly);
 		expect(result.kind).toBe('url');
 	});
+
+	it('does not classify custom URI schemes as remotely inspectable URLs', async () => {
+		for (const input of [
+			'did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+			'urn:isbn:9780306406157',
+			'ftp://example.com/archive.bin',
+		]) {
+			const result = await parseAtom(input, localOnly);
+			expect(result.kind).toBe('plain_string');
+		}
+	});
+
+	it('keeps IID-shaped input out of the generic URL lane', async () => {
+		for (const input of ['int:isrc:USQX91300108', 'int:isrc:US:QX9:1300108']) {
+			const result = await parseAtom(input, localOnly);
+			expect(result.kind).not.toBe('url');
+		}
+	});
 });
 
 describe('local detection: ISBN', () => {

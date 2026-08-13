@@ -70,6 +70,20 @@ impl HasTxInformation for AtomConfigUpdatedResult {
     }
 }
 
+pub type AtomContextRegisteredData = RindexerMultiVaultGen::AtomContextRegistered;
+
+#[derive(Debug, Clone)]
+pub struct AtomContextRegisteredResult {
+    pub event_data: AtomContextRegisteredData,
+    pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for AtomContextRegisteredResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type AtomCreatedData = RindexerMultiVaultGen::AtomCreated;
 
 #[derive(Debug, Clone)]
@@ -79,6 +93,20 @@ pub struct AtomCreatedResult {
 }
 
 impl HasTxInformation for AtomCreatedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
+pub type AtomUriConfigUpdatedData = RindexerMultiVaultGen::AtomUriConfigUpdated;
+
+#[derive(Debug, Clone)]
+pub struct AtomUriConfigUpdatedResult {
+    pub event_data: AtomUriConfigUpdatedData,
+    pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for AtomUriConfigUpdatedResult {
     fn tx_information(&self) -> &TxInformation {
         &self.tx_information
     }
@@ -308,6 +336,20 @@ impl HasTxInformation for SharePriceChangedResult {
     }
 }
 
+pub type TimelockSetData = RindexerMultiVaultGen::TimelockSet;
+
+#[derive(Debug, Clone)]
+pub struct TimelockSetResult {
+    pub event_data: TimelockSetData,
+    pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for TimelockSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type TotalUtilizationAddedData = RindexerMultiVaultGen::TotalUtilizationAdded;
 
 #[derive(Debug, Clone)]
@@ -425,6 +467,101 @@ where
 pub struct NoExtensions {}
 pub fn no_extensions() -> NoExtensions {
     NoExtensions {}
+}
+
+pub fn atomcontextregistered_handler<TExtensions, F, Fut>(
+    custom_logic: F,
+) -> AtomContextRegisteredEventCallbackType<TExtensions>
+where
+    AtomContextRegisteredResult: Clone + 'static,
+    F: for<'a> Fn(Vec<AtomContextRegisteredResult>, Arc<EventContext<TExtensions>>) -> Fut
+        + Send
+        + Sync
+        + 'static
+        + Clone,
+    Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
+    TExtensions: Send + Sync + 'static,
+{
+    Arc::new(move |results, context| {
+        let custom_logic = custom_logic.clone();
+        let results = results.clone();
+        let context = Arc::clone(&context);
+        async move { (custom_logic)(results, context).await }.boxed()
+    })
+}
+
+type AtomContextRegisteredEventCallbackType<TExtensions> = Arc<
+    dyn for<'a> Fn(
+            &'a Vec<AtomContextRegisteredResult>,
+            Arc<EventContext<TExtensions>>,
+        ) -> BoxFuture<'a, EventCallbackResult<()>>
+        + Send
+        + Sync,
+>;
+
+pub struct AtomContextRegisteredEvent<TExtensions>
+where
+    TExtensions: Send + Sync + 'static,
+{
+    callback: AtomContextRegisteredEventCallbackType<TExtensions>,
+    context: Arc<EventContext<TExtensions>>,
+}
+
+impl<TExtensions> AtomContextRegisteredEvent<TExtensions>
+where
+    TExtensions: Send + Sync + 'static,
+{
+    pub async fn handler<F, Fut>(closure: F, extensions: TExtensions) -> Self
+    where
+        AtomContextRegisteredResult: Clone + 'static,
+        F: for<'a> Fn(Vec<AtomContextRegisteredResult>, Arc<EventContext<TExtensions>>) -> Fut
+            + Send
+            + Sync
+            + 'static
+            + Clone,
+        Fut: Future<Output = EventCallbackResult<()>> + Send + 'static,
+    {
+        Self {
+            callback: atomcontextregistered_handler(closure),
+            context: Arc::new(EventContext {
+                extensions: Arc::new(extensions),
+            }),
+        }
+    }
+}
+
+#[async_trait]
+impl<TExtensions> EventCallback for AtomContextRegisteredEvent<TExtensions>
+where
+    TExtensions: Send + Sync,
+{
+    async fn call(&self, events: Vec<EventResult>) -> EventCallbackResult<()> {
+        let events_len = events.len();
+
+        // note some can not downcast because it cant decode
+        // this happens on events which failed decoding due to
+        // not having the right abi for example
+        // transfer events with 2 indexed topics cant decode
+        // transfer events with 3 indexed topics
+        let result: Vec<AtomContextRegisteredResult> = events
+            .into_iter()
+            .filter_map(|item| {
+                item.decoded_data
+                    .downcast::<AtomContextRegisteredData>()
+                    .ok()
+                    .map(|arc| AtomContextRegisteredResult {
+                        event_data: (*arc).clone(),
+                        tx_information: item.tx_information,
+                    })
+            })
+            .collect();
+
+        if result.len() == events_len {
+            (self.callback)(&result, Arc::clone(&self.context)).await
+        } else {
+            panic!("AtomContextRegisteredEvent: Unexpected data type - expected: AtomContextRegisteredData")
+        }
+    }
 }
 
 pub fn atomcreated_handler<TExtensions, F, Fut>(
@@ -1003,6 +1140,7 @@ pub enum MultiVaultEventType<TExtensions>
 where
     TExtensions: 'static + Send + Sync,
 {
+    AtomContextRegistered(AtomContextRegisteredEvent<TExtensions>),
     AtomCreated(AtomCreatedEvent<TExtensions>),
     Deposited(DepositedEvent<TExtensions>),
     ProtocolFeeAccrued(ProtocolFeeAccruedEvent<TExtensions>),
@@ -1014,7 +1152,7 @@ where
 pub async fn multi_vault_contract(
     network: &str,
 ) -> RindexerMultiVaultGenInstance<Arc<RindexerProvider>, AnyNetwork> {
-    let address: Address = "0xebc49d356b7f64d888130d85cc6d17114a6843ec"
+    let address: Address = "0x0000000000000000000000000000000000000001"
         .parse()
         .expect("Invalid address");
     RindexerMultiVaultGen::new(
@@ -1047,6 +1185,9 @@ where
 {
     pub fn topic_id(&self) -> &'static str {
         match self {
+            MultiVaultEventType::AtomContextRegistered(_) => {
+                "0x006dfca493b1686f1cc639fa9675dbd6f4a694a9d3230c346f3879d925382097"
+            }
             MultiVaultEventType::AtomCreated(_) => {
                 "0xfd579ad7468b1720e08f84efe16900074f3ffdaaeaa82e675e5aec69bf393189"
             }
@@ -1070,6 +1211,7 @@ where
 
     pub fn event_name(&self) -> &'static str {
         match self {
+            MultiVaultEventType::AtomContextRegistered(_) => "AtomContextRegistered",
             MultiVaultEventType::AtomCreated(_) => "AtomCreated",
             MultiVaultEventType::Deposited(_) => "Deposited",
             MultiVaultEventType::ProtocolFeeAccrued(_) => "ProtocolFeeAccrued",
@@ -1094,6 +1236,18 @@ where
         let decoder_contract = decoder_contract(network);
 
         match self {
+            MultiVaultEventType::AtomContextRegistered(_) => {
+                Arc::new(move |topics: Vec<B256>, data: Bytes| {
+                    match AtomContextRegisteredData::decode_raw_log(topics, &data[0..]) {
+                        Ok(event) => {
+                            let result: AtomContextRegisteredData = event;
+                            Arc::new(result) as Arc<dyn Any + Send + Sync>
+                        }
+                        Err(error) => Arc::new(error) as Arc<dyn Any + Send + Sync>,
+                    }
+                })
+            }
+
             MultiVaultEventType::AtomCreated(_) => Arc::new(
                 move |topics: Vec<B256>, data: Bytes| match AtomCreatedData::decode_raw_log(
                     topics,
@@ -1191,7 +1345,7 @@ where
         let index_event_in_order = contract_details
             .index_event_in_order
             .as_ref()
-            .is_some_and(|vec| vec.contains(&event_name.to_string()));
+            .map_or(false, |vec| vec.contains(&event_name.to_string()));
 
         // Expect providers to have been initialized, but it's an async init so this should
         // be fast but for correctness we must await each future.
@@ -1231,8 +1385,7 @@ where
                             .networks
                             .iter()
                             .find(|n| n.name == c.network)
-                            .map(|n| n.disable_logs_bloom_checks.unwrap_or_default())
-                            .unwrap_or(false),
+                            .map_or(false, |n| n.disable_logs_bloom_checks.unwrap_or_default()),
                     }
                 })
                 .collect(),
@@ -1243,6 +1396,14 @@ where
         let callback: Arc<
             dyn Fn(Vec<EventResult>) -> BoxFuture<'static, EventCallbackResult<()>> + Send + Sync,
         > = match self {
+            MultiVaultEventType::AtomContextRegistered(event) => {
+                let event = Arc::new(event);
+                Arc::new(move |result| {
+                    let event = Arc::clone(&event);
+                    async move { event.call(result).await }.boxed()
+                })
+            }
+
             MultiVaultEventType::AtomCreated(event) => {
                 let event = Arc::new(event);
                 Arc::new(move |result| {

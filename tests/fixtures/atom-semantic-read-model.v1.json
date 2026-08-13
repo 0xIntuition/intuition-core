@@ -1,0 +1,233 @@
+{
+	"schemaVersion": "1.0.0",
+	"fixtureKind": "atom-semantic-read-model",
+	"canonicalizationPolicy": "deferred-to-public-iid-package",
+	"identityCases": [
+		{
+			"id": "p0-isrc-recording",
+			"input": "int:isrc:USQX91300108",
+			"expectedIntent": {
+				"validity": "valid",
+				"minimumProfile": "p0",
+				"schemeTyping": "unambiguous",
+				"scheme": "isrc",
+				"value": "USQX91300108",
+				"classification": "MusicRecording"
+			}
+		},
+		{
+			"id": "typed-mbid-recording",
+			"input": "int:mbid:recording:d28cfc80-b16c-47c9-a370-f13f49732e75",
+			"expectedIntent": {
+				"validity": "valid",
+				"minimumProfile": "p0",
+				"schemeTyping": "unambiguous",
+				"scheme": "mbid",
+				"entityKind": "recording",
+				"classification": "MusicRecording"
+			}
+		},
+		{
+			"id": "polymorphic-wikidata",
+			"input": "int:wd:Q42",
+			"expectedIntent": {
+				"validity": "valid",
+				"minimumProfile": "p1",
+				"schemeTyping": "polymorphic",
+				"scheme": "wd",
+				"value": "Q42",
+				"classification": null
+			}
+		},
+		{
+			"id": "invalid-isrc-value",
+			"input": "int:isrc:notanisrc",
+			"expectedIntent": {
+				"validity": "invalid",
+				"scheme": "isrc",
+				"classification": null
+			}
+		},
+		{
+			"id": "iid-lookalike",
+			"input": "int:isrc:X",
+			"expectedIntent": {
+				"validity": "invalid",
+				"scheme": "isrc",
+				"classification": null,
+				"mustNotBeTreatedAsHttpUrl": true
+			}
+		}
+	],
+	"legacyJsonAtom": {
+		"id": "legacy-json-music-recording",
+		"rawType": "json",
+		"data": "{\"@context\":\"https://schema.org/\",\"@type\":\"MusicRecording\",\"name\":\"One Last Time\",\"sameAs\":[\"https://open.spotify.com/track/007jZK4eRSKsDBSjPUbh3H\"]}",
+		"expectedIntent": {
+			"classification": "MusicRecording",
+			"identity": null,
+			"legacyCompatible": true
+		}
+	},
+	"contextCases": [
+		{
+			"id": "ordered-duplicate-and-unsafe-context",
+			"entries": [
+				{
+					"ordinal": 0,
+					"uri": "https://open.spotify.com/track/007jZK4eRSKsDBSjPUbh3H",
+					"source": "onchain",
+					"expectedLinkable": true
+				},
+				{
+					"ordinal": 1,
+					"uri": "https://open.spotify.com/track/007jZK4eRSKsDBSjPUbh3H",
+					"source": "onchain",
+					"expectedLinkable": true
+				},
+				{
+					"ordinal": 2,
+					"uri": "javascript:alert(1)",
+					"source": "onchain",
+					"expectedLinkable": false
+				},
+				{
+					"ordinal": 3,
+					"uri": null,
+					"raw": "0xff00",
+					"source": "onchain",
+					"expectedLinkable": false,
+					"expectedDisplay": "0xff00"
+				},
+				{
+					"ordinal": 4,
+					"uri": "https://user:secret@example.com/",
+					"source": "onchain",
+					"expectedLinkable": false
+				},
+				{
+					"ordinal": 5,
+					"uri": "ipfs://bafybeigdyrzt5s",
+					"source": "onchain",
+					"expectedLinkable": false
+				},
+				{
+					"ordinal": 6,
+					"uri": "not a URI",
+					"source": "onchain",
+					"expectedLinkable": false
+				}
+			]
+		}
+	],
+	"resolutionCases": [
+		{
+			"id": "unresolved-isrc",
+			"source": {
+				"id": "0x1111111111111111111111111111111111111111111111111111111111111111",
+				"rawType": "iid",
+				"data": "int:isrc:USQX91300108",
+				"dataResolved": {},
+				"parseResult": {
+					"kind": "iid",
+					"normalizedInput": "int:isrc:USQX91300108",
+					"identity": {
+						"raw": "int:isrc:USQX91300108",
+						"canonical": "int:isrc:USQX91300108",
+						"scheme": "isrc",
+						"value": "USQX91300108",
+						"class": "A",
+						"typing": "unambiguous",
+						"anchorEligible": true,
+						"provenance": {
+							"producer": "@0xintuition/iid/inspectIntuitionId",
+							"version": "0.1.0-alpha.0",
+							"specificationVersion": "@0xintuition/iid-spec@0.1.0-alpha.0"
+						}
+					}
+				},
+				"classificationType": "MusicRecording",
+				"classificationStatus": "completed",
+				"enrichmentStatus": "pending"
+			},
+			"expected": {
+				"resolutionStatus": "pending",
+				"displayName": null
+			}
+		},
+		{
+			"id": "resolved-isrc",
+			"source": {
+				"id": "0x2222222222222222222222222222222222222222222222222222222222222222",
+				"rawType": "iid",
+				"data": "int:isrc:USQX91300108",
+				"dataResolved": {
+					"name": "One Last Time",
+					"description": "A resolved recording",
+					"image": "https://images.example/one-last-time.jpg"
+				},
+				"parseResult": {
+					"kind": "iid",
+					"normalizedInput": "int:isrc:USQX91300108",
+					"profile": "p0",
+					"scheme": "isrc",
+					"value": "USQX91300108",
+					"valid": true,
+					"anchorEligible": true
+				},
+				"classificationType": "MusicRecording",
+				"classificationStatus": "completed",
+				"classificationResult": {
+					"source": "iid-registry"
+				},
+				"enrichmentStatus": "completed",
+				"enrichedAt": "2026-08-10T00:00:00.000Z"
+			},
+			"expected": {
+				"resolutionStatus": "resolved",
+				"displayName": "One Last Time",
+				"displayImage": "https://images.example/one-last-time.jpg"
+			}
+		},
+		{
+			"id": "retryable-provider-failure",
+			"source": {
+				"id": "0x3333333333333333333333333333333333333333333333333333333333333333",
+				"rawType": "iid",
+				"data": "int:isrc:USQX91300108",
+				"dataResolved": {},
+				"classificationType": "MusicRecording",
+				"classificationStatus": "completed",
+				"enrichmentStatus": "failed",
+				"enrichmentError": {
+					"code": "provider_rate_limited",
+					"retriable": true
+				}
+			},
+			"expected": {
+				"resolutionStatus": "retryable",
+				"displayName": null
+			}
+		},
+		{
+			"id": "terminal-unsupported-identity",
+			"source": {
+				"id": "0x4444444444444444444444444444444444444444444444444444444444444444",
+				"rawType": "iid",
+				"data": "int:wd:Q42",
+				"dataResolved": {},
+				"classificationType": "Unknown",
+				"classificationStatus": "completed",
+				"enrichmentStatus": "failed",
+				"enrichmentError": {
+					"code": "unsupported_identity",
+					"retriable": false
+				}
+			},
+			"expected": {
+				"resolutionStatus": "terminal",
+				"displayName": null
+			}
+		}
+	]
+}

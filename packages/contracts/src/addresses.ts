@@ -33,6 +33,8 @@ export type DeploymentAddresses = {
 	SatelliteEmissionsController?: Address;
 	TrustBonding?: Address;
 	BaseEmissionsController?: Address;
+	/** Library address linked into the 1.1+ MultiVault implementation. */
+	MultiVaultLib?: Address;
 	MultiVaultImplementation?: Address;
 	deployer?: Address;
 };

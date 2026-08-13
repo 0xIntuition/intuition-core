@@ -12,6 +12,7 @@ export { createMusicBrainzPlugin } from './musicbrainz';
 export { createNpmPlugin } from './npm';
 export { createOEmbedPlugin } from './oembed';
 export { createOpenGraphPlugin } from './opengraph';
+export { createOpenLibraryPlugin, resolveOpenLibraryTarget } from './openlibrary';
 export { createPlacesPlugin, parseMapsUrl } from './places';
 export {
 	createPodcastIndexPlugin,
