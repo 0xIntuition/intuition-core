@@ -23,14 +23,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MultiVaultMigrationModeBytecode } from '@0xintuition/contracts-v2/bytecodes';
-import { type Address, createPublicClient, formatEther, http } from 'viem';
+import {
+	MultiVaultMigrationModeBytecode,
+	MultiVaultMigrationModeLinkReferences,
+} from '@0xintuition/contracts-v2/bytecodes';
+import { type Address, createPublicClient, formatEther, http, zeroAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { parseDeploymentState } from '../addresses';
 import { runCreateAtomAcceptance } from './acceptance';
 import { DEPLOY_TARGETS, type DeployTarget } from './config';
-import { deployIntuitionSystem, targetChain } from './system';
+import { deployIntuitionSystem, linkMultiVaultLibraryBytecode, targetChain } from './system';
 
 // Anvil dev account #0 — the universal Foundry dev key, safe only for local chains.
 // gitleaks:allow (publicly documented, pre-funded only on local anvil)
@@ -93,7 +96,14 @@ if (isLocal) {
 	try {
 		await publicClient.estimateGas({
 			account: account.address,
-			data: MultiVaultMigrationModeBytecode,
+			// The published 1.1 bytecode contains a MultiVaultLib placeholder.
+			// Linking to any address is sufficient for this code-size-only probe;
+			// the deployment path links to the actual library address.
+			data: linkMultiVaultLibraryBytecode(
+				MultiVaultMigrationModeBytecode,
+				MultiVaultMigrationModeLinkReferences,
+				zeroAddress
+			),
 		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
@@ -153,7 +163,7 @@ if (state) {
 }
 
 console.log(`==> MultiVault proxy: ${state.MultiVault}`);
-console.log(`==> Acceptance: createAtoms on ${state.MultiVault}`);
+console.log(`==> Acceptance: createAtomsWithUris on ${state.MultiVault}`);
 await runCreateAtomAcceptance({ rpcUrl, account, multiVault: state.MultiVault, target });
 
 console.log('==> DONE');
