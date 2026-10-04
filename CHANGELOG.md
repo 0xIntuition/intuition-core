@@ -10,6 +10,35 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Added
 
+- Intuition Identifier (IID) read path across the stack, all behind
+  default-off flags: `WORKERS_IID_READ_ENABLED` and
+  `WORKERS_IID_RESOLUTION_ENABLED` (workers), `API_ATOM_SEMANTIC_READS_ENABLED`
+  (API) and `VITE_ATOM_SEMANTIC_READS_ENABLED` (explorer). Workers receive
+  identity through an injected adapter and fail closed when reads are enabled
+  without one; the API exposes `GET /api/iids/:iid/atoms` and an additive
+  `raw` / `identity` / `classification` / `context` / `resolution` / `display`
+  envelope on atom reads. `POST /api/atoms` and `POST /api/triples` are
+  unchanged.
+- On-chain URI context: the `AtomContextRegistered` event is indexed into the
+  typed event tables (Timescale migration `050`) and projected into
+  `kg.node_contexts` by the `atom_context:dual` projection. KG schema gains a
+  nullable `kg.nodes.iid` column with a partial index (drizzle `0003`) and the
+  `kg.node_contexts` table (drizzle `0004`), plus a bounded IID reconciliation
+  action (dry-run and apply).
+- `@0xintuition/contracts-v2` `1.1.0-alpha.0`: regenerated ABIs, vendored
+  AtomWarden, MultiVaultSizeFit and WrappedTrust artifacts, v1.1 deploy tooling
+  and a devnet IID fixture script.
+- OpenLibrary enrichment provider and an explicit provider plan; `iid` atom
+  detection kind in the parser.
+
+### Changed
+
+- New atoms carry an empty `search_text` until a worker promotes it, so
+  `GET /api/atoms?q=` does not match them until the worker has run.
+- Service Dockerfiles use a pinned Rust builder, `--locked` builds and a copied
+  `Cargo.lock`; Compose passes the new flags through with their default-off
+  values and defaults `USE_TYPED_READER` to on.
+
 - Published `intuition-curves` v0.1.0 to crates.io and verified the registry
   artifact, docs.rs build, Intuition team ownership, and a clean consumer build.
   crates.io checksum:
