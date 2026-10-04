@@ -10,6 +10,7 @@ export type PublicIidLadderModule = {
 	identityRungsForCategory(category: string): readonly string[];
 	iidForIdentityRung(rung: string, value: string, schemaType?: string): string | undefined;
 	isPlainWdPrimaryAllowed(schemaType?: string): boolean;
+	resolveWikidataP31Identity?(p31: readonly string[]): { schemaType: string };
 	projectIdentifierLadder(input: {
 		providerCanonicalId?: string;
 		canonicalUrl?: string;
@@ -29,6 +30,8 @@ export type IdentityRungInput = {
 export type IidLadderAdapter = {
 	projectIdentityRungs(input: IdentityRungInput): IdentityRungProjection;
 	isPlainWdPrimaryAllowed(schemaType?: string): boolean;
+	resolveWikidataSchemaType?(p31: string[]): string | undefined;
+	wikidataTypeProvenance?: { producer: string; version: string };
 };
 
 export function createIidLadderAdapter(
@@ -41,6 +44,18 @@ export function createIidLadderAdapter(
 			'@0xintuition/iid-ladder adapter requires an exact version.'
 		);
 	return {
+		...(module.resolveWikidataP31Identity
+			? {
+					resolveWikidataSchemaType(p31: string[]) {
+						const schemaType = module.resolveWikidataP31Identity?.(p31).schemaType;
+						return schemaType && schemaType !== 'Thing' ? schemaType : undefined;
+					},
+					wikidataTypeProvenance: {
+						producer: '@0xintuition/iid-ladder/resolveWikidataP31Identity',
+						version,
+					},
+				}
+			: {}),
 		isPlainWdPrimaryAllowed: (schemaType) => module.isPlainWdPrimaryAllowed(schemaType),
 		projectIdentityRungs(input) {
 			// Registry/plugin categories may be broad (Media/thing). Only a package

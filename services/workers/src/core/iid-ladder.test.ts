@@ -91,6 +91,28 @@ function identityFor(iid: string) {
 
 describe('injected IID ladder policy', () => {
 	const adapter = () => createIidLadderAdapter(fake, inspection);
+	test('a legacy ladder without the P31 function exposes no enrichment capability', () => {
+		expect(adapter().resolveWikidataSchemaType).toBeUndefined();
+		expect(adapter().wikidataTypeProvenance).toBeUndefined();
+	});
+	test('delegates P31 schema resolution to the injected module with provenance', () => {
+		const calls: string[][] = [];
+		const module = {
+			...fake,
+			resolveWikidataP31Identity(p31: readonly string[]) {
+				calls.push([...p31]);
+				return { schemaType: p31.includes('Q11424') ? 'Movie' : 'Thing' };
+			},
+		};
+		const result = createIidLadderAdapter(module, inspection);
+		expect(result.resolveWikidataSchemaType?.(['Q11424'])).toBe('Movie');
+		expect(result.resolveWikidataSchemaType?.(['Q999999'])).toBeUndefined();
+		expect(calls).toEqual([['Q11424'], ['Q999999']]);
+		expect(result.wikidataTypeProvenance).toEqual({
+			producer: '@0xintuition/iid-ladder/resolveWikidataP31Identity',
+			version: '1.2.3',
+		});
+	});
 	test.each([
 		'identity',
 		'providerCanonicalId',

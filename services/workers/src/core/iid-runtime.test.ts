@@ -10,6 +10,7 @@ const fakeLadder = {
 	iidForIdentityRung: () => undefined,
 	projectIdentifierLadder: () => ({ iid: null }),
 	isPlainWdPrimaryAllowed: () => false,
+	resolveWikidataP31Identity: () => ({ schemaType: 'Movie' }),
 };
 
 describe('IID worker runtime composition', () => {
@@ -50,6 +51,7 @@ describe('IID worker runtime composition', () => {
 			rungs: [],
 			provenance: { version: '0.1.0-alpha.0' },
 		});
+		expect(adapters.iidLadder.resolveWikidataSchemaType?.(['Q11424'])).toBe('Movie');
 		const inspection = adapters.iidInspection.inspect('int:isrc:USUM71703861');
 		expect(inspection.valid).toBe(true);
 		expect(adapters.iidInspection.provenance).toEqual({

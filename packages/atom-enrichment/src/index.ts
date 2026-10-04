@@ -39,6 +39,7 @@ export type {
 } from './plugin-registry';
 export { createEnrichmentPluginRegistry } from './plugin-registry';
 export type {
+	EnrichmentIdentityCapability,
 	EnrichmentPlugin,
 	EnrichmentPluginContext,
 	EnrichmentPluginLogger,

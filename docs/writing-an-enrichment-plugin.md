@@ -94,6 +94,26 @@ treated as `identifier` for admission; their metadata is not rewritten.
 Keep the provenance of the request that selected the resource even if the
 response contains a QID or page URL.
 
+`EnrichmentPluginContext.identity` is an optional, host-injected
+`EnrichmentIdentityCapability` with a required stable, version-bearing `fingerprint` and one synchronous function:
+`resolveWikidataSchemaType(p31EntityIds: string[]): string | undefined`.
+The injected ladder module's pinned P31 closure supplies the schema type;
+unknown types (`Thing`) return `undefined`. Plugins must fail soft when the
+capability is absent and must never import identity packages or define their
+own P31 identity maps. Wikipedia and Wikidata title lookups use this capability
+to return no artifact on a type mismatch, retain `identityStrength: 'title'`
+when the type is unknown, and omit that marker on agreement so the QID and
+Wikidata `sameAs` can contribute identity. Schema.org TV, music, and artist
+families can agree across related types. Direct URLs and identifier lookups
+bypass the gate. Without the capability, provider outputs stay unchanged.
+
+The enrichment worker composes the capability from the injected ladder adapter
+under `WORKERS_IID_READ_ENABLED` when the ladder exposes the resolver. It forwards
+the capability per engine through `createEngine(preset, { identity })` into
+`pluginContext.identity`; reads enabled without a ladder fail closed at startup.
+With reads off, plugin context has no identity capability. The worker entrypoint
+wires adapters at the C14 composition boundary.
+
 Classification handoffs preserve optional `source.provider` (1–128 characters)
 and `source.fallbackStage` (1–64 characters). Name-search providers use these
 to reject classifier-generated generic titles. Direct identifiers and resource
@@ -130,3 +150,9 @@ If your source implies a *type* (not just metadata), also write a
 [classification plugin](./writing-a-classification-plugin.md) so atoms from
 your domain get the right `classificationType` — the two plugin systems are
 designed to compose.
+
+The engine includes `identity.fingerprint` (or `no-identity` when absent) in every plugin cache key. The worker derives it from the ladder adapter package version and resolver provenance; policy changes must change the fingerprint. Resolver and optional P31 fetch failures retain title strength, and caller cancellation propagates.
+
+A present capability must have a non-empty, already trimmed string fingerprint of at most 256 characters. The marker `no-identity` is reserved for absence. Invalid fingerprints fail engine construction. With reads enabled and a resolver present, missing or empty producer/version provenance throws a worker configuration error; a legacy adapter without the resolver intentionally supplies no capability and logs once per adapter.
+
+Pass the caller's signal through the type-agreement boundary. Resolver and optional entity-fetch catches rethrow the original error whenever that signal is aborted, including ordinary `Error` values used for cancellation. With an active signal, resolver failures become `unknown`. The Wikidata provider's mandatory entity fetch retains its strict validation and error behavior.

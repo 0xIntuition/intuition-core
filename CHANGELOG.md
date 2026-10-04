@@ -44,6 +44,7 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Changed
 
+- Add an optional injected P31 type gate for Wikipedia/Wikidata title hits (ENG-16295): mismatches yield no artifact and agreements admit identity; worker and runtime forwarding are complete under `WORKERS_IID_READ_ENABLED`; the worker entrypoint wires adapters at the C14 composition boundary.
 - IMDb title URLs resolve through TMDB `/find` and fail closed without a TMDB key, never fetching IMDb HTML (intuition-v2 ENG-15960).
 - Spotify albums and artists classify as `music-album` and `artist` with unchanged canonical ids; this identity-affecting change follows intuition-v2 ENG-15998.
 - Wikidata labels and descriptions use a stable requested-locale/English/`mul` policy (intuition-v2 ENG-16199).

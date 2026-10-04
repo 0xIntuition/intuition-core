@@ -51,6 +51,12 @@ const PACKAGE_VERSION = '0.1.0-alpha.0';
 const NOW = '2026-08-12T12:00:00.000Z';
 
 describeWithPublicPackages('canonical IID semantic enrichment acceptance', () => {
+	test('real ladder P31 closure resolves film and human and fails soft for unknown', async () => {
+		const adapter = await realLadder();
+		expect(adapter.resolveWikidataSchemaType?.(['Q11424'])).toBe('Movie');
+		expect(adapter.resolveWikidataSchemaType?.(['Q5'])).toBe('Person');
+		expect(adapter.resolveWikidataSchemaType?.(['Q999999'])).toBeUndefined();
+	});
 	test.each([
 		['MusicAlbum', 'int:gtin:00012345678905'],
 		['PodcastSeries', 'int:wd:film:Q83495'],

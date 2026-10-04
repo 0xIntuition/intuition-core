@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
 	createClassificationEngine,
 	createSpotifyPlugin,
@@ -6,16 +6,105 @@ import {
 	jsonLdTypeCategorySchema,
 } from '@0xintuition/atom-classification';
 import { classifiedAtomInputSchema } from '@0xintuition/atom-enrichment';
+import { WorkerConfigurationError } from '../shared/errors';
 import { deriveClassificationPlan, deriveClassificationResultFromRuntime } from './classification';
 import {
 	buildClassifiedInputFromPlan,
 	buildEnrichmentCompletionPromotedFields,
 	buildIidProviderExecutionPlan,
+	composeEnrichmentIdentityCapability,
 	deriveEnrichmentPlan,
 	evaluateEnrichmentCompletion,
 	evaluateEnrichmentProcessingScope,
 	getArtifactTypeAllowListForEnrichmentPlan,
 } from './enrichment';
+import { createIidLadderAdapter, type IidLadderAdapter } from './iid-ladder';
+
+test('I-2: a legacy ladder remains absent and logs once per adapter', () => {
+	const ladder = {
+		projectIdentityRungs: () => {
+			throw new Error('unused');
+		},
+		isPlainWdPrimaryAllowed: () => false,
+	} as IidLadderAdapter;
+	const warn = spyOn(console, 'warn').mockImplementation(() => {});
+	try {
+		expect(
+			composeEnrichmentIdentityCapability({ iidReadEnabled: false, iidLadder: ladder })
+		).toBeUndefined();
+		expect(warn).not.toHaveBeenCalled();
+		for (let i = 0; i < 2; i++)
+			expect(
+				composeEnrichmentIdentityCapability({ iidReadEnabled: true, iidLadder: ladder })
+			).toBeUndefined();
+		expect(warn).toHaveBeenCalledTimes(1);
+	} finally {
+		warn.mockRestore();
+	}
+});
+
+for (const provenance of [
+	undefined,
+	{ producer: '', version: '1' },
+	{ producer: 'policy/resolver', version: '' },
+	{ producer: ' ', version: '1' },
+	{ producer: 'policy/resolver', version: ' ' },
+]) {
+	test(`I-2: enabled resolver rejects invalid provenance ${JSON.stringify(provenance)}`, () => {
+		const ladder = {
+			projectIdentityRungs: () => {
+				throw new Error('unused');
+			},
+			isPlainWdPrimaryAllowed: () => false,
+			resolveWikidataSchemaType: () => 'Movie',
+			wikidataTypeProvenance: provenance,
+		} satisfies IidLadderAdapter;
+		expect(() =>
+			composeEnrichmentIdentityCapability({ iidReadEnabled: true, iidLadder: ladder })
+		).toThrow(WorkerConfigurationError);
+		expect(
+			composeEnrichmentIdentityCapability({ iidReadEnabled: false, iidLadder: ladder })
+		).toBeUndefined();
+	});
+}
+
+test('enrichment identity capability is composed only for enabled reads with a capable ladder', () => {
+	const compose = composeEnrichmentIdentityCapability;
+	let calls = 0;
+	const ladder = createIidLadderAdapter(
+		{
+			IDENTITY_CATEGORY_RUNG_POLICY: {},
+			IDENTITY_CATEGORY_ALIAS_ONLY_POLICY: {},
+			SCHEMA_TYPE_IDENTITY_CATEGORIES: {},
+			identityRungsForCategory: () => [],
+			iidForIdentityRung: () => undefined,
+			isPlainWdPrimaryAllowed: () => false,
+			projectIdentifierLadder: () => ({ iid: null }),
+			resolveWikidataP31Identity: () => {
+				calls += 1;
+				return { schemaType: 'Movie' };
+			},
+			packageVersion: '1.2.3',
+		},
+		{ inspect: () => ({ valid: false, reason: 'malformed' }) }
+	);
+	const identity = compose({ iidReadEnabled: true, iidLadder: ladder });
+	expect(identity?.fingerprint).toBe('@0xintuition/iid-ladder@1.2.3/resolveWikidataP31Identity');
+	expect(identity?.resolveWikidataSchemaType(['Q11424'])).toBe('Movie');
+	expect(calls).toBe(1);
+	expect(compose({ iidReadEnabled: false, iidLadder: ladder })).toBeUndefined();
+	expect(compose({ iidReadEnabled: true })).toBeUndefined();
+	expect(
+		compose({
+			iidReadEnabled: true,
+			iidLadder: {
+				projectIdentityRungs: ladder.projectIdentityRungs,
+				isPlainWdPrimaryAllowed: ladder.isPlainWdPrimaryAllowed,
+			},
+		})
+	).toBeUndefined();
+	expect(calls).toBe(1);
+});
 
 describe('KG enrichment core', () => {
 	for (const [kind, category, schemaType] of [

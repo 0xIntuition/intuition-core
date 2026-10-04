@@ -8,7 +8,8 @@ import {
 	getRequestUrl,
 	isSynthesizedProviderPlaceholderTitle,
 } from '../__shared__/request';
-import { wikidataEntityLookupResponseSchema, wikidataSearchResponseSchema } from './external';
+import { fetchWikidataEntity, wikidataTypeAgreement } from '../__shared__/wikidata-type';
+import { wikidataSearchResponseSchema } from './external';
 import { wikidataDataSchema } from './schema';
 
 type CreateWikidataPluginOptions = {
@@ -83,17 +84,21 @@ export function createWikidataPlugin(options: CreateWikidataPluginOptions = {}):
 				}
 			}
 
-			const payload = await fetchJsonWithSchema(
-				fetcher,
-				`https://www.wikidata.org/wiki/Special:EntityData/${encodeURIComponent(entityId)}.json`,
-				wikidataEntityLookupResponseSchema,
-				{ signal: ctx.signal }
-			);
-
-			const entity = payload.entities?.[entityId];
+			const entity = await fetchWikidataEntity(fetcher, entityId, ctx.signal);
 			if (!entity) {
 				return [];
 			}
+			const agreement =
+				identityStrength === 'title'
+					? wikidataTypeAgreement(
+							entity.claims,
+							request.input.jsonLd['@type'],
+							ctx.identity,
+							ctx.logger,
+							ctx.signal
+						)
+					: 'unknown';
+			if (agreement === 'mismatch') return [];
 
 			const label = pickWikidataLabel(entity.labels, language) ?? entity.id;
 			if (!label) {
@@ -119,7 +124,7 @@ export function createWikidataPlugin(options: CreateWikidataPluginOptions = {}):
 					}),
 					meta: {
 						pluginId: 'wikidata',
-						identityStrength,
+						...(agreement === 'agree' ? {} : { identityStrength }),
 						provider: 'wikidata',
 						fetchedAt: ctx.now(),
 						sourceUrl,

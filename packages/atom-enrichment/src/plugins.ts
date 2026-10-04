@@ -39,11 +39,19 @@ export type EnrichmentPluginLogger = {
 	error(message: string, meta?: Record<string, unknown>): void;
 };
 
+/** Optional host-injected identity policy; providers never import identity packages. */
+export type EnrichmentIdentityCapability = {
+	/** Stable version-bearing cache policy identifier: trimmed, non-empty, at most 256 characters, never `no-identity`. Invalid capabilities fail engine construction. */
+	fingerprint: string;
+	resolveWikidataSchemaType(p31EntityIds: string[]): string | undefined;
+};
+
 export type EnrichmentPluginContext = {
 	now(): string;
 	signal: AbortSignal;
 	logger?: EnrichmentPluginLogger;
 	secrets?: Record<string, string>;
+	identity?: EnrichmentIdentityCapability;
 };
 
 export type EnrichmentPlugin = EnrichmentPluginManifest & {

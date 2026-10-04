@@ -1,9 +1,11 @@
 import {
 	type ClassifiedAtomInput,
 	createIdentifierProviderPlan,
+	type EnrichmentIdentityCapability,
 	type EnrichmentRunResult,
 	type IdentifierProviderPlanEntry,
 } from '@0xintuition/atom-enrichment';
+import { WorkerConfigurationError } from '../shared/errors';
 import {
 	getProcessingScopeDomains,
 	type ProcessingDomain,
@@ -15,10 +17,48 @@ import type {
 	IdentityProviderPlan,
 	NormalizedAtomIdentity,
 } from './identity-contract';
+import type { IidLadderAdapter } from './iid-ladder';
 import type { CompactParseResult } from './parse';
 import { resolveFallbackUrl, resolveStructuredDocumentTarget } from './structured-targets';
 
 export const WEBSITE_ARTIFACT_TYPE_ALLOWLIST = ['opengraph', 'favicon', 'brand'] as const;
+const warnedLegacyLadders = new WeakSet<IidLadderAdapter>();
+
+/** Prepare optional plugin policy at the worker's injected-adapter boundary. */
+export function composeEnrichmentIdentityCapability(input: {
+	iidReadEnabled: boolean;
+	iidLadder?: IidLadderAdapter;
+}): EnrichmentIdentityCapability | undefined {
+	const ladder = input.iidLadder;
+	if (!input.iidReadEnabled || !ladder) return undefined;
+	if (!ladder.resolveWikidataSchemaType) {
+		if (!warnedLegacyLadders.has(ladder)) {
+			warnedLegacyLadders.add(ladder);
+			console.warn(
+				'IID ladder has no Wikidata type resolver; enrichment identity capability is absent.'
+			);
+		}
+		return undefined;
+	}
+	const provenance = ladder.wikidataTypeProvenance;
+	if (
+		!provenance ||
+		typeof provenance.producer !== 'string' ||
+		!provenance.producer.trim() ||
+		typeof provenance.version !== 'string' ||
+		!provenance.version.trim()
+	) {
+		throw new WorkerConfigurationError(
+			'IID ladder Wikidata type resolver requires non-empty producer and version provenance.'
+		);
+	}
+	const { producer, version } = provenance;
+	const boundary = producer.lastIndexOf('/');
+	return {
+		fingerprint: `${producer.slice(0, boundary)}@${version}/${producer.slice(boundary + 1)}`,
+		resolveWikidataSchemaType: ladder.resolveWikidataSchemaType.bind(ladder),
+	};
+}
 export const SPOTIFY_TRACK_ARTIFACT_TYPE_ALLOWLIST = [
 	'opengraph',
 	'favicon',

@@ -14,13 +14,19 @@ import {
 	buildClassifiedInputFromPlan,
 	buildEnrichmentCompletionPromotedFields,
 	buildIidProviderExecutionPlan,
+	composeEnrichmentIdentityCapability,
 	deriveEnrichmentPlan,
 	evaluateEnrichmentCompletion,
 	evaluateEnrichmentProcessingScope,
 } from '../../core/enrichment';
+import type { IidLadderAdapter } from '../../core/iid-ladder';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
-import { classifyWorkerError, toProcessingError } from '../../shared/errors';
+import {
+	classifyWorkerError,
+	toProcessingError,
+	WorkerConfigurationError,
+} from '../../shared/errors';
 import {
 	createBoundedScheduler,
 	RECONCILE_BATCH_SIZE_MULTIPLIER,
@@ -48,11 +54,17 @@ export async function runKgEnrichmentWorker(input: {
 	metrics: WorkerMetrics;
 	signal: AbortSignal;
 	heartbeat: Heartbeat;
+	iidLadder?: IidLadderAdapter;
 	circuits: {
 		database: CircuitBreaker;
 		runtime: CircuitBreaker;
 	};
 }): Promise<void> {
+	const iidLadder = input.config.iidReadEnabled ? requireIidLadder(input.iidLadder) : undefined;
+	const identity = composeEnrichmentIdentityCapability({
+		iidReadEnabled: input.config.iidReadEnabled,
+		iidLadder,
+	});
 	const enrichmentRuntime = createEnrichmentRuntime({
 		defaultPreset: input.config.defaultPreset,
 		cacheProvider: input.config.cacheProvider,
@@ -128,7 +140,10 @@ export async function runKgEnrichmentWorker(input: {
 				return;
 			}
 
-			const engine = enrichmentRuntime.createEngine(input.config.defaultPreset);
+			const engine = enrichmentRuntime.createEngine(
+				input.config.defaultPreset,
+				identity ? { identity } : undefined
+			);
 			const iidProviderExecution = buildIidProviderExecutionPlan({
 				plan,
 				registeredPluginIds: engine.listPlugins().map((plugin) => plugin.id),
@@ -411,4 +426,12 @@ export async function runKgEnrichmentWorker(input: {
 			});
 		}
 	}
+}
+
+function requireIidLadder(adapter: IidLadderAdapter | undefined): IidLadderAdapter {
+	if (!adapter)
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-ladder adapter for IID enrichment.'
+		);
+	return adapter;
 }

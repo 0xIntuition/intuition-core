@@ -70,8 +70,10 @@ automatically.
 
 The IID adapters consume injected `@0xintuition/iid`, `@0xintuition/iid-registry`,
 and `@0xintuition/iid-ladder` modules with exact installed manifest versions.
+The enrichment worker composes the capability for the optional Wikipedia/Wikidata P31 gate from the injected ladder adapter under `WORKERS_IID_READ_ENABLED` and forwards it through the service runtime and engine into plugin context. The worker entrypoint wires adapters at the C14 composition boundary.
 The third module owns primary-rung and alias-only policy. Classification fails
 closed when `WORKERS_IID_READ_ENABLED` is enabled without an `iidLadder` adapter.
+Enrichment also fails closed at startup when reads are enabled without that adapter.
 Rung projections persist in `classificationResult`; a policy-admitted primary
 fills `nodes.iid` only when it is null. With the flag off, the legacy path is unchanged.
 The ladder adapter also receives the injected IID inspector to enforce alias-only,
