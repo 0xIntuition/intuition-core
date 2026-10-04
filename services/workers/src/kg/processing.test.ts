@@ -6,6 +6,29 @@ import {
 } from './processing';
 
 describe('KG processing helpers', () => {
+	const provenance = { producer: 'probe', version: '1' };
+	const validRungs = {
+		primary: { rung: 'isbn', iid: 'int:isbn:9780684832722' },
+		rungs: [
+			{ rung: 'isbn', value: '9780684832722', iid: 'int:isbn:9780684832722', aliasOnly: false },
+		],
+		provenance,
+	};
+	test.each([
+		{ provenance },
+		{ ...validRungs, rungs: [{ ...validRungs.rungs[0], aliasOnly: 'false' }] },
+		{ ...validRungs, rungs: [{ ...validRungs.rungs[0], iid: 42 }] },
+		{ ...validRungs, primary: { rung: 'isbn', iid: 42 } },
+	])('finding 4: ignores malformed persisted identityRungs %#', (identityRungs) => {
+		const record = { status: 'recognized', source: 'probe', identityRungs };
+		const result = toClassificationResultMaybe(record);
+		expect(result).toEqual({ status: 'recognized', source: 'probe' });
+		expect(record.identityRungs).toBe(identityRungs);
+	});
+	test('retains valid persisted identityRungs', () => {
+		const record = { status: 'recognized' as const, source: 'probe', identityRungs: validRungs };
+		expect(toClassificationResultMaybe(record)).toEqual(record);
+	});
 	test('reads run ids from processing metadata', () => {
 		expect(getProcessingMetaString({ parseRunId: 'run-1' }, 'parseRunId')).toBe('run-1');
 		expect(() => getProcessingMetaString({}, 'parseRunId')).toThrow(/parseRunId/);

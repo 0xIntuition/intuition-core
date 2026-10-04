@@ -8,6 +8,9 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ## Unreleased
 
+- Inject IID ladder policy into worker classification, persisting rung projections and filling missing primary IIDs under the IID read flag.
+- Enforce ladder admission for canonical identity and fallback inputs, exclude URL IIDs, and ignore malformed rung projections before promotion or enrichment.
+
 ### Added
 
 - Typed Wikidata IID adapter conformance and colon-preserving path coverage, including dormant identity handoffs.

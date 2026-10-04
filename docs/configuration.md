@@ -68,6 +68,17 @@ automatically.
 | `WORKERS_IID_READ_ENABLED` | `false` | enable IID parse/classification reads after package and persistence compatibility is verified |
 | `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
 
+The IID adapters consume injected `@0xintuition/iid`, `@0xintuition/iid-registry`,
+and `@0xintuition/iid-ladder` modules with exact installed manifest versions.
+The third module owns primary-rung and alias-only policy. Classification fails
+closed when `WORKERS_IID_READ_ENABLED` is enabled without an `iidLadder` adapter.
+Rung projections persist in `classificationResult`; a policy-admitted primary
+fills `nodes.iid` only when it is null. With the flag off, the legacy path is unchanged.
+The ladder adapter also receives the injected IID inspector to enforce alias-only,
+URL exclusion, and plain-Wikidata admission across canonical input paths. Legacy
+identity metadata does not establish admission. Malformed persisted rung projections
+are ignored while the remaining classification record is retained.
+
 Typed Wikidata IIDs are handled entirely by the injected `iid` module, including validity, typing, and anchor eligibility. Core's Rust path stores them opaquely as strings with `Unknown` classification; the TS parse worker persists the module's identity even when it is not anchor-eligible.
 
 ## Atom services (`services/atom-services`)

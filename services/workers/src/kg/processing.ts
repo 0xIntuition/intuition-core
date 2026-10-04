@@ -2,6 +2,7 @@ import type { WorkerClassificationResult } from '../core/classification';
 import {
 	isIdentityClassificationDecision,
 	isIdentityProviderPlan,
+	isIdentityRungProjection,
 	isNormalizedAtomIdentity,
 	isSemanticContractProvenance,
 } from '../core/identity-contract';
@@ -72,6 +73,10 @@ export function toClassificationResultMaybe(value: unknown): WorkerClassificatio
 	}
 	if (maybe.providerPlan !== undefined && !isIdentityProviderPlan(maybe.providerPlan)) {
 		return null;
+	}
+	if (maybe.identityRungs !== undefined && !isIdentityRungProjection(maybe.identityRungs)) {
+		const { identityRungs: _malformed, ...classification } = maybe;
+		return classification as WorkerClassificationResult;
 	}
 
 	return maybe as WorkerClassificationResult;

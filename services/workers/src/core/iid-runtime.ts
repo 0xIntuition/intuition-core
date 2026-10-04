@@ -5,6 +5,11 @@ import {
 	type PublicIidInspection,
 } from './iid-inspection';
 import {
+	createIidLadderAdapter,
+	type IidLadderAdapter,
+	type PublicIidLadderModule,
+} from './iid-ladder';
+import {
 	createIidRegistryAdapter,
 	type IidRegistryAdapter,
 	type PublicIidClassification,
@@ -23,6 +28,8 @@ export type PublicIidRegistryRuntimeModule = {
 	identifierHintsForIid(iid: string): Record<string, string>;
 };
 
+export type PublicIidLadderRuntimeModule = PublicIidLadderModule;
+
 export type PublicPackageManifest = {
 	name: string;
 	version: string;
@@ -31,10 +38,11 @@ export type PublicPackageManifest = {
 export type IidWorkerAdapters = {
 	iidInspection: IidInspectionAdapter;
 	iidRegistry: IidRegistryAdapter;
+	iidLadder: IidLadderAdapter;
 };
 
 /**
- * Production composition boundary for the two public IID packages.
+ * Production composition boundary for the three injected public IID packages.
  *
  * The caller must statically import these modules from exact, lockfile-backed
  * package dependencies. This factory intentionally does not resolve arbitrary
@@ -46,21 +54,32 @@ export function composeIidWorkerAdapters(input: {
 	iidManifest: PublicPackageManifest;
 	iidRegistry: PublicIidRegistryRuntimeModule;
 	iidRegistryManifest: PublicPackageManifest;
+	iidLadder: PublicIidLadderRuntimeModule;
+	iidLadderManifest: PublicPackageManifest;
 	iidSpecificationVersion: string;
 }): IidWorkerAdapters {
 	assertPackageManifest(input.iidManifest, '@0xintuition/iid');
 	assertPackageManifest(input.iidRegistryManifest, '@0xintuition/iid-registry');
+	assertPackageManifest(input.iidLadderManifest, '@0xintuition/iid-ladder');
+	const iidInspection = createIidInspectionAdapter({
+		inspectIntuitionId: input.iid.inspectIntuitionId,
+		packageVersion: input.iidManifest.version,
+		specificationVersion: requireExactVersion(
+			input.iidSpecificationVersion,
+			'@0xintuition/iid-spec',
+			'@0xintuition/iid-spec@'
+		),
+	});
 
 	return {
-		iidInspection: createIidInspectionAdapter({
-			inspectIntuitionId: input.iid.inspectIntuitionId,
-			packageVersion: input.iidManifest.version,
-			specificationVersion: requireExactVersion(
-				input.iidSpecificationVersion,
-				'@0xintuition/iid-spec',
-				'@0xintuition/iid-spec@'
-			),
-		}),
+		iidLadder: createIidLadderAdapter(
+			{
+				...input.iidLadder,
+				packageVersion: input.iidLadderManifest.version,
+			},
+			iidInspection
+		),
+		iidInspection,
 		iidRegistry: createIidRegistryAdapter({
 			classificationForIid: input.iidRegistry.classificationForIid,
 			providersForIid: input.iidRegistry.providersForIid,

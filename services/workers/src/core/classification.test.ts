@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	deriveClassificationPlan,
+	deriveClassificationResultFromRuntime,
+	deriveIidClassificationResult,
 	resolveClassificationType,
 	type WorkerClassificationResult,
 } from './classification';
@@ -110,4 +112,71 @@ describe('KG classification core', () => {
 			'Unknown'
 		);
 	});
+});
+
+const ladderProjection = {
+	primary: { rung: 'handle', iid: 'int:spotify:album:fixture' },
+	rungs: [],
+	provenance: { producer: 'fake-ladder', version: '1.2.3' },
+};
+const ladder = {
+	projectIdentityRungs: (_input: unknown) => ladderProjection,
+	isPlainWdPrimaryAllowed: () => false,
+};
+
+test('attaches rung projection to IID classification when semantic context exists', () => {
+	const result = deriveIidClassificationResult({
+		identity: {
+			raw: 'isbn',
+			canonical: 'int:isbn:9780684832722',
+			scheme: 'isbn',
+			value: '9780684832722',
+			anchorEligible: true,
+			provenance: ladderProjection.provenance,
+		},
+		resolution: {
+			identityDecision: {
+				status: 'classified',
+				schemaType: 'Book',
+				provenance: ladderProjection.provenance,
+			},
+			providerPlan: { status: 'unsupported', targets: [], provenance: ladderProjection.provenance },
+		},
+		ladder,
+	});
+	expect(result.identityRungs).toEqual(ladderProjection);
+});
+
+test('passes plugin canonical identity and semantic context at the runtime conversion boundary', () => {
+	let received: unknown;
+	const result = deriveClassificationResultFromRuntime({
+		classification: {
+			resolved: {
+				atoms: [
+					{
+						schemaType: 'MusicAlbum',
+						category: 'thing',
+						canonicalId: 'spotify:album:fixture',
+						hints: { identifiers: { gtin: '123' } },
+					},
+				],
+			},
+		} as unknown as Parameters<typeof deriveClassificationResultFromRuntime>[0]['classification'],
+		targetUrl: 'https://open.spotify.com/album/fixture',
+		targetSource: 'raw_input',
+		ladder: {
+			...ladder,
+			projectIdentityRungs: (input) => {
+				received = input;
+				return ladderProjection;
+			},
+		},
+	});
+	expect(received).toMatchObject({
+		schemaType: 'MusicAlbum',
+		category: 'thing',
+		providerCanonicalId: 'spotify:album:fixture',
+		identifiers: { gtin: '123' },
+	});
+	expect(result.identityRungs).toEqual(ladderProjection);
 });

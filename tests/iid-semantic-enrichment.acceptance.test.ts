@@ -19,6 +19,10 @@ import {
 	parseAtomWithIidRead,
 } from '../services/workers/src/core/iid-inspection';
 import {
+	createIidLadderAdapter,
+	type PublicIidLadderModule,
+} from '../services/workers/src/core/iid-ladder';
+import {
 	createIidRegistryAdapter,
 	type PublicIidClassification,
 } from '../services/workers/src/core/iid-registry';
@@ -38,13 +42,90 @@ const packagesRepository = process.env.INTUITION_PACKAGES_REPO
 	: resolve(import.meta.dir, '../../packages');
 const iidEntry = join(packagesRepository, 'packages/iid/dist/index.js');
 const registryEntry = join(packagesRepository, 'packages/iid-registry/dist/index.js');
-const publicPackagesAvailable = existsSync(iidEntry) && existsSync(registryEntry);
+const ladderEntry = join(packagesRepository, 'packages/iid-ladder/dist/index.js');
+const publicPackagesAvailable =
+	existsSync(iidEntry) && existsSync(registryEntry) && existsSync(ladderEntry);
 const describeWithPublicPackages = publicPackagesAvailable ? describe : describe.skip;
 
 const PACKAGE_VERSION = '0.1.0-alpha.0';
 const NOW = '2026-08-12T12:00:00.000Z';
 
 describeWithPublicPackages('canonical IID semantic enrichment acceptance', () => {
+	test.each([
+		['MusicAlbum', 'int:gtin:00012345678905'],
+		['PodcastSeries', 'int:wd:film:Q83495'],
+	])('finding 1: real module rejects alias primary for %s', async (schemaType, iid) => {
+		const adapter = await realLadder();
+		const publicIid = await importModule<PublicIidModule>(iidEntry);
+		const inspected = publicIid.inspectIntuitionId(iid);
+		if (!inspected.valid) throw new Error('Invalid acceptance fixture');
+		for (const input of [
+			{
+				schemaType,
+				providerCanonicalId: iid,
+				...(schemaType === 'MusicAlbum' ? { identifiers: { gtin: '00012345678905' } } : {}),
+			},
+			{
+				schemaType,
+				identity: {
+					raw: iid,
+					canonical: iid,
+					scheme: inspected.scheme,
+					value: inspected.value,
+					anchorEligible: inspected.anchorEligible,
+					provenance: { producer: 'probe', version: '1' },
+				},
+			},
+		]) {
+			const result = adapter.projectIdentityRungs(input);
+			expect(result.primary).toBeUndefined();
+			expect(result.rungs).toContainEqual(expect.objectContaining({ iid, aliasOnly: true }));
+			expect(result.rungs.some((entry) => entry.iid === iid && !entry.aliasOnly)).toBe(false);
+		}
+	});
+	test('finding 2: real canonical URL provider and inspected identity cannot mint', async () => {
+		const adapter = await realLadder();
+		const iid = 'int:url:https://example.com/book';
+		for (const input of [
+			{ schemaType: 'Book', providerCanonicalId: iid },
+			{
+				schemaType: 'Book',
+				identity: {
+					raw: iid,
+					canonical: iid,
+					scheme: 'url',
+					value: 'https://example.com/book',
+					anchorEligible: false,
+					provenance: { producer: 'probe', version: '1' },
+				},
+			},
+		]) {
+			const result = adapter.projectIdentityRungs(input);
+			expect(result.primary).toBeUndefined();
+			expect(result.rungs).toEqual([]);
+		}
+	});
+	test('finding 3: real inspection denies plain WD with missing legacy typing', async () => {
+		const adapter = await realLadder();
+		const identity = {
+			raw: 'int:wd:Q42',
+			canonical: 'int:wd:Q42',
+			scheme: 'wd',
+			value: 'Q42',
+			anchorEligible: false,
+			provenance: { producer: 'probe', version: '1' },
+		};
+		expect(adapter.projectIdentityRungs({ schemaType: 'Movie', identity }).primary).toBeUndefined();
+		expect(adapter.projectIdentityRungs({ schemaType: 'MusicGroup', identity }).primary?.iid).toBe(
+			identity.canonical
+		);
+		expect(
+			adapter.projectIdentityRungs({
+				schemaType: 'Movie',
+				identity: { ...identity, canonical: 'int:wd:film:Q83495', value: 'film:Q83495' },
+			}).primary?.iid
+		).toBe('int:wd:film:Q83495');
+	});
 	test('ISRC inspection preserves open-first provider order and executes MusicBrainz by ISRC', async () => {
 		let requestedUrl = '';
 		const musicbrainz = createMusicBrainzPlugin({
@@ -68,6 +149,7 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 		const semantic = await inspectAndPlan('int:isrc:USUM71703861', [musicbrainz]);
 
 		expect(semantic.identity.canonical).toBe('int:isrc:USUM71703861');
+		expect(semantic.classification.identityRungs?.primary?.iid).toBe('int:isrc:USUM71703861');
 		expect(semantic.classification).toMatchObject({
 			status: 'recognized',
 			source: 'iid-registry',
@@ -118,6 +200,7 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 		const semantic = await inspectAndPlan('int:isbn:9780684832722', [openlibrary]);
 
 		expect(semantic.identity.canonical).toBe('int:isbn:9780684832722');
+		expect(semantic.classification.identityRungs?.primary?.iid).toBe('int:isbn:9780684832722');
 		expect(semantic.classification).toMatchObject({
 			status: 'recognized',
 			source: 'iid-registry',
@@ -146,6 +229,21 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 			},
 		]);
 		expect(evaluateEnrichmentCompletion(result)).toEqual({ kind: 'complete' });
+	});
+
+	test('respects R16 provider-local hold for Spotify albums and retains GTIN aliases', async () => {
+		const adapter = await realLadder();
+		const projection = adapter.projectIdentityRungs({
+			schemaType: 'MusicAlbum',
+			providerCanonicalId: 'spotify:album:4LH4d3cOWNNsVw41Gqt2kv',
+			identifiers: { gtin: '00012345678905' },
+		});
+		expect(projection.primary).toBeUndefined();
+		expect(projection.rungs.some(({ iid }) => iid?.startsWith('int:spotify:'))).toBe(false);
+		expect(projection.rungs.some(({ rung }) => rung === 'mbid:release-group')).toBe(false);
+		expect(projection.rungs).toContainEqual(
+			expect.objectContaining({ rung: 'gtin', aliasOnly: true })
+		);
 	});
 
 	test('distinguishes retryable provider failure from terminal no-match and bad capability', async () => {
@@ -178,6 +276,15 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 	});
 });
 
+async function realLadder() {
+	const module = await importModule<PublicIidLadderModule>(ladderEntry);
+	const publicIid = await importModule<PublicIidModule>(iidEntry);
+	return createIidLadderAdapter(
+		{ ...module, packageVersion: PACKAGE_VERSION },
+		{ inspect: publicIid.inspectIntuitionId }
+	);
+}
+
 async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 	const publicIid = await importModule<PublicIidModule>(iidEntry);
 	const publicRegistry = await importModule<PublicRegistryModule>(registryEntry);
@@ -204,7 +311,12 @@ async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 		packageVersion: PACKAGE_VERSION,
 	});
 	const resolution = registryAdapter.resolve(parsed.result.identity);
+	const module = await importModule<PublicIidLadderModule>(ladderEntry);
 	const classification = deriveIidClassificationResult({
+		ladder: createIidLadderAdapter(
+			{ ...module, packageVersion: PACKAGE_VERSION },
+			{ inspect: publicIid.inspectIntuitionId }
+		),
 		identity: parsed.result.identity,
 		resolution,
 	});

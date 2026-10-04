@@ -36,6 +36,13 @@ export type IdentityClassificationDecision = {
 	provenance: SemanticContractProvenance;
 };
 
+export type IdentityRungProjection = {
+	category?: string;
+	primary?: { rung: string; iid: string };
+	rungs: Array<{ rung: string; value: string; iid?: string; aliasOnly: boolean }>;
+	provenance: { producer: string; version: string };
+};
+
 export type IdentityProviderHint = {
 	kind: string;
 	value: string;
@@ -77,6 +84,29 @@ export function isIdentityClassificationDecision(
 	if (!isOptionalNonEmptyString(value.schemaType)) return false;
 	if (!isOptionalNonEmptyString(value.category)) return false;
 	return isSemanticContractProvenance(value.provenance);
+}
+
+export function isIdentityRungProjection(value: unknown): value is IdentityRungProjection {
+	if (!isRecord(value) || !isOptionalNonEmptyString(value.category)) return false;
+	if (
+		value.primary !== undefined &&
+		(!isRecord(value.primary) ||
+			!isNonEmptyString(value.primary.rung) ||
+			!isNonEmptyString(value.primary.iid))
+	)
+		return false;
+	return (
+		Array.isArray(value.rungs) &&
+		value.rungs.every(
+			(entry) =>
+				isRecord(entry) &&
+				isNonEmptyString(entry.rung) &&
+				isNonEmptyString(entry.value) &&
+				isOptionalNonEmptyString(entry.iid) &&
+				typeof entry.aliasOnly === 'boolean'
+		) &&
+		isSemanticContractProvenance(value.provenance)
+	);
 }
 
 export function isIdentityProviderPlan(value: unknown): value is IdentityProviderPlan {

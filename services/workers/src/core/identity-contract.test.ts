@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	isIdentityClassificationDecision,
 	isIdentityProviderPlan,
+	isIdentityRungProjection,
 	isNormalizedAtomIdentity,
 } from './identity-contract';
 
@@ -110,4 +111,31 @@ describe('identity handoff contracts', () => {
 			})
 		).toBe(true);
 	});
+});
+
+test('accepts opaque rung projections and rejects malformed persistence records', () => {
+	const projection = {
+		category: 'opaque',
+		primary: { rung: 'opaque-rung', iid: 'opaque-iid' },
+		rungs: [{ rung: 'opaque-rung', value: 'opaque-value', iid: 'opaque-iid', aliasOnly: false }],
+		provenance,
+	};
+	expect(isIdentityRungProjection(projection)).toBe(true);
+	expect(isIdentityRungProjection({ rungs: [], provenance })).toBe(true);
+	expect(isIdentityRungProjection({ ...projection, primary: {} })).toBe(false);
+	expect(isIdentityRungProjection({ ...projection, primary: null })).toBe(false);
+	expect(isIdentityRungProjection({ ...projection, category: '' })).toBe(false);
+	expect(
+		isIdentityRungProjection({
+			...projection,
+			rungs: [{ rung: 'r', value: 'v', aliasOnly: 'false' }],
+		})
+	).toBe(false);
+	expect(
+		isIdentityRungProjection({
+			...projection,
+			rungs: [{ rung: 'r', value: 'v', iid: '', aliasOnly: true }],
+		})
+	).toBe(false);
+	expect(isIdentityRungProjection({ ...projection, provenance: { version: '1' } })).toBe(false);
 });

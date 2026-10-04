@@ -18,6 +18,8 @@ import {
 	deriveIidClassificationResult,
 	resolveClassificationType,
 } from '../../core/classification';
+import { isIdentityRungProjection } from '../../core/identity-contract';
+import type { IidLadderAdapter } from '../../core/iid-ladder';
 import type { IidRegistryAdapter } from '../../core/iid-registry';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
@@ -54,10 +56,12 @@ export async function runKgClassificationWorker(input: {
 		runtime: CircuitBreaker;
 	};
 	iidRegistry?: IidRegistryAdapter;
+	iidLadder?: IidLadderAdapter;
 }): Promise<void> {
 	const iidRegistry = input.config.iidReadEnabled
 		? requireIidRegistry(input.iidRegistry)
 		: undefined;
+	const iidLadder = input.config.iidReadEnabled ? requireIidLadder(input.iidLadder) : undefined;
 	const classificationRuntime = createClassificationRuntime({
 		defaultPreset: input.config.defaultPreset,
 		cacheProvider: input.config.cacheProvider,
@@ -107,6 +111,7 @@ export async function runKgClassificationWorker(input: {
 				input.config.iidReadEnabled && parseResult?.kind === 'iid' && parseResult.identity
 					? deriveIidClassificationResult({
 							identity: parseResult.identity,
+							ladder: iidLadder,
 							resolution: requireIidRegistry(iidRegistry).resolve(parseResult.identity),
 						})
 					: undefined;
@@ -146,11 +151,32 @@ export async function runKgClassificationWorker(input: {
 				);
 				classificationResult = deriveClassificationResultFromRuntime({
 					classification: runtimeClassification,
+					ladder: iidLadder,
 					targetUrl: plan.targetUrl,
 					targetSource: plan.targetSource,
 				});
 			}
 
+			if (
+				iidLadder &&
+				plan.usesStructuredDocument &&
+				(classificationResult.category || classificationResult.schemaType)
+			) {
+				classificationResult.identityRungs = iidLadder.projectIdentityRungs({
+					schemaType: classificationResult.schemaType,
+					category: classificationResult.category,
+					canonicalUrl: plan.targetUrl,
+				});
+			}
+			if (
+				classificationResult.identityRungs !== undefined &&
+				!isIdentityRungProjection(classificationResult.identityRungs)
+			) {
+				delete classificationResult.identityRungs;
+			}
+			// The adapter owns admission for every scheme, including typed/plain WD.
+			const primary = classificationResult.identityRungs?.primary;
+			const promoteIid = claimed.iid === null && primary;
 			await input.circuits.database.execute(() =>
 				completeNodeProcessingStage(input.db, {
 					stage: 'classification',
@@ -159,6 +185,7 @@ export async function runKgClassificationWorker(input: {
 					data: classificationResult,
 					promotedFields: {
 						classificationType: resolveClassificationType(classificationResult),
+						...(promoteIid && primary ? { iid: primary.iid } : {}),
 					},
 				})
 			);
@@ -308,5 +335,13 @@ function requireIidRegistry(adapter: IidRegistryAdapter | undefined): IidRegistr
 			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-registry adapter for IID classification.'
 		);
 	}
+	return adapter;
+}
+
+function requireIidLadder(adapter: IidLadderAdapter | undefined): IidLadderAdapter {
+	if (!adapter)
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-ladder adapter for IID classification.'
+		);
 	return adapter;
 }
