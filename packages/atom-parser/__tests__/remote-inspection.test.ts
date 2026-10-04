@@ -216,11 +216,12 @@ describe('remote inspection: redirects', () => {
 });
 
 describe('remote inspection: safety controls', () => {
-	it('denies unsupported scheme (ftp)', async () => {
+	it('does not send unsupported schemes to remote inspection', async () => {
 		const result = await parseAtom('ftp://example.com/archive.bin', {
 			remoteFetch: true,
 		});
-		expect(result.remote?.outcome).toBe('denied');
+		expect(result.kind).toBe('plain_string');
+		expect('remote' in result).toBe(false);
 	});
 
 	it('denies private network targets by default', async () => {
@@ -303,6 +304,18 @@ describe('remote inspection: IPFS gateway', () => {
 });
 
 describe('remote inspection: non-remote kinds', () => {
+	it('does not attempt remote inspection for IID-shaped or colon-bearing identifiers', async () => {
+		for (const input of [
+			'int:isrc:USQX91300108',
+			'int:isrc:US:QX9:1300108',
+			'did:pkh:eip155:1:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+		]) {
+			const result = await parseAtom(input, { remoteFetch: true });
+			expect(result.kind).not.toBe('url');
+			expect('remote' in result).toBe(false);
+		}
+	});
+
 	it('does not attempt remote for plain strings', async () => {
 		const result = await parseAtom('hello world', { remoteFetch: true });
 		expect(result.kind).toBe('plain_string');
