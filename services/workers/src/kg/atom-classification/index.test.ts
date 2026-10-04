@@ -47,6 +47,9 @@ function harness(
 	const controller = new AbortController();
 	let completion: Record<string, unknown> | undefined;
 	let selections = 0;
+	let transactionDepth = 0;
+	const events: string[] = [];
+	const aliases: unknown[] = [];
 	const node = {
 		id: `0x${'11'.repeat(32)}`,
 		parseStatus: 'completed',
@@ -72,9 +75,44 @@ function harness(
 	};
 	const db = {
 		async transaction<T>(run: (tx: KgActionDb) => Promise<T>) {
-			return run(db as unknown as KgActionDb);
+			const start = events.length;
+			transactionDepth++;
+			let result: T;
+			try {
+				result = await run(db as unknown as KgActionDb);
+			} finally {
+				transactionDepth--;
+			}
+			if (events.length > start) {
+				events.splice(start, 0, 'begin');
+				events.push('commit');
+				controller.abort();
+			}
+			return result;
 		},
-		select() {
+		delete() {
+			return {
+				async where() {
+					events.push('delete');
+				},
+			};
+		},
+		insert() {
+			return {
+				values(rows: unknown[]) {
+					aliases.push(...rows);
+					return {
+						async onConflictDoNothing() {
+							events.push('insert');
+						},
+					};
+				},
+			};
+		},
+		select(columns?: Record<string, unknown>) {
+			if (columns && Object.keys(columns).join(',') === 'id,iid') {
+				return { from: () => ({ where: async () => [] }) };
+			}
 			const selection = ++selections;
 			const query = {
 				from: () => query,
@@ -96,9 +134,10 @@ function harness(
 										patch.classificationStatus === 'failed'
 									) {
 										completion = patch;
-										controller.abort();
+										if (patch.classificationStatus === 'completed') events.push('complete');
+										if (transactionDepth === 0) controller.abort();
 									}
-									return [node];
+									return [{ ...node, ...(patch.iid ? { iid: patch.iid } : {}) }];
 								},
 							};
 						},
@@ -125,7 +164,7 @@ function harness(
 		iidRegistry: registry,
 		iidLadder: options.ladder,
 	};
-	return { input, controller, completion: () => completion };
+	return { input, controller, completion: () => completion, events, aliases };
 }
 
 test('fails closed at startup when IID reads lack the ladder adapter', async () => {
@@ -225,4 +264,33 @@ test('projects structured classifications under the IID flag', async () => {
 		classificationStatus: 'completed',
 		classificationResult: { identityRungs: projection },
 	});
+});
+
+test('classification aliases share completion transaction and use the returned promoted primary', async () => {
+	const projected: IdentityRungProjection = {
+		...projection,
+		rungs: [
+			{ rung: 'isbn', value: 'other', iid: 'int:isbn:other', aliasOnly: false },
+			{ rung: 'gtin', value: '123', iid: 'int:gtin:123', aliasOnly: true },
+		],
+	};
+	const fixture = harness({ ladder: { ...ladder, projectIdentityRungs: () => projected } });
+	await runKgClassificationWorker(fixture.input);
+	expect(fixture.events).toEqual(['begin', 'complete', 'delete', 'insert', 'commit']);
+	expect(fixture.aliases).toEqual([
+		{
+			nodeId: `0x${'11'.repeat(32)}`,
+			iid: 'int:gtin:123',
+			scheme: 'gtin',
+			rung: 'gtin',
+			source: 'rung',
+		},
+	]);
+});
+
+test('legacy classification completion does not open an alias transaction', async () => {
+	const fixture = harness({ enabled: false, structured: true, ladder });
+	await runKgClassificationWorker(fixture.input);
+	expect(fixture.events).toEqual(['complete']);
+	expect(fixture.aliases).toEqual([]);
 });

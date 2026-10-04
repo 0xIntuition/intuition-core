@@ -4,6 +4,7 @@ export * from './api_keys';
 export * from './artifacts';
 export * from './events';
 export * from './node_contexts';
+export * from './node_identifiers';
 export * from './node_urls';
 export * from './nodes';
 export * from './predicates';

@@ -1,12 +1,18 @@
 import {
+	excludeNodeIdentifierPrimaryClaims,
+	inKgTransaction,
 	type KgActionDb,
+	listIdentifierBackfillCandidates,
 	listIidReconciliationCandidates,
 	listNodeProcessingDeadLetters,
 	type NodeProcessingStage,
 	type NodeProcessingStatus,
+	projectNodeIdentifiers,
 	requeueNodeProcessingStage,
 	resetNodeProcessingStage,
+	upsertNodeIdentifierRows,
 } from '@0xintuition/database-kg/actions';
+import { sql } from 'drizzle-orm';
 
 type KgCommandName =
 	| 'kg-requeue-parse'
@@ -18,7 +24,8 @@ type KgCommandName =
 	| 'kg-backfill-parse'
 	| 'kg-backfill-classification'
 	| 'kg-backfill-enrichment'
-	| 'kg-reconcile-iid';
+	| 'kg-reconcile-iid'
+	| 'kg-backfill-identifiers';
 
 const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-requeue-parse',
@@ -31,6 +38,7 @@ const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-backfill-classification',
 	'kg-backfill-enrichment',
 	'kg-reconcile-iid',
+	'kg-backfill-identifiers',
 ];
 
 /**
@@ -95,6 +103,9 @@ export async function runKgCommand(db: KgActionDb, args: string[]): Promise<void
 		case 'kg-backfill-enrichment':
 			await runBackfill(db, 'enrichment', rest, command);
 			return;
+		case 'kg-backfill-identifiers':
+			await runIdentifierBackfill(db, rest);
+			return;
 		case 'kg-reconcile-iid':
 			await runIidReconciliation(db, rest, command);
 			return;
@@ -103,6 +114,84 @@ export async function runKgCommand(db: KgActionDb, args: string[]): Promise<void
 				`Unknown KG command: ${command ?? '<none>'}. Supported commands: ${KG_COMMANDS.join(', ')}.`
 			);
 	}
+}
+
+type IdentifierBackfillOptions = { limit: number; after?: string; confirmed: boolean };
+
+export function parseIdentifierBackfillOptions(rest: readonly string[]): IdentifierBackfillOptions {
+	const command = 'kg-backfill-identifiers';
+	let limit = 100;
+	let after: string | undefined;
+	let confirmed = false;
+	for (let index = 0; index < rest.length; index++) {
+		const arg = rest[index]!;
+		if (arg === '--yes' || arg === '-y') {
+			confirmed = true;
+			continue;
+		}
+		const separator = arg.indexOf('=');
+		const flag = separator < 0 ? arg : arg.slice(0, separator);
+		if (flag !== '--limit' && flag !== '--after')
+			throw new Error(`${command}: unknown argument "${arg}".`);
+		const raw = separator < 0 ? rest[++index] : arg.slice(separator + 1);
+		if (raw === undefined || raw.startsWith('--'))
+			throw new Error(`${command}: ${flag} requires a value.`);
+		const value = requireFlagValue(command, flag, raw);
+		if (flag === '--after') {
+			after = value;
+			continue;
+		}
+		if (
+			!/^\d+$/u.test(value) ||
+			!Number.isSafeInteger(Number(value)) ||
+			Number(value) < 1 ||
+			Number(value) > 1000
+		) {
+			throw new Error(`${command}: --limit must be an integer between 1 and 1000.`);
+		}
+		limit = Number(value);
+	}
+	return { limit, after, confirmed };
+}
+
+async function runIdentifierBackfill(db: KgActionDb, rest: string[]): Promise<void> {
+	const options = parseIdentifierBackfillOptions(rest);
+	const readPage = async (handle: KgActionDb) => {
+		const candidates = await listIdentifierBackfillCandidates(handle, {
+			limit: options.limit,
+			after: options.after,
+			lock: options.confirmed,
+		});
+		const projected = candidates.flatMap((candidate) => {
+			const result = candidate.classificationResult;
+			const projection =
+				result && typeof result === 'object' && 'identityRungs' in result
+					? result.identityRungs
+					: undefined;
+			return projectNodeIdentifiers(candidate.id, projection, candidate.iid);
+		});
+		const rows = await excludeNodeIdentifierPrimaryClaims(handle, projected);
+		if (options.confirmed) await upsertNodeIdentifierRows(handle, rows);
+		return {
+			count: candidates.length,
+			aliases: rows.length,
+			nextAfter: candidates.at(-1)?.id ?? null,
+		};
+	};
+	const page = await inKgTransaction(db, async (tx) => {
+		await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
+		await tx.execute(sql`SET LOCAL statement_timeout = '30s'`);
+		return readPage(tx);
+	});
+	console.log(
+		JSON.stringify({
+			command: 'kg-backfill-identifiers',
+			mode: options.confirmed ? 'apply' : 'dry-run',
+			limit: options.limit,
+			after: options.after ?? null,
+			...page,
+		})
+	);
 }
 
 type IidReconciliationOptions = {

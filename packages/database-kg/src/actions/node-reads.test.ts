@@ -79,10 +79,25 @@ describe('semantic atom reader query shapes', () => {
 		await listPublicNodesByIid(db, 'int:isrc:USQX91300108', { limit: 25, offset: 50 });
 
 		const predicate = sqlOf(capture.where);
-		expect(predicate.sql).toBe(
-			'("kg"."nodes"."iid" = $1 and "kg"."nodes"."status" = $2 and "kg"."nodes"."visibility" = $3)'
+		expect(predicate.sql).toContain(
+			'"kg"."nodes"."id" in (select "kg"."nodes"."id" from "kg"."nodes"'
 		);
-		expect(predicate.params).toEqual(['int:isrc:USQX91300108', 'active', 'public']);
+		expect(predicate.sql).toContain('union select "kg"."node_identifiers"."node_id"');
+		expect(predicate.sql).toContain('"kg"."node_identifiers"."iid" = $2');
+		expect(predicate.sql).toContain('"kg"."nodes"."status" = $3');
+		expect(predicate.sql).toContain('"kg"."nodes"."visibility" = $4');
+		expect(predicate.params).toEqual([
+			'int:isrc:USQX91300108',
+			'int:isrc:USQX91300108',
+			'active',
+			'public',
+		]);
+		expect(capture.orderBy?.map((entry) => sqlOf(entry).sql)).toEqual([
+			'("kg"."nodes"."iid" = $1) IS TRUE desc',
+			'"kg"."nodes"."created_at" desc',
+			'"kg"."nodes"."id" desc',
+		]);
+
 		expect(capture.limit).toBe(25);
 		expect(capture.offset).toBe(50);
 		expect(Object.keys(capture.selection ?? {})).not.toContain('context');

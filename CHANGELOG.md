@@ -8,6 +8,10 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ## Unreleased
 
+- Exclude other nodes' primary IIDs from classification/backfill alias writes (R38 proposed default), time out dry-run backfill pages, and preserve aliases on malformed projections.
+
+- Add alias rows in `kg.node_identifiers` (drizzle 0005), alias-aware IID reads with exact-primary ranking, transactional classification writes, and `kg-backfill-identifiers`; re-author v2 ENG-15567 after the R12 production-ladder gate (9/29, 90k rows) superseded the frozen "no new identity table until a query needs it" rule.
+
 - Inject IID ladder policy into worker classification, persisting rung projections and filling missing primary IIDs under the IID read flag.
 - Enforce ladder admission for canonical identity and fallback inputs, exclude URL IIDs, and ignore malformed rung projections before promotion or enrichment.
 

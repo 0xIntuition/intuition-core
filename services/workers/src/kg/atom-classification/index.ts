@@ -1,6 +1,7 @@
 import { createClassificationRuntime } from '@0xintuition/atom-services/runtime';
 import {
 	claimNodeProcessingStage,
+	completeNodeClassificationWithIdentity,
 	completeNodeProcessingStage,
 	failNodeProcessingStage,
 	getNodeForProcessing,
@@ -177,17 +178,24 @@ export async function runKgClassificationWorker(input: {
 			// The adapter owns admission for every scheme, including typed/plain WD.
 			const primary = classificationResult.identityRungs?.primary;
 			const promoteIid = claimed.iid === null && primary;
+
+			const completion = {
+				stage: 'classification' as const,
+				nodeId: claimed.id,
+				runId,
+				data: classificationResult,
+				promotedFields: {
+					classificationType: resolveClassificationType(classificationResult),
+					...(promoteIid && primary ? { iid: primary.iid } : {}),
+				},
+			};
 			await input.circuits.database.execute(() =>
-				completeNodeProcessingStage(input.db, {
-					stage: 'classification',
-					nodeId: claimed.id,
-					runId,
-					data: classificationResult,
-					promotedFields: {
-						classificationType: resolveClassificationType(classificationResult),
-						...(promoteIid && primary ? { iid: primary.iid } : {}),
-					},
-				})
+				classificationResult.identityRungs
+					? completeNodeClassificationWithIdentity(input.db, {
+							...completion,
+							identityRungs: classificationResult.identityRungs,
+						})
+					: completeNodeProcessingStage(input.db, completion)
 			);
 			input.metrics.increment('completed', 'classification');
 			input.metrics.recordDuration('classification_duration_ms', Date.now() - startedAt);

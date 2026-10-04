@@ -4,6 +4,7 @@ import { nodes } from '../schema';
 import { createArtifacts, hashArtifactPayload } from './artifacts';
 import { invalidInput, notFound } from './errors';
 import { normalizeProtocolTermId } from './ids';
+import { isStoredIdentityRungProjection, reconcileNodeIdentifiers } from './node-identifiers';
 import { inKgTransaction, type KgActionDb, type KgNodeRawType } from './types';
 
 export type NodeProcessingStage = 'parse' | 'classification' | 'enrichment';
@@ -276,6 +277,23 @@ export async function completeNodeProcessingStage(
 	}
 
 	return node;
+}
+
+/** Guarded classification completion and aliases commit together. */
+export async function completeNodeClassificationWithIdentity(
+	db: KgActionDb,
+	input: Parameters<typeof completeNodeProcessingStage>[1] & {
+		stage: 'classification';
+		identityRungs?: unknown;
+	}
+) {
+	return inKgTransaction(db, async (tx) => {
+		const node = await completeNodeProcessingStage(tx, input);
+		if (isStoredIdentityRungProjection(input.identityRungs)) {
+			await reconcileNodeIdentifiers(tx, node.id, input.identityRungs, node.iid);
+		}
+		return node;
+	});
 }
 
 export async function failNodeProcessingStage(

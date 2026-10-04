@@ -1,6 +1,6 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
-import { accounts, nodeContexts, nodes } from '../schema';
+import { accounts, nodeContexts, nodeIdentifiers, nodes } from '../schema';
 import { invalidInput } from './errors';
 import { kgAtomId, normalizeProtocolTermId } from './ids';
 import type { EnsureNodeInput, KgActionDb } from './types';
@@ -94,8 +94,8 @@ export async function listNodeContexts(db: KgActionDb, nodeId: string) {
 }
 
 /**
- * Exact same-identity cluster read. The equality predicate is backed by
- * `idx_nodes_iid`; no prefix parsing, normalization, or fuzzy search occurs.
+ * Exact primary or alias IID read, with primary cluster matches ranked first.
+ * Keeps qualified columns explicit for the nested union.
  */
 export async function listPublicNodesByIid(
 	db: KgActionDb,
@@ -121,8 +121,14 @@ export async function listPublicNodesByIid(
 			enrichedAt: nodes.enrichedAt,
 		})
 		.from(nodes)
-		.where(and(eq(nodes.iid, iid), eq(nodes.status, 'active'), eq(nodes.visibility, 'public')))
-		.orderBy(desc(nodes.createdAt), desc(nodes.id))
+		.where(
+			and(
+				sql`${nodes.id} in (select ${nodes.id} from ${nodes} where ${nodes.iid} = ${iid} union select ${nodeIdentifiers.nodeId} from ${nodeIdentifiers} where ${nodeIdentifiers.iid} = ${iid})`,
+				eq(nodes.status, 'active'),
+				eq(nodes.visibility, 'public')
+			)
+		)
+		.orderBy(desc(sql`(${nodes.iid} = ${iid}) IS TRUE`), desc(nodes.createdAt), desc(nodes.id))
 		.limit(options.limit)
 		.offset(options.offset)
 		.execute();

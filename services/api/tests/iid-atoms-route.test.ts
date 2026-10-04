@@ -51,7 +51,14 @@ for (const encoded of [false, true]) {
 			});
 			expect(predicate).toBeDefined();
 			const sql = new PgDialect().sqlToQuery(predicate!.getSQL() as never);
-			expect(sql.params).toEqual([iid, 'active', 'public']);
+			// The IID must reach the query byte-for-byte (every colon intact) in each
+			// place it is bound: the primary match and the alias match share the value.
+			const iidParams = sql.params.filter(
+				(param) => typeof param === 'string' && param.startsWith('int:')
+			);
+			expect(iidParams.length).toBeGreaterThanOrEqual(1);
+			for (const param of iidParams) expect(param).toBe(iid);
+			expect(sql.params.slice(-2)).toEqual(['active', 'public']);
 			expect(sql.sql).toContain('"kg"."nodes"."iid" = $1');
 		} finally {
 			connection.mockRestore();

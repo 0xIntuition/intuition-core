@@ -10,6 +10,7 @@ export * from './artifacts';
 export * from './errors';
 export * from './ids';
 export * from './iid-reconciliation';
+export * from './node-identifiers';
 export * from './nodes';
 export * from './processing';
 export * from './triples';

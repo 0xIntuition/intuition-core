@@ -175,3 +175,138 @@ describe('enrichment completion transaction', () => {
 		});
 	});
 });
+
+describe('classification identity completion transaction', () => {
+	test('uses returned primary, guards failed claims and propagates alias failure for rollback', async () => {
+		const { completeNodeClassificationWithIdentity } = await import('./processing');
+		const nodeId = `0x${'44'.repeat(32)}`;
+		const events: string[] = [];
+		let claimed = true;
+		let failAlias = false;
+		const tx = {
+			update() {
+				return {
+					set() {
+						return {
+							where() {
+								return {
+									async returning() {
+										events.push('update');
+										return claimed ? [{ id: nodeId, iid: 'int:isbn:current' }] : [];
+									},
+								};
+							},
+						};
+					},
+				};
+			},
+			delete() {
+				return {
+					async where() {
+						events.push('delete');
+						if (failAlias) throw new Error('alias failure');
+					},
+				};
+			},
+			insert() {
+				throw new Error('same-scheme rows must not be inserted');
+			},
+		} as unknown as KgActionDb;
+		const db = {
+			async transaction<T>(run: (tx: KgActionDb) => Promise<T>) {
+				events.push('begin');
+				try {
+					const result = await run(tx);
+					events.push('commit');
+					return result;
+				} catch (error) {
+					events.push('rollback');
+					throw error;
+				}
+			},
+		} as unknown as KgActionDb;
+		const input = {
+			stage: 'classification' as const,
+			nodeId,
+			runId: 'run',
+			identityRungs: {
+				rungs: [{ rung: 'isbn', value: 'other', iid: 'int:isbn:other', aliasOnly: false }],
+				provenance: { producer: 'fixture', version: '1' },
+			},
+		};
+		await completeNodeClassificationWithIdentity(db, input);
+		expect(events).toEqual(['begin', 'update', 'delete', 'commit']);
+		events.length = 0;
+		claimed = false;
+		await expect(completeNodeClassificationWithIdentity(db, input)).rejects.toThrow('not claimed');
+		expect(events).toEqual(['begin', 'update', 'rollback']);
+		events.length = 0;
+		claimed = true;
+		failAlias = true;
+		await expect(completeNodeClassificationWithIdentity(db, input)).rejects.toThrow(
+			'alias failure'
+		);
+		expect(events).toEqual(['begin', 'update', 'delete', 'rollback']);
+	});
+});
+
+test.each([
+	{ rungs: {} },
+	{ rungs: [{ rung: 'isbn', iid: 42 }] },
+	undefined,
+	{
+		rungs: [{ rung: 'isbn', value: 'X', iid: 42, aliasOnly: false }],
+		provenance: { producer: 'fixture', version: '1' },
+	},
+])('malformed or absent projection %j completes without touching seeded aliases', async (identityRungs) => {
+	const { completeNodeClassificationWithIdentity } = await import('./processing');
+	const nodeId = `0x${'55'.repeat(32)}`;
+	const events: string[] = [];
+	const aliases = ['int:gtin:existing'];
+	const tx = {
+		update() {
+			const query = {
+				set: () => query,
+				where: () => query,
+				async returning() {
+					events.push('update');
+					return [{ id: nodeId, iid: null }];
+				},
+			};
+			return query;
+		},
+		delete() {
+			return {
+				async where() {
+					events.push('delete');
+					aliases.length = 0;
+				},
+			};
+		},
+	} as unknown as KgActionDb;
+	const db = {
+		async transaction<T>(run: (tx: KgActionDb) => Promise<T>) {
+			events.push('begin');
+			const result = await run(tx);
+			events.push('commit');
+			return result;
+		},
+	} as unknown as KgActionDb;
+	await completeNodeClassificationWithIdentity(db, {
+		stage: 'classification',
+		nodeId,
+		runId: 'run',
+		identityRungs,
+	});
+	expect(events).toEqual(['begin', 'update', 'commit']);
+	expect(aliases).toEqual(['int:gtin:existing']);
+	events.length = 0;
+	await completeNodeClassificationWithIdentity(db, {
+		stage: 'classification',
+		nodeId,
+		runId: 'run',
+		identityRungs: { rungs: [], provenance: { producer: 'fixture', version: '1' } },
+	});
+	expect(events).toEqual(['begin', 'update', 'delete', 'commit']);
+	expect(aliases).toEqual([]);
+});

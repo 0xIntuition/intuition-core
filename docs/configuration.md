@@ -81,6 +81,44 @@ are ignored while the remaining classification record is retained.
 
 Typed Wikidata IIDs are handled entirely by the injected `iid` module, including validity, typing, and anchor eligibility. Core's Rust path stores them opaquely as strings with `Unknown` classification; the TS parse worker persists the module's identity even when it is not anchor-eligible.
 
+### Worker maintenance commands
+
+Run maintenance commands from `services/workers` with the configured KG connection:
+
+```sh
+bun run command kg-reconcile-iid --limit=100 --after=0xNODE
+bun run command kg-backfill-identifiers --limit=100 --after=0xNODE
+bun run command kg-backfill-identifiers --yes --limit=100 --after=0xNODE
+```
+
+Both verbs default to a dry run. `kg-reconcile-iid --yes` requeues parse with
+classification/enrichment cascaded; its optional `--parse-version`,
+`--registry-version`, and `--resolver-version` values record package provenance.
+`--force` explicitly overrides processing eligibility for reconciliation.
+
+`kg-backfill-identifiers` materializes only supplied IIDs from stored
+`classificationResult.identityRungs`; it does not derive identities. Each invocation
+handles one ascending `nodes.id` page. `--limit` is an integer from 1 to 1000
+(default 100); `--after` is the exclusive cursor. Both `--limit=100` and
+`--limit 100` forms (likewise `--after`) are accepted. Repeat with the printed
+`nextAfter` until `count` is zero. `aliases` counts rows after primary-ownership filtering, including
+existing rows whose inserts are ignored on conflict; it is not a new-insert count.
+
+Both dry-run and apply use one transaction per page, with `SET LOCAL lock_timeout = '5s'` and
+`statement_timeout = '30s'`. Dry-run takes no row locks and inserts nothing.
+In apply mode, candidate rows take `FOR NO KEY UPDATE` locks so
+classification cannot change the projection or primary while aliases are inserted.
+The verb only adds aliases; classification completion reconciles removed rungs.
+Primary IID and same-primary-scheme rungs are excluded; alias-only rungs are retained,
+duplicates are removed, and at most 32 alias rows are projected per node.
+One bounded ownership query over the page's candidate IIDs excludes primaries held by
+other nodes, including draft/private nodes (R38, proposed default). A concurrent
+node creation or primary promotion after that query can still claim the same IID;
+Core has no create-reservation path to prevent this accepted race.
+Malformed or absent projections are skipped. Classification completion preserves
+existing aliases for those inputs; a well-formed empty projection clears rung aliases.
+Drizzle 0005 must be applied through Core's regular migration runner first.
+
 ## Atom services (`services/atom-services`)
 
 | Variable | Default | Notes |
