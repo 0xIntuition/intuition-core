@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import type { TermSummary } from '@/lib/api';
+import { termDisplayLabel } from '@/lib/atom-presentation';
 import { classificationClasses } from '@/lib/classification';
 import { cn } from '@/lib/cn';
-import { formatId, previewData } from '@/lib/format';
+import { formatId } from '@/lib/format';
 
 /**
  * One term of a triple as a linked chip: `[classification] data-preview`.
@@ -17,7 +18,7 @@ export function TermChip({
 	term?: TermSummary;
 	highlight?: boolean;
 }) {
-	const label = term?.data ? previewData(term.data, 42) : formatId(termId);
+	const label = term ? termDisplayLabel(term, 42) || formatId(termId) : formatId(termId);
 	return (
 		<Link
 			className={cn(

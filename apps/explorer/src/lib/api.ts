@@ -14,17 +14,79 @@ export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost
 const looseRecord = z.record(z.string(), z.unknown());
 const anyJson = z.unknown();
 
+export const atomRawSchema = z.looseObject({
+	type: z.string(),
+	data: z.string().nullable(),
+	dataHex: z.string().nullable().optional(),
+});
+
+export const semanticContractProvenanceSchema = z.looseObject({
+	producer: z.string().min(1),
+	version: z.string().min(1),
+	specificationVersion: z.string().min(1).optional(),
+});
+
+export const atomIdentitySchema = z.looseObject({
+	raw: z.string().nullable(),
+	canonical: z.string().nullable(),
+	profile: z.enum(['p0', 'p1', 'p2']).optional(),
+	scheme: z.string().optional(),
+	value: z.string().optional(),
+	class: z.enum(['A', 'B', 'C']).optional(),
+	typing: z.enum(['unambiguous', 'polymorphic']).optional(),
+	anchorIneligibilityReason: z.enum(['class-c', 'polymorphic-scheme']).optional(),
+	valid: z.boolean().optional(),
+	anchorEligible: z.boolean().optional(),
+	provenance: semanticContractProvenanceSchema.optional(),
+});
+
+export const atomClassificationViewSchema = z.looseObject({
+	type: z.string(),
+	status: z.string().optional(),
+	source: z.string().optional(),
+});
+
+export const atomContextItemSchema = z.looseObject({
+	eventSequence: z.string().optional(),
+	ordinal: z.number().int().nonnegative(),
+	uri: z.string().nullable(),
+	source: z.string().optional(),
+	raw: z.string().optional(),
+	registrant: z.string().optional(),
+	transactionHash: z.string().optional(),
+	logIndex: z.number().int().nonnegative().optional(),
+});
+export type AtomContextItem = z.infer<typeof atomContextItemSchema>;
+
+export const atomResolutionSchema = z.looseObject({
+	status: z.string(),
+	updatedAt: z.string().nullable().optional(),
+});
+
+export const atomDisplaySchema = z.looseObject({
+	name: z.string().optional(),
+	description: z.string().optional(),
+	image: z.string().optional(),
+});
+
 export const atomListItemSchema = z.looseObject({
 	id: z.string(),
 	createdAt: z.string(),
 	isOnchain: z.boolean(),
 	rawType: z.string(),
 	data: z.string().nullable(),
+	iid: z.string().nullable().optional(),
 	dataResolved: anyJson,
 	classificationType: z.string(),
 	parseStatus: z.string(),
 	classificationStatus: z.string(),
 	enrichmentStatus: z.string(),
+	raw: atomRawSchema.optional(),
+	identity: atomIdentitySchema.optional(),
+	classification: atomClassificationViewSchema.optional(),
+	context: z.array(atomContextItemSchema).optional(),
+	resolution: atomResolutionSchema.optional(),
+	display: atomDisplaySchema.optional(),
 });
 export type AtomListItem = z.infer<typeof atomListItemSchema>;
 
@@ -53,8 +115,12 @@ export const termSummarySchema = z
 	.looseObject({
 		id: z.string(),
 		data: z.string().nullable(),
+		dataResolved: anyJson.optional(),
 		classificationType: z.string(),
 		rawType: z.string(),
+		raw: atomRawSchema.optional(),
+		classification: atomClassificationViewSchema.optional(),
+		display: atomDisplaySchema.optional(),
 	})
 	.nullable();
 export type TermSummary = z.infer<typeof termSummarySchema>;
@@ -193,6 +259,10 @@ const one = <T extends z.ZodType>(item: T) => z.object({ data: item });
 
 export type Page = { limit?: number; offset?: number };
 
+export function iidAtomsPath(iid: string): string {
+	return `/api/iids/${encodeURIComponent(iid)}/atoms`;
+}
+
 export const api = {
 	stats: () => request(one(statsSchema), '/api/stats'),
 
@@ -202,6 +272,9 @@ export const api = {
 		request(listOf(atomListItemSchema), '/api/atoms', { params }),
 
 	atom: (id: string) => request(one(atomDetailSchema), `/api/atoms/${id}`),
+
+	iidAtoms: (iid: string, params: Page = {}) =>
+		request(listOf(atomListItemSchema), iidAtomsPath(iid), { params }),
 
 	atomTriples: (id: string, params: Page = {}) =>
 		request(listOf(tripleSchema), `/api/atoms/${id}/triples`, {
