@@ -17,6 +17,8 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Added
 
+- Packed-tarball Node/Bun URI creation conformance, replay vectors, and API ingestion semantics documentation.
+
 - Typed Wikidata IID adapter conformance and colon-preserving path coverage, including dormant identity handoffs.
 
 - Intuition Identifier (IID) read path across the stack, all behind
