@@ -68,6 +68,8 @@ automatically.
 | `WORKERS_IID_READ_ENABLED` | `false` | enable IID parse/classification reads after package and persistence compatibility is verified |
 | `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
 
+Typed Wikidata IIDs are handled entirely by the injected `iid` module, including validity, typing, and anchor eligibility. Core's Rust path stores them opaquely as strings with `Unknown` classification; the TS parse worker persists the module's identity even when it is not anchor-eligible.
+
 ## Atom services (`services/atom-services`)
 
 | Variable | Default | Notes |

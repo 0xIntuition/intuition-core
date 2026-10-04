@@ -6,6 +6,16 @@ import type { KgActionDb } from './types';
 
 describe('IID reconciliation candidate reads', () => {
 	test('uses a stable ID cursor and bounded IID-or-prefix selection', async () => {
+		const rows = [
+			{
+				id: '0xdef',
+				data: 'int:wd:film:Q188035',
+				iid: null,
+				parseStatus: 'pending',
+				classificationStatus: 'pending',
+				enrichmentStatus: 'pending',
+			},
+		];
 		let whereSql: { getSQL(): unknown } | undefined;
 		let orderSql: { getSQL(): unknown } | undefined;
 		let limitValue: number | undefined;
@@ -22,7 +32,7 @@ describe('IID reconciliation candidate reads', () => {
 										return {
 											limit(limit: number) {
 												limitValue = limit;
-												return Promise.resolve([]);
+												return Promise.resolve(rows);
 											},
 										};
 									},
@@ -34,7 +44,9 @@ describe('IID reconciliation candidate reads', () => {
 			},
 		} as unknown as KgActionDb;
 
-		await listIidReconciliationCandidates(db, { limit: 100, after: '0xabc' });
+		const result = await listIidReconciliationCandidates(db, { limit: 100, after: '0xabc' });
+		expect(result).toEqual(rows);
+		expect(result[0]?.data).toBe('int:wd:film:Q188035');
 		const dialect = new PgDialect();
 		const predicate = dialect.sqlToQuery(whereSql?.getSQL() as never);
 		expect(predicate.sql).toContain('"kg"."nodes"."iid" is not null');

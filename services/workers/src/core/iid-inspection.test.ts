@@ -171,3 +171,49 @@ function legacyResult(input: string): ParseResult {
 		trimmed: input,
 	};
 }
+
+test('keeps typed wd values intact and never applies a noncanonical repair', async () => {
+	for (const value of ['film:Q188035', 'written-work:Q47461344']) {
+		const iid = `int:wd:${value}`;
+		const outcome = await parseAtomWithIidRead({
+			rawInput: iid,
+			iidReadEnabled: true,
+			adapter: createIidInspectionAdapter({
+				packageVersion: PACKAGE_VERSION,
+				inspectIntuitionId: () => ({
+					valid: true,
+					iid,
+					scheme: 'wd',
+					value,
+					class: 'A',
+					typing: 'unambiguous',
+					anchorEligible: value.startsWith('film:'),
+					...(value.startsWith('film:')
+						? {}
+						: { anchorIneligibilityReason: 'dormant-wd-binding' as const }),
+				}),
+			}),
+			parseLegacy: () => {
+				throw new Error('valid typed IID took legacy path');
+			},
+		});
+		expect(outcome.result.identity).toMatchObject({ scheme: 'wd', value, canonical: iid });
+	}
+	const rawInput = 'int:wd:film:q188035';
+	const outcome = await parseAtomWithIidRead({
+		rawInput,
+		iidReadEnabled: true,
+		adapter: createIidInspectionAdapter({
+			packageVersion: PACKAGE_VERSION,
+			inspectIntuitionId: () => ({
+				valid: false,
+				reason: 'noncanonical',
+				canonical: 'int:wd:film:Q188035',
+			}),
+		}),
+		parseLegacy: () => legacyResult(rawInput),
+	});
+	expect(outcome.result.canonicalId).toBe(rawInput);
+	expect(outcome.result.identity).toBeUndefined();
+	expect(outcome.fallbackReason).toBe('noncanonical');
+});

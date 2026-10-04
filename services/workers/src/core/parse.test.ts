@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { type CompactParseResult, resolveParseSearchText } from './parse';
+import { type CompactParseResult, resolveParseSearchText, toCompactParseResult } from './parse';
 
 describe('parse search projection', () => {
 	test('restores legacy strings after authoritative parsing but keeps valid IID identities opaque', () => {
@@ -39,4 +39,25 @@ describe('parse search projection', () => {
 			})
 		).toBe('https://example.com/path');
 	});
+});
+
+test('legacy compaction preserves typed and colon-bearing identifiers byte-for-byte', () => {
+	for (const input of [
+		'int:wd:film:Q188035',
+		'int:wd:written-work:Q47461344',
+		'int:other:value:with:colons',
+	]) {
+		const compact = toCompactParseResult({
+			kind: 'plain_string',
+			input,
+			normalizedInput: input,
+			original: input,
+			trimmed: input,
+			warnings: [],
+			structuredDocument: undefined,
+		});
+		expect(compact.normalizedInput).toBe(input);
+		expect(compact.canonicalId).toBe(input);
+		expect(compact.identity).toBeUndefined();
+	}
 });

@@ -23,7 +23,7 @@ export type NormalizedAtomIdentity = {
 	/** Public inspection metadata; optional so older persisted records remain valid. */
 	class?: 'A' | 'B' | 'C';
 	typing?: 'unambiguous' | 'polymorphic';
-	anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme';
+	anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme' | 'dormant-wd-binding';
 	anchorEligible: boolean;
 	provenance: SemanticContractProvenance;
 };
@@ -132,7 +132,12 @@ function isOptionalIdentityTyping(value: unknown): value is NormalizedAtomIdenti
 function isOptionalAnchorIneligibilityReason(
 	value: unknown
 ): value is NormalizedAtomIdentity['anchorIneligibilityReason'] {
-	return value === undefined || value === 'class-c' || value === 'polymorphic-scheme';
+	return (
+		value === undefined ||
+		value === 'class-c' ||
+		value === 'polymorphic-scheme' ||
+		value === 'dormant-wd-binding'
+	);
 }
 
 function isOptionalNonEmptyString(value: unknown): boolean {

@@ -162,3 +162,11 @@ describe('safeContextHref', () => {
 		}
 	});
 });
+
+test('encodes every colon of typed Wikidata cluster paths', () => {
+	for (const iid of ['int:wd:film:Q188035', 'int:wd:written-work:Q47461344']) {
+		const path = iidAtomsPath(iid);
+		expect(path).toBe(`/api/iids/${iid.replaceAll(':', '%3A')}/atoms`);
+		expect(decodeURIComponent(path.split('/')[3]!)).toBe(iid);
+	}
+});

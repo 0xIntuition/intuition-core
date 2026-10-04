@@ -41,6 +41,25 @@ describe('identity handoff contracts', () => {
 		).toBe(true);
 	});
 
+	test('accepts every public anchor reason and rejects unknown reasons', () => {
+		const identity = {
+			raw: 'int:wd:written-work:Q47461344',
+			canonical: 'int:wd:written-work:Q47461344',
+			scheme: 'wd',
+			value: 'written-work:Q47461344',
+			anchorEligible: false,
+			provenance,
+		};
+		for (const reason of ['class-c', 'polymorphic-scheme', 'dormant-wd-binding']) {
+			expect(isNormalizedAtomIdentity({ ...identity, anchorIneligibilityReason: reason })).toBe(
+				true
+			);
+		}
+		expect(
+			isNormalizedAtomIdentity({ ...identity, anchorIneligibilityReason: 'future-reason' })
+		).toBe(false);
+	});
+
 	test('rejects incomplete normalized identity records', () => {
 		expect(isNormalizedAtomIdentity({ canonical: 'missing-fields' })).toBe(false);
 		expect(

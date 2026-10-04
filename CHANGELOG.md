@@ -10,6 +10,8 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Added
 
+- Typed Wikidata IID adapter conformance and colon-preserving path coverage, including dormant identity handoffs.
+
 - Intuition Identifier (IID) read path across the stack, all behind
   default-off flags: `WORKERS_IID_READ_ENABLED` and
   `WORKERS_IID_RESOLUTION_ENABLED` (workers), `API_ATOM_SEMANTIC_READS_ENABLED`

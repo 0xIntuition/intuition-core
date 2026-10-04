@@ -12,7 +12,7 @@ export type PublicIidInspection =
 			readonly class: 'A' | 'B' | 'C';
 			readonly typing: 'unambiguous' | 'polymorphic';
 			readonly anchorEligible: boolean;
-			readonly anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme';
+			readonly anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme' | 'dormant-wd-binding';
 	  }
 	| {
 			readonly valid: false;

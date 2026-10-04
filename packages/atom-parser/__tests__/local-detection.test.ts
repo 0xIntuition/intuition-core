@@ -284,3 +284,15 @@ describe('local detection: precedence', () => {
 		expect(result.kind).toBe('ens_name');
 	});
 });
+
+it('preserves typed Wikidata and arbitrary colon-bearing values as plain strings', async () => {
+	for (const input of [
+		'int:wd:film:Q188035',
+		'int:wd:written-work:Q47461344',
+		'int:other:value:with:colons',
+	]) {
+		const result = await parseAtom(input, localOnly);
+		expect(result.kind).toBe('plain_string');
+		expect(result.normalizedInput).toBe(input);
+	}
+});
