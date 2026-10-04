@@ -8,6 +8,7 @@
 
 import type { EnrichmentArtifact } from '../types';
 import type { ChainHarvest } from './chaining';
+import { getIdentityArtifacts } from './quarantine';
 import { findArtifactData, parseAppleMusic, parseSpotify, readString } from './shared';
 
 // Spotify fallback artifacts synthesize names like "Show 4rOoJ6Egrf8K2I..."
@@ -31,7 +32,7 @@ function harvestSpotifyPodcastPeers(
 	harvest: ChainHarvest
 ): void {
 	if (presentTypes.has('apple-music')) return;
-	const spotify = findArtifactData(artifacts, 'spotify', parseSpotify);
+	const spotify = findArtifactData(getIdentityArtifacts(artifacts), 'spotify', parseSpotify);
 	if (!spotify) return;
 
 	const isShow = spotify.data.type === 'show';
@@ -54,7 +55,11 @@ function harvestApplePodcastPeers(
 	harvest: ChainHarvest
 ): void {
 	if (presentTypes.has('podcast-index')) return;
-	const appleMusic = findArtifactData(artifacts, 'apple-music', parseAppleMusic);
+	const appleMusic = findArtifactData(
+		getIdentityArtifacts(artifacts),
+		'apple-music',
+		parseAppleMusic
+	);
 	if (appleMusic?.data.type !== 'podcast') return;
 
 	const feedUrl = readString(appleMusic.data.feedUrl);
@@ -78,7 +83,9 @@ function harvestPodcastIndexPeers(
 	harvest: ChainHarvest
 ): void {
 	if (presentTypes.has('apple-music')) return;
-	const podcastIndex = artifacts.find((artifact) => artifact.artifact_type === 'podcast-index');
+	const podcastIndex = getIdentityArtifacts(artifacts).find(
+		(artifact) => artifact.artifact_type === 'podcast-index'
+	);
 	if (!podcastIndex) return;
 
 	const data = podcastIndex.data as Record<(typeof PODCAST_INDEX_DATA_KEYS)[number], unknown>;
@@ -96,11 +103,12 @@ function harvestPodcastIndexPeers(
  */
 export function harvestAugmentationLookups(artifacts: readonly EnrichmentArtifact[]): ChainHarvest {
 	const harvest: ChainHarvest = { identifiers: {}, pluginSlugs: [] };
-	const presentTypes = new Set(artifacts.map((artifact) => artifact.artifact_type));
+	const identityArtifacts = getIdentityArtifacts(artifacts);
+	const presentTypes = new Set(identityArtifacts.map((artifact) => artifact.artifact_type));
 
-	harvestSpotifyPodcastPeers(artifacts, presentTypes, harvest);
-	harvestApplePodcastPeers(artifacts, presentTypes, harvest);
-	harvestPodcastIndexPeers(artifacts, presentTypes, harvest);
+	harvestSpotifyPodcastPeers(identityArtifacts, presentTypes, harvest);
+	harvestApplePodcastPeers(identityArtifacts, presentTypes, harvest);
+	harvestPodcastIndexPeers(identityArtifacts, presentTypes, harvest);
 
 	const pluginSlugs = [...new Set(harvest.pluginSlugs)];
 	if (pluginSlugs.length === 0) {

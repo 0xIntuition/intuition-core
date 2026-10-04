@@ -1,7 +1,11 @@
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
 import { type FetchLike, fetchJsonWithSchema } from '../__shared__/http';
-import { getIdentifier, getRequestName } from '../__shared__/request';
+import {
+	getIdentifier,
+	getRequestName,
+	isSynthesizedProviderPlaceholderTitle,
+} from '../__shared__/request';
 import { musicBrainzRecordingResponseSchema, musicBrainzSearchResponseSchema } from './external';
 import { musicbrainzDataSchema } from './schema';
 
@@ -115,7 +119,7 @@ function resolveMusicBrainzRequest(
 	}
 
 	const name = getRequestName(request);
-	if (!name) {
+	if (!name || isSynthesizedProviderPlaceholderTitle(request, name)) {
 		return undefined;
 	}
 

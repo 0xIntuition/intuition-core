@@ -1,7 +1,12 @@
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
 import { type FetchLike, fetchJsonWithSchema } from '../__shared__/http';
-import { getRequestName, getRequestUrl, parseWikipediaTitleFromUrl } from '../__shared__/request';
+import {
+	getRequestName,
+	getRequestUrl,
+	isSynthesizedProviderPlaceholderTitle,
+	parseWikipediaTitleFromUrl,
+} from '../__shared__/request';
 import { wikipediaSummaryResponseSchema } from './external';
 import { wikipediaDataSchema } from './schema';
 
@@ -77,6 +82,10 @@ export function createWikipediaPlugin(
 					}),
 					meta: {
 						pluginId: 'wikipedia',
+						identityStrength:
+							getRequestUrl(request) && parseWikipediaTitleFromUrl(getRequestUrl(request) ?? '')
+								? 'url'
+								: 'title',
 						provider: 'wikipedia',
 						fetchedAt: ctx.now(),
 						sourceUrl: pageUrl,
@@ -96,7 +105,7 @@ function resolveWikipediaTitle(request: EnrichmentRequest): string | undefined {
 		}
 	}
 
-	return getRequestName(request);
+	return isSynthesizedProviderPlaceholderTitle(request) ? undefined : getRequestName(request);
 }
 
 function toOptionalString(value: string | null | undefined): string | undefined {

@@ -23,6 +23,7 @@ type CanonicalEnvelopeLike = {
 	data: Record<string, unknown>;
 	meta: {
 		sourceUrl?: string;
+		provider?: string;
 	};
 };
 
@@ -34,6 +35,7 @@ type ResolvedAtomLike = {
 	canonicalId?: string;
 	sameAs?: string[];
 	data?: Record<string, unknown>;
+	metadata?: Record<string, unknown>;
 };
 
 export type ClassificationResultLike = {
@@ -104,10 +106,31 @@ export function toClassifiedAtomInput(
 		source: {
 			classificationEngine: '@0xintuition/atom-classification',
 			classifiedAt: new Date().toISOString(),
+			...resolveClassificationProvenance(classificationResult),
 		},
 		...(Object.keys(hints).length > 0 ? { hints } : {}),
 		...(targets ? { targets } : {}),
 		policy,
+	};
+}
+
+/** Carries platform provenance independently of the chosen presentation envelope. */
+export function resolveClassificationProvenance(
+	result: ClassificationResultLike
+): Pick<ClassifiedAtomInput['source'], 'provider' | 'fallbackStage'> {
+	const atomMeta = result.resolved?.atoms?.[0]?.metadata;
+	const resolver = toRecordMaybe(result.classification?.meta?.platformResolver);
+	const canonical = result.resolved?.publishable?.[0] ?? result.resolved?.classifications?.[0];
+	const provider =
+		toStringMaybe(atomMeta?.provider) ??
+		toStringMaybe(resolver?.domain) ??
+		toStringMaybe(canonical?.meta.provider) ??
+		toStringMaybe(result.classification?.domain);
+	const fallbackStage =
+		toStringMaybe(atomMeta?.fallbackStage) ?? toStringMaybe(resolver?.fallbackStage);
+	return {
+		...(provider && provider.length <= 128 ? { provider } : {}),
+		...(fallbackStage && fallbackStage.length <= 64 ? { fallbackStage } : {}),
 	};
 }
 

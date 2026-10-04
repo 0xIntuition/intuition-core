@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { classificationResultSchema } from '@0xintuition/atom-classification';
 import {
 	deriveClassificationPlan,
 	deriveClassificationResultFromRuntime,
@@ -179,4 +180,53 @@ test('passes plugin canonical identity and semantic context at the runtime conve
 		identifiers: { gtin: '123' },
 	});
 	expect(result.identityRungs).toEqual(ladderProjection);
+});
+
+test('runtime compaction carries provider fallback provenance', () => {
+	const classification = classificationResultSchema.parse({
+		ok: true,
+		status: 'complete',
+		contractVersion: 'cpkg-02',
+		runtime: 'server',
+		mode: 'server-only',
+		classificationSessionId: 'fixture',
+		policy: {
+			runClientClassification: false,
+			runServerEnrichment: true,
+			runDedupe: false,
+			runAiFallback: false,
+			includeProvenance: false,
+			requestedServerTiers: [],
+		},
+		message: 'Fixture',
+		receivedAt: '2026-01-01T00:00:00.000Z',
+		resolved: {
+			resolverId: 'imdb',
+			resolverChain: ['imdb'],
+			dedupeKey: 'fixture',
+			fallbackUsed: true,
+			atoms: [
+				{
+					category: 'thing',
+					schemaType: 'Movie',
+					title: 'IMDb Title tt1234567',
+					source: 'fixture',
+					metadata: { provider: 'imdb', fallbackStage: 'generic' },
+				},
+			],
+		},
+		debug: {
+			inputPreview: 'fixture',
+			hasClientHints: false,
+			requestedPluginIds: [],
+			requestedServerTiers: [],
+		},
+	});
+	expect(
+		deriveClassificationResultFromRuntime({
+			classification,
+			targetUrl: 'https://www.imdb.com/title/tt1234567',
+			targetSource: 'raw_input',
+		})
+	).toMatchObject({ provider: 'imdb', fallbackStage: 'generic' });
 });

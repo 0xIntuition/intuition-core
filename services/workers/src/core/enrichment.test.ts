@@ -640,3 +640,17 @@ describe('KG enrichment core', () => {
 		});
 	});
 });
+
+test('worker enrichment source retains compact classification provenance', () => {
+	const input = buildClassifiedInputFromPlan({
+		targetUrl: 'https://www.imdb.com/title/tt1234567',
+		structuredDocument: undefined,
+		classificationResult: {
+			status: 'recognized',
+			source: 'raw_input',
+			schemaType: 'Movie',
+			...{ provider: 'imdb', fallbackStage: 'generic' },
+		},
+	});
+	expect(input?.source).toMatchObject({ provider: 'imdb', fallbackStage: 'generic' });
+});

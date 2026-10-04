@@ -48,6 +48,7 @@ export function createMyPlugin(options: { apiKey?: string } = {}): EnrichmentPlu
 					meta: {
 						pluginId: 'my-source',
 						provider: 'my-source',
+						identityStrength: 'identifier', // only when resolved by an external ID
 						fetchedAt: ctx.now(),
 						sourceUrl: `https://my-source.com/${id}`,
 					},
@@ -76,6 +77,27 @@ export function createMyPlugin(options: { apiKey?: string } = {}): EnrichmentPlu
    (prices) short, stable data (paper metadata) long.
 6. **One plugin, one source.** Composition happens at the preset level, not
    inside plugins.
+
+## Lookup provenance
+
+Set `meta.identityStrength` to `identifier` for external-ID or QID lookup,
+`url` for a direct resource URL, or `title` for a name lookup. A title lookup
+can supply only the fields in `TITLE_STRENGTH_DESCRIPTIVE_FIELDS`, exported
+from `@0xintuition/atom-enrichment/extraction`. This explicit allowlist covers
+descriptions, names, images, dates and other descriptive measurements. Every
+other key is identity-bearing by default, including ISBN, SKU, GTIN, repository
+URLs, provider IDs and feed URLs. The quarantine applies to public field
+extractors, classification suggestions, identifier chaining, peer-provider
+augmentation and the Wikipedia QID pivot. Identities derived from the caller's
+input URL remain available. Legacy artifacts that omit `identityStrength` are
+treated as `identifier` for admission; their metadata is not rewritten.
+Keep the provenance of the request that selected the resource even if the
+response contains a QID or page URL.
+
+Classification handoffs preserve optional `source.provider` (1–128 characters)
+and `source.fallbackStage` (1–64 characters). Name-search providers use these
+to reject classifier-generated generic titles. Direct identifiers and resource
+URLs remain usable. Both `source` and artifact `meta` schemas stay strict.
 
 ## Wiring it in
 

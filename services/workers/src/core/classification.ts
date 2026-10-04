@@ -5,6 +5,7 @@ import {
 	createTypeProfilesPlugin,
 	type JsonLdTypeDefinition,
 } from '@0xintuition/atom-classification';
+import { resolveClassificationProvenance } from '@0xintuition/atom-enrichment/handoff';
 import type {
 	IdentityClassificationDecision,
 	IdentityProviderPlan,
@@ -27,6 +28,8 @@ export type ClassificationTargetSource = StructuredTargetSource;
 export type WorkerClassificationResult = {
 	status: 'recognized' | 'unknown_object' | 'not_applicable';
 	source: string;
+	provider?: string;
+	fallbackStage?: string;
 	format?: string;
 	topLevelType?: string;
 	schemaType?: string;
@@ -145,6 +148,7 @@ export function deriveClassificationResultFromRuntime(input: {
 		...(identityRungs ? { identityRungs } : {}),
 		status: 'recognized',
 		source: 'raw_input',
+		...resolveClassificationProvenance(input.classification),
 		...(normalizedType ? { schemaType: normalizedType } : {}),
 		...(resolved.category ? { category: resolved.category } : {}),
 		knownType: !!definition,

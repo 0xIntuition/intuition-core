@@ -252,6 +252,12 @@ export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAt
 		},
 		source: {
 			classificationEngine: 'backend/workers:kg-classification-result',
+			...(plan.classificationResult.provider
+				? { provider: plan.classificationResult.provider }
+				: {}),
+			...(plan.classificationResult.fallbackStage
+				? { fallbackStage: plan.classificationResult.fallbackStage }
+				: {}),
 			classifiedAt: new Date().toISOString(),
 		},
 		...(Object.keys(hints).length > 0 ? { hints } : {}),

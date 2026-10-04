@@ -3,6 +3,7 @@ export type { ChainHarvest } from './chaining';
 export { harvestChainIdentifiers } from './chaining';
 export { extractClassificationFields } from './extract';
 export { extractPageNativeFields, pickPrimaryJsonLdType } from './page-native';
+export { getIdentityArtifacts, TITLE_STRENGTH_DESCRIPTIVE_FIELDS } from './quarantine';
 export { suggestClassifications } from './suggest';
 export type {
 	ClassificationFieldExtractor,

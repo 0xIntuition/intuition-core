@@ -1,5 +1,6 @@
 import { getClassification } from '@0xintuition/classifications';
 import type { AtomType, ClassifiedAtomInput, EnrichmentArtifact } from '../types';
+import { getIdentityArtifacts } from './quarantine';
 
 // URL-first creation: the user picks a classification spec, then provides a
 // single URL. These helpers turn that pair into the classified-atom input the
@@ -86,7 +87,7 @@ const WIKIBASE_ITEM_PATTERN = /^Q\d+$/i;
 export function readWikibaseItemFromArtifacts(
 	artifacts: readonly EnrichmentArtifact[]
 ): string | undefined {
-	for (const artifact of artifacts) {
+	for (const artifact of getIdentityArtifacts(artifacts)) {
 		if (artifact.artifact_type !== 'wikipedia') continue;
 		const wikibaseItem = artifact.data.wikibaseItem;
 		if (typeof wikibaseItem === 'string' && WIKIBASE_ITEM_PATTERN.test(wikibaseItem.trim())) {
@@ -100,5 +101,7 @@ export function hasArtifactOfType(
 	artifacts: readonly EnrichmentArtifact[],
 	artifactType: string
 ): boolean {
-	return artifacts.some((artifact) => artifact.artifact_type === artifactType);
+	return getIdentityArtifacts(artifacts).some(
+		(artifact) => artifact.artifact_type === artifactType
+	);
 }

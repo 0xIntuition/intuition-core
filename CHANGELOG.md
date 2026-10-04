@@ -44,7 +44,10 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 - IMDb title URLs resolve through TMDB `/find` and fail closed without a TMDB key, never fetching IMDb HTML (intuition-v2 ENG-15960).
 - Spotify albums and artists classify as `music-album` and `artist` with unchanged canonical ids; this identity-affecting change follows intuition-v2 ENG-15998.
-
+- Wikidata labels and descriptions use a stable requested-locale/English/`mul` policy (intuition-v2 ENG-16199).
+- Provider name lookups reject synthesized placeholder titles and preserve fallback provenance (intuition-v2 placeholder guard).
+- Title-resolved artifacts no longer contribute identity URLs or chained provider identifiers across extraction tiers; the title-strength quarantine is an explicit descriptive-field allowlist applied across public extractors, augmentation lookups and Wikipedia QID pivots, so ISBN, SKU, GTIN and repository identities require stronger evidence (intuition-v2 ENG-16295, pure extraction half).
+- Spotify API artifacts retain UPC/EAN alongside ISRC and omit blank or malformed external IDs (intuition-v2 ENG-15998, parsing half).
 - New atoms carry an empty `search_text` until a worker promotes it, so
   `GET /api/atoms?q=` does not match them until the worker has run.
 - Service Dockerfiles use a pinned Rust builder, `--locked` builds and a copied
