@@ -19,6 +19,7 @@
 		"db:generate": "bun with-env drizzle-kit generate",
 		"db:migrate": "bun with-env bun src/migrate.ts",
 		"db:push": "bun with-env drizzle-kit push",
+		"test": "bun test src",
 		"ci": "biome check",
 		"lint": "biome lint",
 		"format": "biome format",

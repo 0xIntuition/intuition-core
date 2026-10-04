@@ -38,7 +38,7 @@ pub struct ProjectionsConfig {
     /// term_aggregates, protocol_stats, leaderboard_marker,
     /// leaderboard_refresh, core_entities, vault_holders_index,
     /// activity_marker, user_activity_batch, funnel_tracker,
-    /// vault_state:dual, vault_holders_index:dual.
+    /// vault_state:dual, vault_holders_index:dual, atom_context:dual.
     ///
     /// Set via `ENABLED_PROJECTIONS=vault_state,position_tracking,...`
     pub enabled_projections: Vec<String>,

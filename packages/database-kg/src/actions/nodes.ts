@@ -52,7 +52,10 @@ export async function ensureNodeWithCreation(
 			data: input.data,
 			dataHex: input.dataHex,
 			dataResolved: input.dataResolved ?? {},
-			searchText: input.searchText ?? input.data ?? input.id,
+			// Search text is a presentation projection, not a fallback copy of the
+			// atom's opaque/content-addressed input. Callers that understand the
+			// value must opt in; parse/enrichment workers promote it later.
+			searchText: input.searchText ?? '',
 			createdBy: input.createdBy,
 		})
 		.onConflictDoNothing()
