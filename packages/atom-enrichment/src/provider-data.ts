@@ -59,6 +59,10 @@ export {
 	type OpenGraphData,
 	opengraphDataSchema,
 } from './plugins/providers/opengraph/schema';
+export {
+	type OpenLibraryData,
+	openLibraryDataSchema,
+} from './plugins/providers/openlibrary/schema';
 export { type PlacesData, placesDataSchema } from './plugins/providers/places/schema';
 export {
 	type ProductListingData,

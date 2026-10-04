@@ -105,6 +105,11 @@ function resolveMusicBrainzRequest(
 		return { kind: 'mbid', mbid };
 	}
 
+	const isrc = getIdentifier(request, 'isrc');
+	if (isrc && /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/i.test(isrc)) {
+		return { kind: 'search', query: `isrc:${isrc.toUpperCase()}` };
+	}
+
 	if (!isMusicRecordingRequest(request)) {
 		return undefined;
 	}

@@ -12,7 +12,10 @@ import {
 } from '@0xintuition/database-kg/actions';
 import {
 	buildClassifiedInputFromPlan,
+	buildEnrichmentCompletionPromotedFields,
+	buildIidProviderExecutionPlan,
 	deriveEnrichmentPlan,
+	evaluateEnrichmentCompletion,
 	evaluateEnrichmentProcessingScope,
 } from '../../core/enrichment';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
@@ -112,6 +115,46 @@ export async function runKgEnrichmentWorker(input: {
 				classificationResult,
 				rawInput: claimed.data ?? claimed.dataHex,
 			});
+			if (plan.identity && !input.config.iidResolutionEnabled) {
+				await input.circuits.database.execute(() =>
+					markNodeProcessingStageSkipped(input.db, {
+						stage: 'enrichment',
+						nodeId: claimed.id,
+						runId,
+						reason: 'IID provider resolution is disabled by WORKERS_IID_RESOLUTION_ENABLED.',
+					})
+				);
+				input.metrics.increment('skipped', 'enrichment');
+				return;
+			}
+
+			const engine = enrichmentRuntime.createEngine(input.config.defaultPreset);
+			const iidProviderExecution = buildIidProviderExecutionPlan({
+				plan,
+				registeredPluginIds: engine.listPlugins().map((plugin) => plugin.id),
+			});
+			if (iidProviderExecution?.status === 'blocked') {
+				await input.circuits.database.execute(() =>
+					failNodeProcessingStage(input.db, {
+						stage: 'enrichment',
+						nodeId: claimed.id,
+						runId,
+						error: {
+							code: iidProviderExecution.retriable
+								? 'IID_PROVIDER_PLAN_UNAVAILABLE'
+								: 'IID_PROVIDER_PLAN_UNSUPPORTED',
+							message: iidProviderExecution.reason,
+							retriable: iidProviderExecution.retriable,
+							details: { entries: iidProviderExecution.entries },
+						},
+					})
+				);
+				input.metrics.increment(
+					iidProviderExecution.retriable ? 'retried' : 'failed',
+					'enrichment'
+				);
+				return;
+			}
 			const scopeDecision = evaluateEnrichmentProcessingScope({
 				plan,
 				scope: input.config.processingScope,
@@ -147,15 +190,69 @@ export async function runKgEnrichmentWorker(input: {
 				return;
 			}
 
-			const engine = enrichmentRuntime.createEngine(input.config.defaultPreset);
 			const enrichment = await input.circuits.runtime.execute(() =>
 				engine.enrich({
 					input: classifiedInput,
 					runtime: 'server',
+					...(iidProviderExecution?.status === 'ready'
+						? { plugins: iidProviderExecution.plugins }
+						: {}),
 					...(scopeDecision.artifactTypes ? { artifactTypes: scopeDecision.artifactTypes } : {}),
 					traceId: runId,
 				})
 			);
+			const completion = evaluateEnrichmentCompletion(enrichment);
+			if (completion.kind === 'retryable_failure') {
+				await input.circuits.database.execute(() =>
+					failNodeProcessingStage(input.db, {
+						stage: 'enrichment',
+						nodeId: claimed.id,
+						runId,
+						error: {
+							code: 'ENRICHMENT_PROVIDERS_RETRYABLE',
+							message:
+								'Enrichment produced no artifacts and every attempted provider failed retryably.',
+							retriable: true,
+							details: completion.diagnostics,
+						},
+					})
+				);
+				input.metrics.increment('retried', 'enrichment');
+				if (claimed.enrichmentAttempts >= input.config.maxAttempts) {
+					input.metrics.incrementDeadLetters({ worker: WORKER, stage: 'enrichment' });
+				}
+				logger.warn('kg enrichment produced only retryable provider failures', {
+					durationMs: Date.now() - startedAt,
+					errorCodes: completion.diagnostics.errors.map((error) => error.code),
+				});
+				return;
+			}
+			if (completion.kind === 'terminal_unresolved') {
+				await input.circuits.database.execute(() =>
+					failNodeProcessingStage(input.db, {
+						stage: 'enrichment',
+						nodeId: claimed.id,
+						runId,
+						error: {
+							code: 'ENRICHMENT_PROVIDERS_TERMINAL',
+							message:
+								completion.diagnostics.totalErrors > 0
+									? 'Enrichment produced no artifacts and at least one provider failed terminally.'
+									: 'Enrichment produced no artifacts because every provider was skipped.',
+							retriable: false,
+							details: completion.diagnostics,
+						},
+					})
+				);
+				input.metrics.increment('failed', 'enrichment');
+				logger.warn('kg enrichment completed without a resolvable artifact', {
+					durationMs: Date.now() - startedAt,
+					errors: completion.diagnostics.totalErrors,
+					skipped: completion.diagnostics.totalSkipped,
+				});
+				return;
+			}
+			const promotedFields = buildEnrichmentCompletionPromotedFields(plan, enrichment.artifacts);
 			await input.circuits.database.execute(() =>
 				completeNodeEnrichmentStageWithArtifacts(input.db, {
 					nodeId: claimed.id,
@@ -172,6 +269,7 @@ export async function runKgEnrichmentWorker(input: {
 						meta: artifact.meta,
 						sourceUri: artifact.meta.sourceUrl ?? plan.targetUrl,
 					})),
+					promotedFields,
 				})
 			);
 			input.metrics.increment('completed', 'enrichment');
