@@ -18,6 +18,13 @@ export type VendoredArtifact = {
 	bytecode: Hex;
 };
 
+export type LinkableVendoredArtifact = {
+	contractName: string;
+	abi: Abi;
+	/** Solidity library placeholders must be linked before deployment. */
+	bytecode: string;
+};
+
 function artifact(raw: { contractName: string; abi: unknown; bytecode: string }): VendoredArtifact {
 	return {
 		contractName: raw.contractName,
@@ -32,7 +39,11 @@ export const UpgradeableBeaconArtifact = artifact(upgradeableBeacon);
 export const AtomWardenArtifact = artifact(atomWarden);
 export const WrappedTrustArtifact = artifact(wrappedTrust);
 /** optimizer_runs=200 build whose runtime fits EIP-170 chains (see the JSON's note). */
-export const MultiVaultSizeFitArtifact = artifact(multiVaultSizeFit);
+export const MultiVaultSizeFitArtifact: LinkableVendoredArtifact = {
+	contractName: multiVaultSizeFit.contractName,
+	abi: multiVaultSizeFit.abi as Abi,
+	bytecode: multiVaultSizeFit.bytecode,
+};
 
 export const AtomWardenAbi = AtomWardenArtifact.abi;
 export const WrappedTrustAbi = WrappedTrustArtifact.abi;
