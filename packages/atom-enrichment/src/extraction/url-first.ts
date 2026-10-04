@@ -26,15 +26,15 @@ const SCHEMA_TYPE_TO_ATOM_TYPE: Record<string, AtomType> = {
 	Service: 'company',
 	Product: 'product',
 	MusicRecording: 'song',
-	MusicAlbum: 'song',
-	MusicGroup: 'song',
+	MusicAlbum: 'music-album',
+	MusicGroup: 'artist',
 	SoftwareApplication: 'software',
 	SoftwareSourceCode: 'software',
 	MobileApplication: 'software',
 };
 
 function resolvePreset(atomType: AtomType, category: string): UrlFirstEnrichmentPreset {
-	if (atomType === 'song') return 'music';
+	if (atomType === 'song' || atomType === 'music-album' || atomType === 'artist') return 'music';
 	if (atomType === 'company') return 'company';
 	if (category === 'Blockchain') return 'crypto';
 	return 'default';

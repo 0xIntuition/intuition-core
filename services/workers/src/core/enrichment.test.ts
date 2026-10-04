@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	createClassificationEngine,
+	createSpotifyPlugin,
+	createTypeProfilesPlugin,
+	jsonLdTypeCategorySchema,
+} from '@0xintuition/atom-classification';
+import { classifiedAtomInputSchema } from '@0xintuition/atom-enrichment';
+import { deriveClassificationPlan, deriveClassificationResultFromRuntime } from './classification';
+import {
 	buildClassifiedInputFromPlan,
 	buildEnrichmentCompletionPromotedFields,
 	buildIidProviderExecutionPlan,
@@ -10,6 +18,76 @@ import {
 } from './enrichment';
 
 describe('KG enrichment core', () => {
+	for (const [kind, category, schemaType] of [
+		['track', 'song', 'MusicRecording'],
+		['album', 'music-album', 'MusicAlbum'],
+		['artist', 'artist', 'MusicGroup'],
+	] as const) {
+		test(`carries Spotify ${kind} URL classification into enrichment without category loss`, async () => {
+			const url = `https://open.spotify.com/${kind}/abc123`;
+			const classification = await createClassificationEngine({
+				runtime: 'server',
+				plugins: [createTypeProfilesPlugin(), createSpotifyPlugin()],
+			}).classify({
+				input: url,
+				mode: 'server-only',
+				classificationSessionId: `worker-spotify-${kind}`,
+			});
+			expect(classification.resolved?.atoms[0]).toMatchObject({
+				category,
+				schemaType,
+				canonicalId: `spotify:${kind}:abc123`,
+			});
+			const classificationResult = deriveClassificationResultFromRuntime({
+				classification,
+				targetUrl: url,
+				targetSource: 'raw_input',
+			});
+			const input = buildClassifiedInputFromPlan(
+				deriveEnrichmentPlan({ rawInput: url, classificationResult, parseResult: null })
+			);
+			expect(input).toMatchObject({ atomType: category, jsonLd: { '@type': schemaType } });
+			expect(classifiedAtomInputSchema.safeParse(input).success).toBe(true);
+		});
+
+		test(`structured ${schemaType} agrees with Spotify ${kind} URL classification`, async () => {
+			const url = `https://open.spotify.com/${kind}/abc123`;
+			const engine = createClassificationEngine({
+				runtime: 'server',
+				plugins: [createTypeProfilesPlugin(), createSpotifyPlugin()],
+			});
+			const classification = await engine.classify({
+				input: url,
+				mode: 'server-only',
+				classificationSessionId: `structured-spotify-${kind}`,
+			});
+			const plan = deriveClassificationPlan({
+				rawInput: null,
+				parseResult: {
+					kind: 'json',
+					normalizedInput: '{}',
+					structuredDocument: {
+						source: 'inline_json',
+						format: 'jsonld',
+						topLevelType: 'object',
+						schemaType,
+						data: { '@type': schemaType, name: 'Music Fixture', url },
+						urlCandidates: [{ field: 'url', url }],
+					},
+				},
+			});
+			expect(plan.classificationResult).toMatchObject({
+				status: 'recognized',
+				schemaType,
+				category,
+			});
+			expect(plan.classificationResult.category).toBe(classification.resolved?.atoms[0]?.category);
+			const definition = engine.listTypes().find((entry) => entry.type === schemaType);
+			expect(definition?.category).toBe(category);
+			expect(jsonLdTypeCategorySchema.safeParse(category).success).toBe(true);
+		});
+	}
+
 	test('prefers classification target URL over parse fallbacks', () => {
 		const plan = deriveEnrichmentPlan({
 			rawInput: 'https://raw.example',

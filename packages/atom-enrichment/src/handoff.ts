@@ -536,12 +536,14 @@ function resolveAtomTypeFromClassificationType(type: string): ClassifiedAtomInpu
 	if (normalized === 'product' || normalized === 'brand' || normalized === 'ethereumerc20') {
 		return 'product';
 	}
-	if (
-		normalized === 'musicrecording' ||
-		normalized === 'musicalbum' ||
-		normalized === 'musicgroup'
-	) {
+	if (normalized === 'musicrecording') {
 		return 'song';
+	}
+	if (normalized === 'musicalbum') {
+		return 'music-album';
+	}
+	if (normalized === 'musicgroup') {
+		return 'artist';
 	}
 	if (normalized === 'podcastseries' || normalized === 'podcastepisode') {
 		return 'podcast';

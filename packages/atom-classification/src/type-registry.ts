@@ -8,6 +8,8 @@ export const jsonLdTypeCategorySchema = z.enum([
 	'product',
 	'podcast',
 	'song',
+	'music-album',
+	'artist',
 	'software',
 ]);
 

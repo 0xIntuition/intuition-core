@@ -406,6 +406,8 @@ function resolveAtomType(value: string | undefined): ClassifiedAtomInput['atomTy
 		case 'company':
 		case 'product':
 		case 'song':
+		case 'music-album':
+		case 'artist':
 		case 'podcast':
 		case 'software':
 		case 'unknown':

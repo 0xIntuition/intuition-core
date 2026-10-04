@@ -10,6 +10,8 @@ export const atomTypeSchema = z.enum([
 	'product',
 	'podcast',
 	'song',
+	'music-album',
+	'artist',
 	'software',
 	'unknown',
 ]);

@@ -2483,12 +2483,14 @@ function resolveLegacyCategoryForCanonicalType(
 	if (normalized === 'product' || normalized === 'ethereumerc20' || normalized === 'brand') {
 		return 'product';
 	}
-	if (
-		normalized === 'musicrecording' ||
-		normalized === 'musicalbum' ||
-		normalized === 'musicgroup'
-	) {
+	if (normalized === 'musicrecording') {
 		return 'song';
+	}
+	if (normalized === 'musicalbum') {
+		return 'music-album';
+	}
+	if (normalized === 'musicgroup') {
+		return 'artist';
 	}
 	if (normalized === 'podcastseries' || normalized === 'podcastepisode') {
 		return 'podcast';

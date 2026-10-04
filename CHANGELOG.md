@@ -38,6 +38,9 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Changed
 
+- IMDb title URLs resolve through TMDB `/find` and fail closed without a TMDB key, never fetching IMDb HTML (intuition-v2 ENG-15960).
+- Spotify albums and artists classify as `music-album` and `artist` with unchanged canonical ids; this identity-affecting change follows intuition-v2 ENG-15998.
+
 - New atoms carry an empty `search_text` until a worker promotes it, so
   `GET /api/atoms?q=` does not match them until the worker has run.
 - Service Dockerfiles use a pinned Rust builder, `--locked` builds and a copied
