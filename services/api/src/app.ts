@@ -13,12 +13,21 @@ import {
 	ensureNodeWithCreation,
 	ensureTripleWithCreation,
 	type KgNodeRawType,
+	listNodeContexts,
+	listPublicNodesByIid,
 } from '@0xintuition/database-kg/actions';
 import { and, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { Hono } from 'hono';
 import { getConnInfo } from 'hono/bun';
 import { cors } from 'hono/cors';
+import {
+	type ExpandedAtomTermSource,
+	exposeAtomDetailView,
+	exposeAtomListView,
+	exposeExpandedAtomTerm,
+	presentPersistedAtomContext,
+} from './atom-view';
 import { type ApiKeyIdentity, bearerToken, resolveApiKey } from './auth';
 import type { ApiConfig } from './config';
 import { createRateLimiter } from './rate-limit';
@@ -111,7 +120,6 @@ export function createApp(config: ApiConfig) {
 	const connection = createKgConnection({ connectionString: config.databaseKgUrl });
 	const db: KgDb = connection.db;
 	let schemaMetadataPromise: Promise<KgSchemaMetadata> | null = null;
-
 	const app = new Hono<AppEnv>();
 
 	app.use(
@@ -287,11 +295,16 @@ export function createApp(config: ApiConfig) {
 				isOnchain: nodes.isOnchain,
 				rawType: nodes.rawType,
 				data: nodes.data,
+				iid: nodes.iid,
 				dataResolved: nodes.dataResolved,
+				parseResult: nodes.parseResult,
 				classificationType: nodes.classificationType,
 				parseStatus: nodes.parseStatus,
 				classificationStatus: nodes.classificationStatus,
+				classificationResult: nodes.classificationResult,
 				enrichmentStatus: nodes.enrichmentStatus,
+				enrichmentError: nodes.enrichmentError,
+				enrichedAt: nodes.enrichedAt,
 			})
 			.from(nodes)
 			.where(and(...filters))
@@ -299,7 +312,24 @@ export function createApp(config: ApiConfig) {
 			.limit(limit)
 			.offset(offset);
 
-		return c.json({ data: rows, pagination: { limit, offset, count: rows.length } });
+		return c.json({
+			data: rows.map((row) => exposeAtomListView(row, config.atomSemanticReadsEnabled)),
+			pagination: { limit, offset, count: rows.length },
+		});
+	});
+
+	app.get('/api/iids/:iid/atoms', async (c) => {
+		const iid = c.req.param('iid');
+		if (!iid.trim()) {
+			return c.json({ error: 'invalid_iid', message: 'iid must not be empty' }, 400);
+		}
+		const { limit, offset } = parsePagination(c.req.query());
+		const rows = await listPublicNodesByIid(db, iid, { limit, offset });
+
+		return c.json({
+			data: rows.map((row) => exposeAtomListView(row, config.atomSemanticReadsEnabled)),
+			pagination: { limit, offset, count: rows.length },
+		});
 	});
 
 	app.get('/api/atoms/:id', async (c) => {
@@ -316,11 +346,21 @@ export function createApp(config: ApiConfig) {
 
 		// Graph-degree stats are maintained by the adjacency projections; absent
 		// until the node participates in a triple.
-		const [stats] = await db.select().from(nodeStats).where(eq(nodeStats.nodeId, id)).limit(1);
+		const [statsRows, contextRows] = await Promise.all([
+			db.select().from(nodeStats).where(eq(nodeStats.nodeId, id)).limit(1),
+			config.atomSemanticReadsEnabled ? listNodeContexts(db, id) : Promise.resolve(undefined),
+		]);
+		const stats = statsRows[0];
+		const detailSource = {
+			...row,
+			...(contextRows
+				? { context: contextRows.map((context) => presentPersistedAtomContext(context)) }
+				: {}),
+		};
 
 		return c.json({
 			data: {
-				...row,
+				...exposeAtomDetailView(detailSource, config.atomSemanticReadsEnabled),
 				stats: stats
 					? {
 							inDegree: Number(stats.inDegree),
@@ -383,18 +423,21 @@ export function createApp(config: ApiConfig) {
 				subject: {
 					id: subjectNodes.id,
 					data: subjectNodes.data,
+					dataResolved: subjectNodes.dataResolved,
 					classificationType: subjectNodes.classificationType,
 					rawType: subjectNodes.rawType,
 				},
 				predicate: {
 					id: predicateNodes.id,
 					data: predicateNodes.data,
+					dataResolved: predicateNodes.dataResolved,
 					classificationType: predicateNodes.classificationType,
 					rawType: predicateNodes.rawType,
 				},
 				object: {
 					id: objectNodes.id,
 					data: objectNodes.data,
+					dataResolved: objectNodes.dataResolved,
 					classificationType: objectNodes.classificationType,
 					rawType: objectNodes.rawType,
 				},
@@ -431,6 +474,25 @@ export function createApp(config: ApiConfig) {
 	const wantsExpandedTerms = (query: Record<string, string | undefined>) =>
 		query.expand === 'terms';
 
+	const presentExpandedTerms = <
+		T extends {
+			subject: ExpandedAtomTermSource | null;
+			predicate: ExpandedAtomTermSource | null;
+			object: ExpandedAtomTermSource | null;
+		},
+	>(
+		row: T
+	) => ({
+		...row,
+		subject: row.subject
+			? exposeExpandedAtomTerm(row.subject, config.atomSemanticReadsEnabled)
+			: null,
+		predicate: row.predicate
+			? exposeExpandedAtomTerm(row.predicate, config.atomSemanticReadsEnabled)
+			: null,
+		object: row.object ? exposeExpandedAtomTerm(row.object, config.atomSemanticReadsEnabled) : null,
+	});
+
 	// All triples touching an atom, in any position — served by the hexastore.
 	app.get('/api/atoms/:id/triples', async (c) => {
 		const id = c.req.param('id');
@@ -449,7 +511,7 @@ export function createApp(config: ApiConfig) {
 				.limit(limit)
 				.offset(offset);
 			return c.json({
-				data: rows,
+				data: rows.map(presentExpandedTerms),
 				pagination: { limit, offset, count: rows.length },
 			});
 		}
@@ -541,7 +603,7 @@ export function createApp(config: ApiConfig) {
 				.limit(limit)
 				.offset(offset);
 			return c.json({
-				data: rows,
+				data: rows.map(presentExpandedTerms),
 				pagination: { limit, offset, count: rows.length },
 			});
 		}
@@ -567,7 +629,7 @@ export function createApp(config: ApiConfig) {
 			if (!row) {
 				return c.json({ error: 'not_found' }, 404);
 			}
-			return c.json({ data: row });
+			return c.json({ data: presentExpandedTerms(row) });
 		}
 
 		const [row] = await db
