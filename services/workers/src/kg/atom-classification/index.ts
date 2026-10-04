@@ -15,11 +15,17 @@ import {
 import {
 	deriveClassificationPlan,
 	deriveClassificationResultFromRuntime,
+	deriveIidClassificationResult,
 	resolveClassificationType,
 } from '../../core/classification';
+import type { IidRegistryAdapter } from '../../core/iid-registry';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
-import { classifyWorkerError, toProcessingError } from '../../shared/errors';
+import {
+	classifyWorkerError,
+	toProcessingError,
+	WorkerConfigurationError,
+} from '../../shared/errors';
 import {
 	createBoundedScheduler,
 	RECONCILE_BATCH_SIZE_MULTIPLIER,
@@ -47,7 +53,11 @@ export async function runKgClassificationWorker(input: {
 		database: CircuitBreaker;
 		runtime: CircuitBreaker;
 	};
+	iidRegistry?: IidRegistryAdapter;
 }): Promise<void> {
+	const iidRegistry = input.config.iidReadEnabled
+		? requireIidRegistry(input.iidRegistry)
+		: undefined;
 	const classificationRuntime = createClassificationRuntime({
 		defaultPreset: input.config.defaultPreset,
 		cacheProvider: input.config.cacheProvider,
@@ -93,9 +103,16 @@ export async function runKgClassificationWorker(input: {
 			const parseResult = toCompactParseResultMaybe(claimed.parseResult);
 			const rawInput = claimed.data ?? claimed.dataHex;
 			const plan = deriveClassificationPlan({ parseResult, rawInput });
-			let classificationResult = plan.classificationResult;
+			const iidClassificationResult =
+				input.config.iidReadEnabled && parseResult?.kind === 'iid' && parseResult.identity
+					? deriveIidClassificationResult({
+							identity: parseResult.identity,
+							resolution: requireIidRegistry(iidRegistry).resolve(parseResult.identity),
+						})
+					: undefined;
+			let classificationResult = iidClassificationResult ?? plan.classificationResult;
 
-			if (!plan.usesStructuredDocument) {
+			if (!iidClassificationResult && !plan.usesStructuredDocument) {
 				if (!plan.runtimeInput) {
 					// See atom-parsing for the rationale: classification-skip +
 					// downstream-skip must commit atomically or prerequisite-driven
@@ -283,4 +300,13 @@ export async function runKgClassificationWorker(input: {
 			});
 		}
 	}
+}
+
+function requireIidRegistry(adapter: IidRegistryAdapter | undefined): IidRegistryAdapter {
+	if (!adapter) {
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-registry adapter for IID classification.'
+		);
+	}
+	return adapter;
 }
