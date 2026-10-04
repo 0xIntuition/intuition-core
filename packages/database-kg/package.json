@@ -27,6 +27,7 @@
 		"check:write": "biome check --write"
 	},
 	"dependencies": {
+		"@0xintuition/ids": "0.1.0-alpha.0",
 		"drizzle-orm": "0.45.1",
 		"postgres": "^3.4.7",
 		"viem": "^2.23.2"

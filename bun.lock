@@ -110,6 +110,7 @@
     "packages/database-kg": {
       "name": "@0xintuition/database-kg",
       "dependencies": {
+        "@0xintuition/ids": "0.1.0-alpha.0",
         "drizzle-orm": "0.45.1",
         "postgres": "^3.4.7",
         "viem": "^2.23.2",
@@ -238,6 +239,8 @@
     "@0xintuition/explorer": ["@0xintuition/explorer@workspace:apps/explorer"],
 
     "@0xintuition/graph-flags": ["@0xintuition/graph-flags@workspace:packages/graph-flags"],
+
+    "@0xintuition/ids": ["@0xintuition/ids@0.1.0-alpha.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-ILFtC1ldVBvQsLGMZ9Tu+rY+VpUYJFqczFbQD/tMTi0vjBjbRoF8LJ/j8iaTJhJOvqBB3yx7sC/dRsAGaEwwwQ=="],
 
     "@0xintuition/tsconfig": ["@0xintuition/tsconfig@workspace:tooling/typescript"],
 
