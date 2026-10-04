@@ -8,7 +8,7 @@ automatically.
 
 | Variable | Used by | Default (local) | Notes |
 | --- | --- | --- | --- |
-| `DATABASE_KG_URL` | api, workers, kg migrate, projections (optional) | `postgresql://intuition:intuition@localhost:5432/intuition_kg` | knowledge graph |
+| `DATABASE_KG_URL` | api, workers, kg migrate, projections (optional) | `postgresql://intuition:intuition@localhost:5432/intuition_kg` | knowledge graph; projections use it for canonical nodes and atom-context evidence |
 | `DATABASE_TIMESCALE_URL` | database-timescale tests | `postgresql://…@localhost:5433/intuition_timescale` | TS-package tests skip cleanly when unset |
 | `DATABASE_URL` | indexer, projections, timescale migrate | container DSN → `timescale:5432` | the event store |
 | `REDIS_URL` | indexer | `redis://localhost:6379` | leader election |
@@ -31,8 +31,9 @@ automatically.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `SURREAL_DB_URL` | *(empty)* | **keep empty** — selects the no-op graph sink; Core is Postgres-only |
-| `DATABASE_KG_URL` | unset | when set, `core_entities` writes atoms/triples into the KG |
-| `ENABLED_PROJECTIONS` / `DISABLED_PROJECTIONS` | — / `funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual` | CSV allow/deny lists |
+| `DATABASE_KG_URL` | unset | when set, `core_entities` writes atoms/triples and `atom_context:dual` writes immutable URI/evidence rows into the KG |
+| `USE_TYPED_READER` | `true` in Core Compose | use the per-event typed tables, including the byte-preserving `AtomContextRegistered` table; the standalone binary retains its legacy default of `false` |
+| `ENABLED_PROJECTIONS` / `DISABLED_PROJECTIONS` | — / `funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual` | CSV allow/deny lists; `atom_context:dual` is intentionally enabled by default after migration because it records chain truth |
 | `PROJECTIONS_BATCH_SIZE` / `PROJECTIONS_POLL_INTERVAL_MS` | `500` / `1000` | throughput tuning |
 | `PROJECTIONS_METRICS_PORT` | `9092` | health: `/health/live` |
 
@@ -43,6 +44,14 @@ automatically.
 | `API_PORT` | `3000` | |
 | `API_AUTH` | `public-read` | `open` \| `public-read` \| `gated` — see run-your-own-node.md |
 | `API_ALLOWED_ORIGINS` | *(empty = allow all)* | comma-separated CORS origins |
+| `API_ATOM_SEMANTIC_READS_ENABLED` | `false` | expose additive `raw`, `identity`, `classification`, `context`, `resolution`, and `display` atom fields; existing fields remain present |
+
+## Explorer (`apps/explorer`)
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `VITE_API_URL` | `http://localhost:3000` | query API base URL |
+| `VITE_ATOM_SEMANTIC_READS_ENABLED` | `false` | independently consume semantic atom fields and show identity/context UI; this is a Vite build/start setting |
 
 ## Workers (`services/workers`)
 
@@ -56,6 +65,8 @@ automatically.
 | `WORKERS_PARSE_ALLOW_HTTP` | `false` | plain-http fetches off by default |
 | `WORKERS_PARSE_IPFS_GATEWAY_BASE_URL` | unset | optional IPFS gateway |
 | `WORKERS_PROCESSING_SCOPE` | `full` | `full`, `music`, `podcasts`, or `music-and-podcasts`; scoped modes gate enrichment only |
+| `WORKERS_IID_READ_ENABLED` | `false` | enable IID parse/classification reads after package and persistence compatibility is verified |
+| `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
 
 ## Atom services (`services/atom-services`)
 

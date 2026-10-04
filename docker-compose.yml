@@ -65,6 +65,9 @@ services:
       # Mint keys with: bun --filter @0xintuition/api run keys:create
       API_AUTH: ${API_AUTH:-public-read}
       API_RATE_LIMIT_RPM: ${API_RATE_LIMIT_RPM:-120}
+      # Additive identity/context/resolution/display response envelope. Keep
+      # dark until reader compatibility has been verified end to end.
+      API_ATOM_SEMANTIC_READS_ENABLED: ${API_ATOM_SEMANTIC_READS_ENABLED:-false}
     ports:
       - "${API_HOST_PORT:-3000}:3000"
     depends_on:
@@ -112,6 +115,9 @@ services:
       # full | music | podcasts | music-and-podcasts. Scoped modes only gate
       # enrichment; parse and classification intentionally remain broad.
       WORKERS_PROCESSING_SCOPE: ${WORKERS_PROCESSING_SCOPE:-full}
+      # IID read and provider-resolution paths are independently dark-launched.
+      WORKERS_IID_READ_ENABLED: ${WORKERS_IID_READ_ENABLED:-false}
+      WORKERS_IID_RESOLUTION_ENABLED: ${WORKERS_IID_RESOLUTION_ENABLED:-false}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
       SPOTIFY_MARKET: ${SPOTIFY_MARKET:-}
@@ -173,9 +179,11 @@ services:
   #   MULTIVAULT_START_BLOCK=0
   # and run:  docker compose --profile devnet --profile indexing up
 
-  # --disable-code-size-limit: the contracts ship as the production build
-  # (optimizer_runs=10000); MultiVault's runtime exceeds EIP-170's 24576 bytes,
-  # which the Intuition L3 permits by raising the cap — anvil must do the same.
+  # --disable-code-size-limit: the standard v1.1 local path deploys and links
+  # MultiVaultLib into the production MultiVault implementation, whose runtime
+  # exceeds EIP-170's 24576 bytes. The Intuition L3 raises that cap, so this
+  # Anvil path mirrors it. The separate EIP-170 acceptance path uses the linked
+  # MultiVaultSizeFit artifact.
   anvil:
     image: ghcr.io/foundry-rs/foundry:stable
     profiles: [devnet]
@@ -191,9 +199,10 @@ services:
       retries: 20
 
   # One-shot: deploy the full protocol from the pinned @0xintuition/contracts-v2
-  # npm package (production bytecode, no toolchain) and verify AtomCreated
-  # fires. Idempotent — skips deploy when MultiVault already has code on the
-  # anvil chain (state persists on the anvil_data volume).
+  # npm package (production bytecode, no toolchain), link MultiVaultLib, and
+  # verify AtomCreated plus the URI config/AtomContextRegistered path. Idempotent
+  # — skips deploy when MultiVault already has code on the Anvil chain (state
+  # persists on the anvil_data volume).
   devnet-deploy:
     build:
       context: .
@@ -255,6 +264,10 @@ services:
       # own greenfield environments run) — graph writes go to PostgreSQL.
       SURREAL_DB_URL: ""
       PROJECTIONS_METRICS_PORT: "9092"
+      # Core's canonical event source is the per-event typed tables. Migration
+      # 050 creates/backfills AtomContextRegistered there, and the context
+      # projector must consume the same byte-preserving representation.
+      USE_TYPED_READER: ${USE_TYPED_READER:-true}
       # Lean open-source default: skip product analytics and market-schema dual writes.
       DISABLED_PROJECTIONS: ${DISABLED_PROJECTIONS:-funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual}
     ports:
