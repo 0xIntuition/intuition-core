@@ -3,6 +3,7 @@ import type { InferSelectViewModel } from 'drizzle-orm';
 export * from './schemas/timescale';
 export * from './timescale-wrappers';
 
+import type { atomContextRegisteredEvents } from './schemas/timescale/events';
 import type { signal } from './schemas/timescale/signals';
 import type { stats } from './schemas/timescale/stats';
 import type { vault } from './schemas/timescale/vaults';
@@ -27,6 +28,7 @@ import type {
 
 export type VaultRow = typeof vault.$inferSelect;
 export type StatsRow = typeof stats.$inferSelect;
+export type AtomContextRegisteredEventsRow = typeof atomContextRegisteredEvents.$inferSelect;
 
 export type AccountPnlSnapshotRow = typeof account_pnl_snapshot.$inferSelect;
 export type DepositedEventsRow = typeof deposited_events.$inferSelect;

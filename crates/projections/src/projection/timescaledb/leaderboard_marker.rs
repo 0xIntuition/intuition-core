@@ -303,6 +303,7 @@ impl PgProjection for LeaderboardMarkerProjection {
                     handle_share_price_changed_typed(&mut tx, metadata, data).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {
                     // Filtered by event_types().

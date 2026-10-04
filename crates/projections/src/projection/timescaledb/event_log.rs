@@ -48,6 +48,7 @@ impl PgProjection for EventLogProjection {
     fn event_types(&self) -> &'static [EventType] {
         &[
             EventType::AtomCreated,
+            EventType::AtomContextRegistered,
             EventType::TripleCreated,
             EventType::Deposited,
             EventType::Redeemed,
@@ -63,7 +64,7 @@ impl PgProjection for EventLogProjection {
     /// Process a batch of pre-parsed typed events, writing to `event` and the
     /// three financial fact tables.
     ///
-    /// Handles all six event types: `Deposited` and `Redeemed` write fact rows;
+    /// Handles all seven event types: `Deposited` and `Redeemed` write fact rows;
     /// `ProtocolFeeAccrued` writes a fee row; `AtomCreated`, `TripleCreated`,
     /// and `SharePriceChanged` write only the canonical event row. `Unknown`
     /// events are warned and skipped.
@@ -122,8 +123,9 @@ impl PgProjection for EventLogProjection {
                 ParsedEvent::ProtocolFeeAccrued { metadata, data } => {
                     insert_fee_transfer_fact_typed(&mut tx, metadata, data, &event_id).await
                 }
-                // AtomCreated, TripleCreated, SharePriceChanged: canonical row only.
+                // Creation/context/price events only contribute the canonical row.
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::SharePriceChanged { .. } => {
                     continue;
@@ -332,10 +334,11 @@ mod tests {
     }
 
     #[test]
-    fn event_types_contains_all_six() {
+    fn event_types_contains_all_seven() {
         let types = EventLogProjection.event_types();
-        assert_eq!(types.len(), 6);
+        assert_eq!(types.len(), 7);
         assert!(types.contains(&EventType::AtomCreated));
+        assert!(types.contains(&EventType::AtomContextRegistered));
         assert!(types.contains(&EventType::TripleCreated));
         assert!(types.contains(&EventType::Deposited));
         assert!(types.contains(&EventType::Redeemed));

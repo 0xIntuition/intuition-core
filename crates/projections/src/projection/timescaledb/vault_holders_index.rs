@@ -80,6 +80,7 @@ impl PgProjection for VaultHoldersIndexProjection {
                     process_redeem_typed(&mut tx, metadata, data).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::SharePriceChanged { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {
