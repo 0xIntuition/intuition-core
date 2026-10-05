@@ -101,7 +101,7 @@ export const spotifyProfile: PlatformV0Profile = {
 			return withPlatformMetadata(
 				{
 					schemaType: 'MusicAlbum',
-					category: 'song',
+					category: 'music-album',
 					title: name,
 					canonicalId: `spotify:album:${resourceId || slugify(canonicalUrl)}`,
 					sameAs: [canonicalUrl],
@@ -136,7 +136,7 @@ export const spotifyProfile: PlatformV0Profile = {
 			return withPlatformMetadata(
 				{
 					schemaType: 'MusicGroup',
-					category: 'song',
+					category: 'artist',
 					title: name,
 					canonicalId: `spotify:artist:${resourceId || slugify(canonicalUrl)}`,
 					sameAs: [canonicalUrl],

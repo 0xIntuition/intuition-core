@@ -17,6 +17,7 @@ import {
 	createUpstashCacheAdapterFromEnv,
 	cryptoPreset,
 	type CacheAdapter as EnrichmentCacheAdapter,
+	type EnrichmentIdentityCapability,
 	type EnrichmentPlugin,
 	musicPreset,
 	serverDefaultPreset,
@@ -185,10 +186,14 @@ export function createEnrichmentRuntime(options: ProcessingRuntimeOptions) {
 	const presetFactories = createPresetFactories(options.env);
 
 	return {
-		createEngine: (preset: EnrichmentPreset) =>
+		createEngine: (
+			preset: EnrichmentPreset,
+			engineOptions?: { identity?: EnrichmentIdentityCapability }
+		) =>
 			createEnrichmentEngine({
 				plugins: presetFactories[preset](),
 				cache: cacheRuntime.enrichmentCache,
+				...(engineOptions?.identity ? { identity: engineOptions.identity } : {}),
 			}),
 		presetFactories,
 		presetSummary: {

@@ -1,7 +1,13 @@
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
 import { type FetchLike, fetchJsonWithSchema } from '../__shared__/http';
-import { getRequestName, getRequestUrl, parseWikipediaTitleFromUrl } from '../__shared__/request';
+import {
+	getRequestName,
+	getRequestUrl,
+	isSynthesizedProviderPlaceholderTitle,
+	parseWikipediaTitleFromUrl,
+} from '../__shared__/request';
+import { fetchWikidataEntity, wikidataTypeAgreement } from '../__shared__/wikidata-type';
 import { wikipediaSummaryResponseSchema } from './external';
 import { wikipediaDataSchema } from './schema';
 
@@ -55,6 +61,31 @@ export function createWikipediaPlugin(
 			const payload = await fetchJsonWithSchema(fetcher, endpoint, wikipediaSummaryResponseSchema, {
 				signal: ctx.signal,
 			});
+			const requestUrl = getRequestUrl(request);
+			const titleFromUrl = requestUrl ? parseWikipediaTitleFromUrl(requestUrl) : undefined;
+			let agreement: 'agree' | 'mismatch' | 'unknown' = 'unknown';
+			if (!titleFromUrl && ctx.identity) {
+				const qid = payload.wikibase_item;
+				try {
+					const entity =
+						qid && /^Q\d+$/i.test(qid)
+							? await fetchWikidataEntity(fetcher, qid.toUpperCase(), ctx.signal)
+							: undefined;
+					agreement = wikidataTypeAgreement(
+						entity?.claims,
+						request.input.jsonLd['@type'],
+						ctx.identity,
+						ctx.logger,
+						ctx.signal
+					);
+				} catch (error) {
+					if (ctx.signal.aborted) throw error;
+					ctx.logger?.warn('Wikidata P31 fetch failed.', {
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+				if (agreement === 'mismatch') return [];
+			}
 
 			const pageUrl =
 				payload.content_urls?.desktop?.page ??
@@ -77,6 +108,11 @@ export function createWikipediaPlugin(
 					}),
 					meta: {
 						pluginId: 'wikipedia',
+						...(titleFromUrl
+							? { identityStrength: 'url' as const }
+							: agreement === 'unknown'
+								? { identityStrength: 'title' as const }
+								: {}),
 						provider: 'wikipedia',
 						fetchedAt: ctx.now(),
 						sourceUrl: pageUrl,
@@ -96,7 +132,7 @@ function resolveWikipediaTitle(request: EnrichmentRequest): string | undefined {
 		}
 	}
 
-	return getRequestName(request);
+	return isSynthesizedProviderPlaceholderTitle(request) ? undefined : getRequestName(request);
 }
 
 function toOptionalString(value: string | null | undefined): string | undefined {

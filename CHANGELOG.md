@@ -8,7 +8,54 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ## Unreleased
 
+- Exclude other nodes' primary IIDs from classification/backfill alias writes (R38 proposed default), time out dry-run backfill pages, and preserve aliases on malformed projections.
+
+- Add alias rows in `kg.node_identifiers` (drizzle 0005), alias-aware IID reads with exact-primary ranking, transactional classification writes, and `kg-backfill-identifiers`; re-author v2 ENG-15567 after the R12 production-ladder gate (9/29, 90k rows) superseded the frozen "no new identity table until a query needs it" rule.
+
+- Inject IID ladder policy into worker classification, persisting rung projections and filling missing primary IIDs under the IID read flag.
+- Enforce ladder admission for canonical identity and fallback inputs, exclude URL IIDs, and ignore malformed rung projections before promotion or enrichment.
+
 ### Added
+
+- Packed-tarball Node/Bun URI creation conformance, replay vectors, and API ingestion semantics documentation.
+
+- Typed Wikidata IID adapter conformance and colon-preserving path coverage, including dormant identity handoffs.
+
+- Intuition Identifier (IID) read path across the stack, all behind
+  default-off flags: `WORKERS_IID_READ_ENABLED` and
+  `WORKERS_IID_RESOLUTION_ENABLED` (workers), `API_ATOM_SEMANTIC_READS_ENABLED`
+  (API) and `VITE_ATOM_SEMANTIC_READS_ENABLED` (explorer). Workers receive
+  identity through an injected adapter and fail closed when reads are enabled
+  without one; the API exposes `GET /api/iids/:iid/atoms` and an additive
+  `raw` / `identity` / `classification` / `context` / `resolution` / `display`
+  envelope on atom reads. `POST /api/atoms` and `POST /api/triples` are
+  unchanged.
+- On-chain URI context: the `AtomContextRegistered` event is indexed into the
+  typed event tables (Timescale migration `050`) and projected into
+  `kg.node_contexts` by the `atom_context:dual` projection. KG schema gains a
+  nullable `kg.nodes.iid` column with a partial index (drizzle `0003`) and the
+  `kg.node_contexts` table (drizzle `0004`), plus a bounded IID reconciliation
+  action (dry-run and apply).
+- `@0xintuition/contracts-v2` `1.1.0-alpha.0`: regenerated ABIs, vendored
+  AtomWarden, MultiVaultSizeFit and WrappedTrust artifacts, v1.1 deploy tooling
+  and a devnet IID fixture script.
+- OpenLibrary enrichment provider and an explicit provider plan; `iid` atom
+  detection kind in the parser.
+
+### Changed
+
+- Add an optional injected P31 type gate for Wikipedia/Wikidata title hits (ENG-16295): mismatches yield no artifact and agreements admit identity; worker and runtime forwarding are complete under `WORKERS_IID_READ_ENABLED`; the worker entrypoint wires adapters at the C14 composition boundary.
+- IMDb title URLs resolve through TMDB `/find` and fail closed without a TMDB key, never fetching IMDb HTML (intuition-v2 ENG-15960).
+- Spotify albums and artists classify as `music-album` and `artist` with unchanged canonical ids; this identity-affecting change follows intuition-v2 ENG-15998.
+- Wikidata labels and descriptions use a stable requested-locale/English/`mul` policy (intuition-v2 ENG-16199).
+- Provider name lookups reject synthesized placeholder titles and preserve fallback provenance (intuition-v2 placeholder guard).
+- Title-resolved artifacts no longer contribute identity URLs or chained provider identifiers across extraction tiers; the title-strength quarantine is an explicit descriptive-field allowlist applied across public extractors, augmentation lookups and Wikipedia QID pivots, so ISBN, SKU, GTIN and repository identities require stronger evidence (intuition-v2 ENG-16295, pure extraction half).
+- Spotify API artifacts retain UPC/EAN alongside ISRC and omit blank or malformed external IDs (intuition-v2 ENG-15998, parsing half).
+- New atoms carry an empty `search_text` until a worker promotes it, so
+  `GET /api/atoms?q=` does not match them until the worker has run.
+- Service Dockerfiles use a pinned Rust builder, `--locked` builds and a copied
+  `Cargo.lock`; Compose passes the new flags through with their default-off
+  values and defaults `USE_TYPED_READER` to on.
 
 - Published `intuition-curves` v0.1.0 to crates.io and verified the registry
   artifact, docs.rs build, Intuition team ownership, and a clean consumer build.

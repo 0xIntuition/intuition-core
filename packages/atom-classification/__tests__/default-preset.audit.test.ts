@@ -544,11 +544,11 @@ const auditFixtures: AuditFixture[] = [
 		},
 	},
 	{
-		id: 'imdb-title-domain-html',
+		id: 'imdb-title-tmdb-find',
 		input: 'https://www.imdb.com/title/tt0133093/',
-		options: createImdbDomainHtmlFixtureOptions(),
+		options: createImdbFindFixtureOptions(),
 		expected: {
-			fixtureId: 'imdb-title-domain-html',
+			fixtureId: 'imdb-title-tmdb-find',
 			input: 'https://www.imdb.com/title/tt0133093/',
 			classification: {
 				domain: 'imdb',
@@ -558,22 +558,22 @@ const auditFixtures: AuditFixture[] = [
 			resolverId: 'imdb-resolver',
 			fallbackUsed: false,
 			platformResolver: {
-				fallbackStage: 'domain-html',
-				attemptedStages: ['domain-html'],
-				skippedStages: ['domain-api:no-credentials'],
+				fallbackStage: 'domain-api',
+				attemptedStages: ['domain-api'],
+				skippedStages: [],
 				stageErrors: [],
 			},
 			atom: {
 				schemaType: 'Movie',
 				category: 'thing',
 				canonicalId: 'imdb:title:tt0133093',
-				source: 'platform-v0:domain-html',
+				source: 'platform-v0:domain-api',
 				metadata: {
 					pluginId: 'imdb',
-					provider: 'imdb-audit-html',
+					provider: 'imdb-tmdb',
 					platform: 'imdb',
 					subtype: undefined,
-					fallbackStage: 'domain-html',
+					fallbackStage: 'domain-api',
 				},
 			},
 			failureMode: 'none',
@@ -968,36 +968,19 @@ function createYouTubeBlockedFixtureOptions(): DefaultClassificationPresetOption
 	};
 }
 
-function createImdbDomainHtmlFixtureOptions(): DefaultClassificationPresetOptions {
+function createImdbFindFixtureOptions(): DefaultClassificationPresetOptions {
 	return {
 		imdbPluginOptions: {
-			adapters: {
-				domainHtml: ({ domain, classification, canonicalUrl }) => {
-					if (domain !== 'imdb' || classification.subtype !== 'title') {
-						return null;
-					}
-
-					return {
-						schemaType: 'Movie',
-						category: 'thing',
-						title: 'The Matrix',
-						canonicalId: 'imdb:title:tt0133093',
-						sameAs: [canonicalUrl],
-						data: {
-							'@context': 'https://schema.org/',
-							'@type': 'Movie',
-							name: 'The Matrix',
-							url: canonicalUrl,
-							sameAs: [canonicalUrl],
-						},
-						metadata: {
-							pluginId: 'imdb',
-							provider: 'imdb-audit-html',
-							sourceUrl: canonicalUrl,
-						},
-					};
-				},
-			},
+			credentials: { tmdb: { apiKey: 'fixture-key' } },
+			fetch: async () => ({
+				ok: true,
+				status: 200,
+				text: async () =>
+					JSON.stringify({
+						movie_results: [{ id: 603, title: 'The Matrix', release_date: '1999-03-30' }],
+						tv_results: [],
+					}),
+			}),
 		},
 	};
 }

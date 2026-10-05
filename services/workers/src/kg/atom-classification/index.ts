@@ -1,6 +1,7 @@
 import { createClassificationRuntime } from '@0xintuition/atom-services/runtime';
 import {
 	claimNodeProcessingStage,
+	completeNodeClassificationWithIdentity,
 	completeNodeProcessingStage,
 	failNodeProcessingStage,
 	getNodeForProcessing,
@@ -15,11 +16,19 @@ import {
 import {
 	deriveClassificationPlan,
 	deriveClassificationResultFromRuntime,
+	deriveIidClassificationResult,
 	resolveClassificationType,
 } from '../../core/classification';
+import { isIdentityRungProjection } from '../../core/identity-contract';
+import type { IidLadderAdapter } from '../../core/iid-ladder';
+import type { IidRegistryAdapter } from '../../core/iid-registry';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
-import { classifyWorkerError, toProcessingError } from '../../shared/errors';
+import {
+	classifyWorkerError,
+	toProcessingError,
+	WorkerConfigurationError,
+} from '../../shared/errors';
 import {
 	createBoundedScheduler,
 	RECONCILE_BATCH_SIZE_MULTIPLIER,
@@ -47,7 +56,13 @@ export async function runKgClassificationWorker(input: {
 		database: CircuitBreaker;
 		runtime: CircuitBreaker;
 	};
+	iidRegistry?: IidRegistryAdapter;
+	iidLadder?: IidLadderAdapter;
 }): Promise<void> {
+	const iidRegistry = input.config.iidReadEnabled
+		? requireIidRegistry(input.iidRegistry)
+		: undefined;
+	const iidLadder = input.config.iidReadEnabled ? requireIidLadder(input.iidLadder) : undefined;
 	const classificationRuntime = createClassificationRuntime({
 		defaultPreset: input.config.defaultPreset,
 		cacheProvider: input.config.cacheProvider,
@@ -93,9 +108,17 @@ export async function runKgClassificationWorker(input: {
 			const parseResult = toCompactParseResultMaybe(claimed.parseResult);
 			const rawInput = claimed.data ?? claimed.dataHex;
 			const plan = deriveClassificationPlan({ parseResult, rawInput });
-			let classificationResult = plan.classificationResult;
+			const iidClassificationResult =
+				input.config.iidReadEnabled && parseResult?.kind === 'iid' && parseResult.identity
+					? deriveIidClassificationResult({
+							identity: parseResult.identity,
+							ladder: iidLadder,
+							resolution: requireIidRegistry(iidRegistry).resolve(parseResult.identity),
+						})
+					: undefined;
+			let classificationResult = iidClassificationResult ?? plan.classificationResult;
 
-			if (!plan.usesStructuredDocument) {
+			if (!iidClassificationResult && !plan.usesStructuredDocument) {
 				if (!plan.runtimeInput) {
 					// See atom-parsing for the rationale: classification-skip +
 					// downstream-skip must commit atomically or prerequisite-driven
@@ -129,21 +152,50 @@ export async function runKgClassificationWorker(input: {
 				);
 				classificationResult = deriveClassificationResultFromRuntime({
 					classification: runtimeClassification,
+					ladder: iidLadder,
 					targetUrl: plan.targetUrl,
 					targetSource: plan.targetSource,
 				});
 			}
 
+			if (
+				iidLadder &&
+				plan.usesStructuredDocument &&
+				(classificationResult.category || classificationResult.schemaType)
+			) {
+				classificationResult.identityRungs = iidLadder.projectIdentityRungs({
+					schemaType: classificationResult.schemaType,
+					category: classificationResult.category,
+					canonicalUrl: plan.targetUrl,
+				});
+			}
+			if (
+				classificationResult.identityRungs !== undefined &&
+				!isIdentityRungProjection(classificationResult.identityRungs)
+			) {
+				delete classificationResult.identityRungs;
+			}
+			// The adapter owns admission for every scheme, including typed/plain WD.
+			const primary = classificationResult.identityRungs?.primary;
+			const promoteIid = claimed.iid === null && primary;
+
+			const completion = {
+				stage: 'classification' as const,
+				nodeId: claimed.id,
+				runId,
+				data: classificationResult,
+				promotedFields: {
+					classificationType: resolveClassificationType(classificationResult),
+					...(promoteIid && primary ? { iid: primary.iid } : {}),
+				},
+			};
 			await input.circuits.database.execute(() =>
-				completeNodeProcessingStage(input.db, {
-					stage: 'classification',
-					nodeId: claimed.id,
-					runId,
-					data: classificationResult,
-					promotedFields: {
-						classificationType: resolveClassificationType(classificationResult),
-					},
-				})
+				classificationResult.identityRungs
+					? completeNodeClassificationWithIdentity(input.db, {
+							...completion,
+							identityRungs: classificationResult.identityRungs,
+						})
+					: completeNodeProcessingStage(input.db, completion)
 			);
 			input.metrics.increment('completed', 'classification');
 			input.metrics.recordDuration('classification_duration_ms', Date.now() - startedAt);
@@ -283,4 +335,21 @@ export async function runKgClassificationWorker(input: {
 			});
 		}
 	}
+}
+
+function requireIidRegistry(adapter: IidRegistryAdapter | undefined): IidRegistryAdapter {
+	if (!adapter) {
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-registry adapter for IID classification.'
+		);
+	}
+	return adapter;
+}
+
+function requireIidLadder(adapter: IidLadderAdapter | undefined): IidLadderAdapter {
+	if (!adapter)
+		throw new WorkerConfigurationError(
+			'WORKERS_IID_READ_ENABLED requires an @0xintuition/iid-ladder adapter for IID classification.'
+		);
+	return adapter;
 }

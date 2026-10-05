@@ -39,6 +39,7 @@ export type {
 } from './plugin-registry';
 export { createEnrichmentPluginRegistry } from './plugin-registry';
 export type {
+	EnrichmentIdentityCapability,
 	EnrichmentPlugin,
 	EnrichmentPluginContext,
 	EnrichmentPluginLogger,
@@ -63,6 +64,7 @@ export {
 	createNpmPlugin,
 	createOEmbedPlugin,
 	createOpenGraphPlugin,
+	createOpenLibraryPlugin,
 	createProductListingPlugin,
 	createSpotifyPlugin,
 	createTmdbPlugin,
@@ -120,6 +122,18 @@ export {
 	xUserLookupResponseSchema,
 	xUserLookupUserSchema,
 } from './provider-external-data';
+export type {
+	CreateIdentifierProviderPlanInput,
+	IdentifierProviderPlan,
+	IdentifierProviderPlanEntry,
+	IidProviderCapability,
+	IidProviderSlug,
+} from './provider-plan';
+export {
+	createIdentifierProviderPlan,
+	IID_PROVIDER_CAPABILITIES,
+	IID_PROVIDER_SLUGS,
+} from './provider-plan';
 export {
 	canonicalizeEnrichmentSlug,
 	canonicalizeEnrichmentSlugs,

@@ -5,6 +5,15 @@ import {
 	createTypeProfilesPlugin,
 	type JsonLdTypeDefinition,
 } from '@0xintuition/atom-classification';
+import { resolveClassificationProvenance } from '@0xintuition/atom-enrichment/handoff';
+import type {
+	IdentityClassificationDecision,
+	IdentityProviderPlan,
+	IdentityRungProjection,
+	NormalizedAtomIdentity,
+} from './identity-contract';
+import type { IidLadderAdapter } from './iid-ladder';
+import type { IidSemanticResolution } from './iid-registry';
 import type { CompactParseResult } from './parse';
 import {
 	resolveFallbackUrl,
@@ -19,6 +28,8 @@ export type ClassificationTargetSource = StructuredTargetSource;
 export type WorkerClassificationResult = {
 	status: 'recognized' | 'unknown_object' | 'not_applicable';
 	source: string;
+	provider?: string;
+	fallbackStage?: string;
 	format?: string;
 	topLevelType?: string;
 	schemaType?: string;
@@ -26,6 +37,10 @@ export type WorkerClassificationResult = {
 	knownType?: boolean;
 	targetUrl?: string;
 	targetSource?: ClassificationTargetSource;
+	identity?: NormalizedAtomIdentity;
+	identityDecision?: IdentityClassificationDecision;
+	providerPlan?: IdentityProviderPlan;
+	identityRungs?: IdentityRungProjection;
 };
 
 export type ClassificationPlan = {
@@ -34,6 +49,7 @@ export type ClassificationPlan = {
 	targetUrl: string | undefined;
 	targetSource: ClassificationTargetSource | undefined;
 	usesStructuredDocument: boolean;
+	identity?: NormalizedAtomIdentity;
 };
 
 export function deriveClassificationPlan(input: {
@@ -72,6 +88,7 @@ export function deriveClassificationPlan(input: {
 			targetUrl,
 			targetSource,
 			usesStructuredDocument: true,
+			...(parseResult?.identity ? { identity: parseResult.identity } : {}),
 		};
 	}
 
@@ -86,11 +103,13 @@ export function deriveClassificationPlan(input: {
 		targetUrl: fallbackTarget.url,
 		targetSource: fallbackTarget.source,
 		usesStructuredDocument: false,
+		...(parseResult?.identity ? { identity: parseResult.identity } : {}),
 	};
 }
 
 export function deriveClassificationResultFromRuntime(input: {
 	classification: ClassificationResult;
+	ladder?: IidLadderAdapter;
 	targetUrl: string | undefined;
 	targetSource: ClassificationTargetSource | undefined;
 }): WorkerClassificationResult {
@@ -110,14 +129,59 @@ export function deriveClassificationResultFromRuntime(input: {
 	const normalizedType = normalizeSchemaType(resolved.schemaType);
 	const definition = normalizedType ? findTypeDefinition(normalizedType) : undefined;
 
+	// Single plugin-to-worker conversion boundary: preserve provider identity
+	// and identifier hints before compacting the runtime result for persistence.
+	const identifiers =
+		'hints' in resolved ? stringIdentifiers(resolved.hints.identifiers) : undefined;
+	const identityRungs =
+		input.ladder && (normalizedType || resolved.category)
+			? input.ladder.projectIdentityRungs({
+					schemaType: normalizedType,
+					category: resolved.category,
+					providerCanonicalId: 'canonicalId' in resolved ? resolved.canonicalId : undefined,
+					canonicalUrl: input.targetUrl,
+					identifiers,
+				})
+			: undefined;
+
 	return {
+		...(identityRungs ? { identityRungs } : {}),
 		status: 'recognized',
 		source: 'raw_input',
+		...resolveClassificationProvenance(input.classification),
 		...(normalizedType ? { schemaType: normalizedType } : {}),
 		...(resolved.category ? { category: resolved.category } : {}),
 		knownType: !!definition,
 		...(input.targetUrl ? { targetUrl: input.targetUrl } : {}),
 		...(input.targetSource ? { targetSource: input.targetSource } : {}),
+	};
+}
+
+export function deriveIidClassificationResult(input: {
+	identity: NormalizedAtomIdentity;
+	resolution: IidSemanticResolution;
+	ladder?: IidLadderAdapter;
+}): WorkerClassificationResult {
+	const decision = input.resolution.identityDecision;
+	const identityRungs =
+		input.ladder && (decision.category || decision.schemaType)
+			? input.ladder.projectIdentityRungs({
+					identity: input.identity,
+					category: decision.category,
+					schemaType: decision.schemaType,
+				})
+			: undefined;
+
+	return {
+		...(identityRungs ? { identityRungs } : {}),
+		status: decision.status === 'classified' ? 'recognized' : 'not_applicable',
+		source: 'iid-registry',
+		...(decision.schemaType ? { schemaType: decision.schemaType } : {}),
+		...(decision.category ? { category: decision.category } : {}),
+		knownType: decision.status === 'classified',
+		identity: input.identity,
+		identityDecision: decision,
+		providerPlan: input.resolution.providerPlan,
 	};
 }
 
@@ -194,4 +258,11 @@ function normalizeSchemaType(value: string | undefined): string | undefined {
 		: withoutPath;
 
 	return withoutNamespace.trim() || undefined;
+}
+
+function stringIdentifiers(value: unknown): Record<string, string> | undefined {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+	return Object.fromEntries(
+		Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+	);
 }

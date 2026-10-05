@@ -170,6 +170,38 @@ export const atomCreatedEvents = pgTable(
 	})
 );
 
+export const atomContextRegisteredEvents = pgTable(
+	'atom_context_registered_events',
+	{
+		blockNumber: bigint('block_number', { mode: 'bigint' }).notNull(),
+		blockTimestamp: timestamp('block_timestamp', { withTimezone: true }).notNull(),
+		blockHash: text('block_hash').notNull(),
+		transactionHash: text('transaction_hash').notNull(),
+		logIndex: integer('log_index').notNull(),
+		registrant: text('registrant').notNull(),
+		termId: numeric('term_id').notNull(),
+		termIdHex: text('term_id_hex').notNull(),
+		uris: jsonb('uris').$type<string[]>().notNull(),
+		sequenceNumber: bigint('sequence_number', { mode: 'bigint' }).notNull(),
+	},
+	(table) => ({
+		atomContextRegisteredEventsPkey: primaryKey({
+			columns: [table.transactionHash, table.logIndex],
+		}),
+		idxAtomContextRegisteredTerm: index('idx_atom_context_registered_term').on(
+			table.termId,
+			table.sequenceNumber
+		),
+		idxAtomContextRegisteredTermHex: index('idx_atom_context_registered_term_hex').on(
+			table.termIdHex,
+			table.sequenceNumber
+		),
+		uxAtomContextRegisteredSeq: uniqueIndex('ux_atom_context_registered_seq').on(
+			table.sequenceNumber
+		),
+	})
+);
+
 export const tripleCreatedEvents = pgTable(
 	'triple_created_events',
 	{

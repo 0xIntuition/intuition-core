@@ -230,6 +230,7 @@ impl PgProjection for VaultStateDualProjection {
                 // Exhaustive match — adding a new ParsedEvent variant must
                 // force a compile-time decision here, not silently drop.
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {
                     continue;

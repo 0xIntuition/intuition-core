@@ -105,14 +105,13 @@ for (const [name, source] of Object.entries(contracts)) {
 JS
 
 # ── Stage 2: size-fit MultiVault (optimizer_runs=200) ───────────────────────
-# EIP-170 chains (Intuition Sepolia enforces the 24,576-byte runtime cap; the
-# canonical impl there is 23,926 B) cannot take the package's production
-# optimizer_runs=10000 bytecode. Recompile plain MultiVault at 200 runs — the
-# proxy's steady-state implementation; MultiVaultMigrationMode does not fit
-# even at 200 runs.
+# EIP-170 chains (including Intuition Sepolia) use a separately verified
+# optimizer_runs=200 build of plain MultiVault. MultiVaultMigrationMode does
+# not fit under the cap. Both package and size-fit MultiVault bytecodes contain
+# a MultiVaultLib link placeholder which the deployer resolves at runtime.
 SIZEFIT_DIR="$PKG_DIR/.vendor-build-sizefit"
 rm -rf "$SIZEFIT_DIR"
-mkdir -p "$SIZEFIT_DIR/src/interfaces" "$SIZEFIT_DIR/src/protocol"
+mkdir -p "$SIZEFIT_DIR/src/interfaces" "$SIZEFIT_DIR/src/libraries" "$SIZEFIT_DIR/src/protocol"
 cd "$SIZEFIT_DIR"
 
 echo '{ "name": "sizefit-build", "private": true }' > package.json
@@ -132,14 +131,14 @@ cat > foundry.toml <<EOF
   remappings = [
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
     "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
-    "solady/=node_modules/solady/",
+    "solady/=node_modules/solady/src/",
   ]
 EOF
 
 # Transitive import closure of MultiVault.sol.
-for f in interfaces/IAtomWallet interfaces/IAtomWalletFactory interfaces/IBondingCurveRegistry \
-	interfaces/IMultiVault interfaces/IMultiVaultCore interfaces/ITrustBonding \
-	protocol/MultiVault protocol/MultiVaultCore; do
+for f in interfaces/IAtomWallet interfaces/IAtomWalletFactory interfaces/IBaseCurve \
+	interfaces/IBondingCurveRegistry interfaces/IMultiVault interfaces/IMultiVaultCore \
+	interfaces/ITrustBonding libraries/MultiVaultLib protocol/MultiVault protocol/MultiVaultCore; do
 	cp "$CONTRACTS_V2/src/$f.sol" "src/$f.sol"
 done
 
@@ -158,7 +157,7 @@ const lean = {
 	contractName: "MultiVault",
 	source: `@0xintuition/contracts-v2@${pkgVersion} src/protocol/MultiVault.sol (size-fit build)`,
 	compiler: { solc: "0.8.29", optimizerRuns: 200, evmVersion: "cancun", bytecodeHash: "none" },
-	note: `optimizer_runs=200 so the runtime (${runtimeBytes} B) fits EIP-170 chains like Intuition Sepolia; the package-published production build (optimizer_runs=10000, 27,666 B runtime) only deploys on chains with a raised code-size cap.`,
+	note: `optimizer_runs=200 so the runtime (${runtimeBytes} B) fits EIP-170 chains like Intuition Sepolia; deploy only after linking the separately deployed MultiVaultLib address.`,
 	abi: artifact.abi,
 	bytecode: artifact.bytecode.object,
 };

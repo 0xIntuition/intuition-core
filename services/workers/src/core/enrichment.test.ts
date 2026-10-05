@@ -1,12 +1,182 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import {
+	createClassificationEngine,
+	createSpotifyPlugin,
+	createTypeProfilesPlugin,
+	jsonLdTypeCategorySchema,
+} from '@0xintuition/atom-classification';
+import { classifiedAtomInputSchema } from '@0xintuition/atom-enrichment';
+import { WorkerConfigurationError } from '../shared/errors';
+import { deriveClassificationPlan, deriveClassificationResultFromRuntime } from './classification';
 import {
 	buildClassifiedInputFromPlan,
+	buildEnrichmentCompletionPromotedFields,
+	buildIidProviderExecutionPlan,
+	composeEnrichmentIdentityCapability,
 	deriveEnrichmentPlan,
+	evaluateEnrichmentCompletion,
 	evaluateEnrichmentProcessingScope,
 	getArtifactTypeAllowListForEnrichmentPlan,
 } from './enrichment';
+import { createIidLadderAdapter, type IidLadderAdapter } from './iid-ladder';
+
+test('I-2: a legacy ladder remains absent and logs once per adapter', () => {
+	const ladder = {
+		projectIdentityRungs: () => {
+			throw new Error('unused');
+		},
+		isPlainWdPrimaryAllowed: () => false,
+	} as IidLadderAdapter;
+	const warn = spyOn(console, 'warn').mockImplementation(() => {});
+	try {
+		expect(
+			composeEnrichmentIdentityCapability({ iidReadEnabled: false, iidLadder: ladder })
+		).toBeUndefined();
+		expect(warn).not.toHaveBeenCalled();
+		for (let i = 0; i < 2; i++)
+			expect(
+				composeEnrichmentIdentityCapability({ iidReadEnabled: true, iidLadder: ladder })
+			).toBeUndefined();
+		expect(warn).toHaveBeenCalledTimes(1);
+	} finally {
+		warn.mockRestore();
+	}
+});
+
+for (const provenance of [
+	undefined,
+	{ producer: '', version: '1' },
+	{ producer: 'policy/resolver', version: '' },
+	{ producer: ' ', version: '1' },
+	{ producer: 'policy/resolver', version: ' ' },
+]) {
+	test(`I-2: enabled resolver rejects invalid provenance ${JSON.stringify(provenance)}`, () => {
+		const ladder = {
+			projectIdentityRungs: () => {
+				throw new Error('unused');
+			},
+			isPlainWdPrimaryAllowed: () => false,
+			resolveWikidataSchemaType: () => 'Movie',
+			wikidataTypeProvenance: provenance,
+		} satisfies IidLadderAdapter;
+		expect(() =>
+			composeEnrichmentIdentityCapability({ iidReadEnabled: true, iidLadder: ladder })
+		).toThrow(WorkerConfigurationError);
+		expect(
+			composeEnrichmentIdentityCapability({ iidReadEnabled: false, iidLadder: ladder })
+		).toBeUndefined();
+	});
+}
+
+test('enrichment identity capability is composed only for enabled reads with a capable ladder', () => {
+	const compose = composeEnrichmentIdentityCapability;
+	let calls = 0;
+	const ladder = createIidLadderAdapter(
+		{
+			IDENTITY_CATEGORY_RUNG_POLICY: {},
+			IDENTITY_CATEGORY_ALIAS_ONLY_POLICY: {},
+			SCHEMA_TYPE_IDENTITY_CATEGORIES: {},
+			identityRungsForCategory: () => [],
+			iidForIdentityRung: () => undefined,
+			isPlainWdPrimaryAllowed: () => false,
+			projectIdentifierLadder: () => ({ iid: null }),
+			resolveWikidataP31Identity: () => {
+				calls += 1;
+				return { schemaType: 'Movie' };
+			},
+			packageVersion: '1.2.3',
+		},
+		{ inspect: () => ({ valid: false, reason: 'malformed' }) }
+	);
+	const identity = compose({ iidReadEnabled: true, iidLadder: ladder });
+	expect(identity?.fingerprint).toBe('@0xintuition/iid-ladder@1.2.3/resolveWikidataP31Identity');
+	expect(identity?.resolveWikidataSchemaType(['Q11424'])).toBe('Movie');
+	expect(calls).toBe(1);
+	expect(compose({ iidReadEnabled: false, iidLadder: ladder })).toBeUndefined();
+	expect(compose({ iidReadEnabled: true })).toBeUndefined();
+	expect(
+		compose({
+			iidReadEnabled: true,
+			iidLadder: {
+				projectIdentityRungs: ladder.projectIdentityRungs,
+				isPlainWdPrimaryAllowed: ladder.isPlainWdPrimaryAllowed,
+			},
+		})
+	).toBeUndefined();
+	expect(calls).toBe(1);
+});
 
 describe('KG enrichment core', () => {
+	for (const [kind, category, schemaType] of [
+		['track', 'song', 'MusicRecording'],
+		['album', 'music-album', 'MusicAlbum'],
+		['artist', 'artist', 'MusicGroup'],
+	] as const) {
+		test(`carries Spotify ${kind} URL classification into enrichment without category loss`, async () => {
+			const url = `https://open.spotify.com/${kind}/abc123`;
+			const classification = await createClassificationEngine({
+				runtime: 'server',
+				plugins: [createTypeProfilesPlugin(), createSpotifyPlugin()],
+			}).classify({
+				input: url,
+				mode: 'server-only',
+				classificationSessionId: `worker-spotify-${kind}`,
+			});
+			expect(classification.resolved?.atoms[0]).toMatchObject({
+				category,
+				schemaType,
+				canonicalId: `spotify:${kind}:abc123`,
+			});
+			const classificationResult = deriveClassificationResultFromRuntime({
+				classification,
+				targetUrl: url,
+				targetSource: 'raw_input',
+			});
+			const input = buildClassifiedInputFromPlan(
+				deriveEnrichmentPlan({ rawInput: url, classificationResult, parseResult: null })
+			);
+			expect(input).toMatchObject({ atomType: category, jsonLd: { '@type': schemaType } });
+			expect(classifiedAtomInputSchema.safeParse(input).success).toBe(true);
+		});
+
+		test(`structured ${schemaType} agrees with Spotify ${kind} URL classification`, async () => {
+			const url = `https://open.spotify.com/${kind}/abc123`;
+			const engine = createClassificationEngine({
+				runtime: 'server',
+				plugins: [createTypeProfilesPlugin(), createSpotifyPlugin()],
+			});
+			const classification = await engine.classify({
+				input: url,
+				mode: 'server-only',
+				classificationSessionId: `structured-spotify-${kind}`,
+			});
+			const plan = deriveClassificationPlan({
+				rawInput: null,
+				parseResult: {
+					kind: 'json',
+					normalizedInput: '{}',
+					structuredDocument: {
+						source: 'inline_json',
+						format: 'jsonld',
+						topLevelType: 'object',
+						schemaType,
+						data: { '@type': schemaType, name: 'Music Fixture', url },
+						urlCandidates: [{ field: 'url', url }],
+					},
+				},
+			});
+			expect(plan.classificationResult).toMatchObject({
+				status: 'recognized',
+				schemaType,
+				category,
+			});
+			expect(plan.classificationResult.category).toBe(classification.resolved?.atoms[0]?.category);
+			const definition = engine.listTypes().find((entry) => entry.type === schemaType);
+			expect(definition?.category).toBe(category);
+			expect(jsonLdTypeCategorySchema.safeParse(category).success).toBe(true);
+		});
+	}
+
 	test('prefers classification target URL over parse fallbacks', () => {
 		const plan = deriveEnrichmentPlan({
 			rawInput: 'https://raw.example',
@@ -82,6 +252,14 @@ describe('KG enrichment core', () => {
 				name: 'Fixture Track',
 				url: 'https://open.spotify.com/track/123',
 			},
+		});
+		expect(buildEnrichmentCompletionPromotedFields(plan)).toMatchObject({
+			dataResolved: {
+				'@type': 'MusicRecording',
+				name: 'Fixture Track',
+				description: 'Track description',
+			},
+			searchText: 'Fixture Track Track description',
 		});
 	});
 
@@ -179,6 +357,214 @@ describe('KG enrichment core', () => {
 		});
 
 		expect(input).toBeNull();
+	});
+
+	test('turns persisted identity handoffs into an explicit identifier enrichment request', () => {
+		const identity = {
+			raw: 'opaque raw identity',
+			canonical: 'opaque canonical identity',
+			scheme: 'fixture-scheme',
+			value: 'fixture-value',
+			profile: 'p0' as const,
+			anchorEligible: true,
+			provenance: { producer: 'adapter', version: 'test' },
+		};
+		const providerPlan = {
+			status: 'planned' as const,
+			targets: [
+				{
+					provider: 'openlibrary',
+					capabilities: ['metadata'],
+					identifierHints: [{ kind: 'isbn', value: '9780684832722' }],
+				},
+			],
+			provenance: { producer: 'registry-adapter', version: 'test' },
+		};
+		const plan = deriveEnrichmentPlan({
+			rawInput: null,
+			parseResult: { kind: 'iid', normalizedInput: identity.raw, identity },
+			classificationResult: {
+				status: 'recognized',
+				source: 'future-adapter',
+				identity,
+				providerPlan,
+			},
+		});
+
+		expect(plan.identity).toEqual(identity);
+		expect(plan.providerPlan).toEqual(providerPlan);
+		expect(buildClassifiedInputFromPlan(plan)).toMatchObject({
+			hints: { identifiers: { isbn: '9780684832722' } },
+		});
+		expect(buildIidProviderExecutionPlan({ plan, registeredPluginIds: ['openlibrary'] })).toEqual({
+			status: 'ready',
+			plugins: ['openlibrary'],
+			identifiers: { isbn: '9780684832722' },
+		});
+		expect(buildEnrichmentCompletionPromotedFields(plan)).toBeUndefined();
+		expect(
+			buildEnrichmentCompletionPromotedFields(plan, [
+				{
+					artifact_type: 'openlibrary',
+					data: {
+						title: 'The Sovereign Individual',
+						authors: ['James Dale Davidson', 'William Rees-Mogg'],
+						coverUrl: 'https://covers.example/gatsby.jpg',
+					},
+					meta: {
+						pluginId: 'openlibrary',
+						provider: 'openlibrary',
+						fetchedAt: '2026-08-12T00:00:00.000Z',
+						sourceUrl: 'https://openlibrary.org/books/OL7721520M',
+					},
+				},
+			])
+		).toMatchObject({
+			dataResolved: {
+				name: 'The Sovereign Individual',
+				image: 'https://covers.example/gatsby.jpg',
+				resolution: { provider: 'openlibrary', identity: identity.canonical },
+			},
+			searchText: 'The Sovereign Individual James Dale Davidson William Rees-Mogg',
+		});
+	});
+
+	test('distinguishes retryable plugin drift from terminal unknown provider drift', () => {
+		const basePlan = {
+			targetUrl: undefined,
+			structuredDocument: undefined,
+			identity: {
+				raw: 'int:isbn:9780684832722',
+				canonical: 'int:isbn:9780684832722',
+				scheme: 'isbn',
+				value: '9780684832722',
+				anchorEligible: true,
+				provenance: { producer: 'adapter', version: 'test' },
+			},
+			classificationResult: { status: 'recognized' as const, source: 'iid-registry' },
+		};
+		const target = {
+			capabilities: ['metadata'],
+			identifierHints: [{ kind: 'isbn', value: '9780684832722' }],
+		};
+
+		expect(
+			buildIidProviderExecutionPlan({
+				plan: {
+					...basePlan,
+					providerPlan: {
+						status: 'planned',
+						targets: [{ ...target, provider: 'openlibrary' }],
+						provenance: { producer: 'registry', version: 'test' },
+					},
+				},
+				registeredPluginIds: [],
+			})
+		).toMatchObject({ status: 'blocked', retriable: true });
+		expect(
+			buildIidProviderExecutionPlan({
+				plan: {
+					...basePlan,
+					providerPlan: {
+						status: 'planned',
+						targets: [{ ...target, provider: 'not-a-provider' }],
+						provenance: { producer: 'registry', version: 'test' },
+					},
+				},
+				registeredPluginIds: [],
+			})
+		).toMatchObject({ status: 'blocked', retriable: false });
+	});
+
+	test('classifies zero-artifact outcomes without reporting terminal misses as resolved', () => {
+		const retryableError = {
+			pluginId: 'fixture-provider',
+			code: 'rate_limited' as const,
+			message: 'retry later',
+			retriable: true,
+		};
+		const skipped = [{ pluginId: 'not-applicable-provider', reason: 'not applicable' }];
+
+		expect(
+			evaluateEnrichmentCompletion({ artifacts: [], errors: [retryableError], skipped })
+		).toMatchObject({
+			kind: 'retryable_failure',
+			diagnostics: { errors: [retryableError], skipped },
+		});
+		expect(
+			evaluateEnrichmentCompletion({
+				artifacts: [],
+				errors: [{ ...retryableError, retriable: false }],
+				skipped,
+			})
+		).toMatchObject({
+			kind: 'terminal_unresolved',
+			diagnostics: { errors: [{ ...retryableError, retriable: false }], skipped },
+		});
+		expect(evaluateEnrichmentCompletion({ artifacts: [], errors: [], skipped })).toMatchObject({
+			kind: 'terminal_unresolved',
+			diagnostics: { errors: [], skipped },
+		});
+	});
+
+	test('bounds retained diagnostics for zero-artifact outcomes', () => {
+		const result = evaluateEnrichmentCompletion({
+			artifacts: [],
+			errors: Array.from({ length: 30 }, (_, index) => ({
+				pluginId: `provider-${index}`,
+				code: 'validation_error' as const,
+				message: 'x'.repeat(1_500),
+				retriable: false,
+			})),
+			skipped: Array.from({ length: 30 }, (_, index) => ({
+				pluginId: `skipped-${index}`,
+				reason: 'y'.repeat(500),
+			})),
+		});
+
+		expect(result.kind).toBe('terminal_unresolved');
+		if (result.kind !== 'terminal_unresolved') {
+			throw new Error('expected terminal unresolved result');
+		}
+		expect(result.diagnostics.errors).toHaveLength(25);
+		expect(result.diagnostics.skipped).toHaveLength(25);
+		expect(result.diagnostics.errors[0]?.message).toHaveLength(1_000);
+		expect(result.diagnostics.skipped[0]?.reason).toHaveLength(256);
+		expect(result.diagnostics).toMatchObject({
+			totalErrors: 30,
+			totalSkipped: 30,
+			errorsTruncated: true,
+			skippedTruncated: true,
+		});
+	});
+
+	test('completes partial enrichment while retaining explicit errors and skips', () => {
+		const result = {
+			artifacts: [
+				{
+					artifact_type: 'opengraph',
+					data: { title: 'Partial result' },
+					meta: {
+						pluginId: 'opengraph',
+						provider: 'fixture',
+						fetchedAt: '2026-08-10T00:00:00.000Z',
+					},
+				},
+			],
+			errors: [
+				{
+					pluginId: 'fixture-provider',
+					code: 'upstream_error' as const,
+					message: 'retry later',
+					retriable: true,
+				},
+			],
+			skipped: [{ pluginId: 'another-provider', reason: 'not applicable' }],
+		};
+
+		expect(evaluateEnrichmentCompletion(result)).toEqual({ kind: 'complete' });
+		expect(result.errors).toHaveLength(1);
+		expect(result.skipped).toHaveLength(1);
 	});
 
 	test('keeps full processing scope behavior unchanged', () => {
@@ -342,4 +728,18 @@ describe('KG enrichment core', () => {
 				'Processing scope "music-and-podcasts" skipped enrichment for classification "SoftwareSourceCode" because it does not match music or podcast domains.',
 		});
 	});
+});
+
+test('worker enrichment source retains compact classification provenance', () => {
+	const input = buildClassifiedInputFromPlan({
+		targetUrl: 'https://www.imdb.com/title/tt1234567',
+		structuredDocument: undefined,
+		classificationResult: {
+			status: 'recognized',
+			source: 'raw_input',
+			schemaType: 'Movie',
+			...{ provider: 'imdb', fallbackStage: 'generic' },
+		},
+	});
+	expect(input?.source).toMatchObject({ provider: 'imdb', fallbackStage: 'generic' });
 });

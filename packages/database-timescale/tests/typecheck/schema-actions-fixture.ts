@@ -14,6 +14,7 @@ import {
 import { createTimescaleConnection } from '../../src/client';
 import {
 	type AccountPnlSnapshotRow,
+	type AtomContextRegisteredEventsRow,
 	account_pnl_snapshot,
 	type DepositedEventsRow,
 	deposited_events,
@@ -48,6 +49,10 @@ import {
 	type TermMarketCapHistoryRow,
 	term_market_cap_history,
 } from '../../src/schema';
+
+declare const atomContextRows: AtomContextRegisteredEventsRow[];
+const firstOpaqueUri: string | undefined = atomContextRows[0]?.uris[0];
+void firstOpaqueUri;
 
 const positionChangeInput: ListPositionChangeRowsInput = {
 	accountId: '0xabc',

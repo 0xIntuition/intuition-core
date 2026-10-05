@@ -141,22 +141,24 @@ export function readTimeClaimValue(claims: unknown, propertyId: string): string 
 	return undefined;
 }
 
-function pickLabel(
-	labels: Record<string, { value: string }> | undefined,
-	language: string
+// Local policy from v2 iid-ladder/src/wikidata-label.ts; Core has no ladder dependency.
+export function pickWikidataLabel(
+	labels: Readonly<Record<string, unknown>> | undefined,
+	language = 'en'
 ): string | undefined {
-	if (!labels) return undefined;
-	// `mul` is Wikidata's language-independent label; many name entities carry
-	// only that (for example family names), so it is the standard fallback.
-	const candidates = [language, 'en', 'mul'];
-	for (const key of candidates) {
-		const value = labels[key]?.value;
-		if (value && value.trim().length > 0) {
-			return value.trim();
-		}
+	for (const locale of [language, 'en', 'en-gb', 'en-us', 'en-ca', 'en-au', 'mul']) {
+		if (
+			['__proto__', 'constructor', 'prototype'].includes(locale) ||
+			!labels ||
+			!Object.hasOwn(labels, locale)
+		)
+			continue;
+		const entry = labels[locale];
+		if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+		const value = Object.hasOwn(entry, 'value') ? (entry as { value?: unknown }).value : undefined;
+		if (typeof value === 'string' && value.trim()) return value.trim();
 	}
-	const first = Object.values(labels)[0]?.value;
-	return first && first.trim().length > 0 ? first.trim() : undefined;
+	return undefined;
 }
 
 export async function resolveWikidataEntityLabels(
@@ -178,7 +180,7 @@ export async function resolveWikidataEntityLabels(
 		});
 
 		for (const [entityId, entity] of Object.entries(payload.entities ?? {})) {
-			const label = pickLabel(entity.labels, language);
+			const label = pickWikidataLabel(entity.labels, language);
 			if (label) {
 				labels.set(entityId.toUpperCase(), label);
 			}

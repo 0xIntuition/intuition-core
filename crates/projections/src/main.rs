@@ -77,6 +77,7 @@ fn build_pool_partitioner(config: &ProjectionsConfig) -> Arc<PoolPartitioner> {
         ("vault_holders_index", ConnectionTier::Standard),
         ("vault_state:dual", ConnectionTier::Critical),
         ("vault_holders_index:dual", ConnectionTier::Standard),
+        ("atom_context:dual", ConnectionTier::Standard),
         ("signals_analytics", ConnectionTier::Standard),
         ("term_aggregates", ConnectionTier::Standard),
         ("protocol_stats", ConnectionTier::Standard),
@@ -291,8 +292,10 @@ fn build_pg_projections(
         }
     }
 
-    // Dual projectors — vault_state:dual and vault_holders_index:dual.
-    // Each dual projector manages its own kg_pool internally via with_kg_pool().
+    // Dual projectors — vault_state:dual, vault_holders_index:dual, and
+    // atom_context:dual.
+    // Each dual projector owns its KG pool internally (the vault projectors
+    // attach it via with_kg_pool; atom_context requires it in its constructor).
     // The PgWorker passes the legacy pool; kg writes happen inside process_parsed_batch.
     // Sharding for vault_state:dual mirrors vault_state (same shard count, same hash key).
     if config.is_projection_enabled("vault_state:dual") {
@@ -334,6 +337,19 @@ fn build_pg_projections(
             info!("vault_holders_index:dual enabled but DATABASE_KG_URL not set — spawning without kg writes");
         }
         pg_projections.push(Box::new(proj));
+    }
+
+    if config.is_projection_enabled("atom_context:dual") {
+        if let Some(kp) = kg_pool {
+            pg_projections.push(Box::new(
+                projection::dual::atom_context::AtomContextDualProjection::new(kp.clone()),
+            ));
+        } else {
+            // Unlike the vault dual projectors, atom_context has no legacy
+            // write side. Never spawn a no-op worker that would advance its
+            // checkpoint while discarding context events.
+            info!("atom_context:dual enabled but DATABASE_KG_URL not set — projection not spawned");
+        }
     }
 
     pg_projections
@@ -476,7 +492,7 @@ fn spawn_shutdown_handler(token: CancellationToken) {
 /// is logged and propagated — misconfigured URLs should fail fast at startup.
 async fn connect_kg_if_configured(config: &ProjectionsConfig) -> anyhow::Result<Option<PgPool>> {
     let Some(kg_url) = config.database_kg_url.as_deref() else {
-        info!("DATABASE_KG_URL not set — kg.nodes writes are disabled");
+        info!("DATABASE_KG_URL not set — KG node and atom-context writes are disabled");
         return Ok(None);
     };
 
@@ -486,7 +502,7 @@ async fn connect_kg_if_configured(config: &ProjectionsConfig) -> anyhow::Result<
         .await
         .map_err(|e| anyhow::anyhow!("Failed to connect to DATABASE_KG_URL: {e}"))?;
 
-    info!("Connected to KG database (kg.nodes writes enabled)");
+    info!("Connected to KG database (node and atom-context writes enabled)");
     Ok(Some(pool))
 }
 

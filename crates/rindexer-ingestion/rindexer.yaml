@@ -52,6 +52,7 @@ ${MULTIVAULT_END_BLOCK_LINE}
     abi: ./abi/MultiVault.json
     include_events:
       - name: AtomCreated
+      - name: AtomContextRegistered
       - name: TripleCreated
       - name: Deposited
       - name: Redeemed

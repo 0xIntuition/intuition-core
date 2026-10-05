@@ -1,4 +1,10 @@
-import { buildCacheKey, type CacheAdapter, type CachedEntry, isCachedEntryFresh } from './cache';
+import {
+	buildCacheKey,
+	type CacheAdapter,
+	type CachedEntry,
+	isCachedEntryFresh,
+	NO_IDENTITY_POLICY_MARKER,
+} from './cache';
 import {
 	type ClassificationRegistry,
 	createDefaultClassificationRegistry,
@@ -8,7 +14,12 @@ import {
 	type RegisterPluginOptions,
 	type ResolvePluginsResult,
 } from './plugin-registry';
-import type { EnrichmentPlugin, EnrichmentPluginContext, EnrichmentPluginLogger } from './plugins';
+import type {
+	EnrichmentIdentityCapability,
+	EnrichmentPlugin,
+	EnrichmentPluginContext,
+	EnrichmentPluginLogger,
+} from './plugins';
 import { canonicalizeEnrichmentSlugs } from './slug-aliases';
 import {
 	type EnrichmentArtifact,
@@ -28,6 +39,7 @@ type EnrichExecutionOptions = {
 
 export type EnrichmentEngineConfig = {
 	plugins?: EnrichmentPlugin[];
+	identity?: EnrichmentIdentityCapability;
 	concurrency?: number;
 	timeoutMs?: number;
 	classifications?: ClassificationRegistry;
@@ -49,6 +61,20 @@ export type EnrichmentEngine = {
 };
 
 export function createEnrichmentEngine(config: EnrichmentEngineConfig = {}): EnrichmentEngine {
+	if (config.identity !== undefined) {
+		const fingerprint = config.identity?.fingerprint;
+		if (
+			typeof fingerprint !== 'string' ||
+			fingerprint.length === 0 ||
+			fingerprint !== fingerprint.trim() ||
+			fingerprint === NO_IDENTITY_POLICY_MARKER ||
+			fingerprint.length > 256
+		) {
+			throw new Error(
+				'Enrichment identity fingerprint must be a non-empty trimmed string of at most 256 characters and must not use the absent-policy marker.'
+			);
+		}
+	}
 	const now = config.now ?? (() => new Date().toISOString());
 	const pluginRegistry = createEnrichmentPluginRegistry(config.plugins ?? []);
 	const classificationRegistry = config.classifications ?? createDefaultClassificationRegistry();
@@ -128,6 +154,7 @@ export function createEnrichmentEngine(config: EnrichmentEngineConfig = {}): Enr
 							logger: config.logger,
 							now,
 							secrets: config.secrets,
+							identity: config.identity,
 							parentSignal: options?.signal,
 							cache: config.cache,
 						})
@@ -237,6 +264,7 @@ export function createEnrichmentEngine(config: EnrichmentEngineConfig = {}): Enr
 
 type ExecutePluginParams = {
 	plugin: EnrichmentPlugin;
+	identity?: EnrichmentIdentityCapability;
 	request: EnrichmentRequest;
 	timeoutMs: number;
 	logger?: EnrichmentPluginLogger;
@@ -261,7 +289,11 @@ async function executePluginWithCache(params: ExecutePluginParams): Promise<Exec
 	const startedAtMs = Date.now();
 	const ttlMs = toTtlMs(params.plugin.TTL);
 	const canUseCache = !!params.cache && typeof ttlMs === 'number';
-	const cacheKey = canUseCache ? buildCacheKey(params.plugin.id, params.request.input) : undefined;
+	const cacheKey = canUseCache
+		? buildCacheKey(params.plugin.id, params.request.input, {
+				identity: params.identity?.fingerprint,
+			})
+		: undefined;
 
 	if (canUseCache && params.cache && cacheKey) {
 		try {
@@ -309,6 +341,7 @@ async function executePluginWithCache(params: ExecutePluginParams): Promise<Exec
 		logger: params.logger,
 		now: params.now,
 		secrets: params.secrets,
+		identity: params.identity,
 		parentSignal: params.parentSignal,
 	});
 
@@ -338,6 +371,7 @@ async function executePlugin(
 			signal: controller.signal,
 			logger: params.logger,
 			secrets: params.secrets,
+			...(params.identity ? { identity: params.identity } : {}),
 		};
 
 		const timeoutPromise = new Promise<never>((_resolve, reject) => {

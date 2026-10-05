@@ -19,6 +19,7 @@
 		"db:generate": "bun with-env drizzle-kit generate",
 		"db:migrate": "bun with-env bun src/migrate.ts",
 		"db:push": "bun with-env drizzle-kit push",
+		"test": "bun test src",
 		"ci": "biome check",
 		"lint": "biome lint",
 		"format": "biome format",
@@ -26,6 +27,7 @@
 		"check:write": "biome check --write"
 	},
 	"dependencies": {
+		"@0xintuition/ids": "0.1.0-alpha.0",
 		"drizzle-orm": "0.45.1",
 		"postgres": "^3.4.7",
 		"viem": "^2.23.2"

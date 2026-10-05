@@ -10,8 +10,8 @@ import { PipelineBars } from '@/components/pipeline-bars';
 import { StatCard } from '@/components/stat-card';
 import { Card, CardHeader, EmptyState, SkeletonRows } from '@/components/ui/primitives';
 import { api } from '@/lib/api';
-import { formatRelativeTime, previewData } from '@/lib/format';
-import { extractImageFromRecord } from '@/lib/images';
+import { atomDisplayImage, atomDisplayLabel } from '@/lib/atom-presentation';
+import { formatRelativeTime } from '@/lib/format';
 
 export const Route = createFileRoute('/')({
 	component: DashboardPage,
@@ -105,9 +105,9 @@ function DashboardPage() {
 										params={{ atomId: atom.id }}
 										to="/atoms/$atomId"
 									>
-										<AtomThumb id={atom.id} imageUrl={extractImageFromRecord(atom.dataResolved)} />
+										<AtomThumb id={atom.id} imageUrl={atomDisplayImage(atom)} />
 										<span className="min-w-0 flex-1 truncate text-[13px]">
-											{previewData(atom.data, 64) || atom.id}
+											{atomDisplayLabel(atom, 64)}
 										</span>
 										<ClassificationBadge type={atom.classificationType} />
 										<PipelineCells

@@ -23,9 +23,13 @@ export const nodes = kgSchema.table(
 		status: text('status').notNull().default('active'), // Draft means nodes can't be added to triples, stacks, posts, etc...
 		visibility: text('visibility').notNull().default('public'), // Unlisted means it's been flagged by the moderators.
 		createdBy: text('created_by').references(() => accounts.id, { onDelete: 'set null' }),
-		rawType: text('raw_type').notNull(), // string | json | json-ld | http_uri | ipfs_uri
+		rawType: text('raw_type').notNull(), // string | json | http_uri | ipfs_uri | iid
 		data: text('data'),
 		dataHex: text('data_hex'),
+		// Canonical Intuition Identifier shared by an anchor and any richer
+		// representations of the same identity. Nullable for legacy/non-IID atoms
+		// and deliberately non-unique because multiple atoms may form one cluster.
+		iid: text('iid'),
 		dataResolved: jsonb('data_resolved').notNull().default({}),
 		// Parsing - first worker stage for raw node data
 		parseAttempts: integer('parse_attempts').notNull().default(0),
@@ -68,6 +72,7 @@ export const nodes = kgSchema.table(
 		index('idx_nodes_classification_type').on(t.classificationType),
 		index('idx_nodes_created_by_created_at').on(t.createdBy, t.createdAt),
 		index('idx_nodes_data_hex').on(t.dataHex),
+		index('idx_nodes_iid').on(t.iid).where(sql`${t.iid} IS NOT NULL`),
 		index('idx_nodes_parse_recovery').on(t.parseStatus, t.parseLeaseExpiresAt, t.createdAt),
 		index('idx_nodes_classification_recovery').on(
 			t.classificationStatus,
@@ -86,7 +91,10 @@ export const nodes = kgSchema.table(
 		),
 		check('chk_nodes_visibility', sql`${t.visibility} IN ('public', 'unlisted')`),
 		check('chk_nodes_status', sql`${t.status} IN ('active', 'draft')`),
-		check('chk_nodes_raw_type', sql`${t.rawType} IN ('string', 'json', 'http_uri', 'ipfs_uri')`),
+		check(
+			'chk_nodes_raw_type',
+			sql`${t.rawType} IN ('string', 'json', 'http_uri', 'ipfs_uri', 'iid')`
+		),
 		check(
 			'chk_nodes_parse_status',
 			sql`${t.parseStatus} IN ('pending', 'processing', 'completed', 'failed', 'skipped')`
