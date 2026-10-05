@@ -11,6 +11,10 @@ use tracing_subscriber::EnvFilter;
 
 mod handlers;
 mod metrics;
+// The rindexer-generated tree declares `for<'a>` handler bounds and expands
+// `#[async_trait]` in ways newer clippy flags; keep those lints out of
+// `-D warnings` for generated code only.
+#[allow(clippy::extra_unused_lifetimes, clippy::double_must_use)]
 mod rindexer_lib;
 mod storage;
 
