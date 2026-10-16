@@ -8,6 +8,8 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ## Unreleased
 
+- Spotify locale-prefixed links classify as the same resource as the plain link (reference-implementation fix of 2026-10-14).
+
 - Exclude other nodes' primary IIDs from classification/backfill alias writes (R38 proposed default), time out dry-run backfill pages, and preserve aliases on malformed projections.
 
 - Add alias rows in `kg.node_identifiers` (drizzle 0005), alias-aware IID reads with exact-primary ranking, transactional classification writes, and `kg-backfill-identifiers`; re-author v2 ENG-15567 after the R12 production-ladder gate (9/29, 90k rows) superseded the frozen "no new identity table until a query needs it" rule.

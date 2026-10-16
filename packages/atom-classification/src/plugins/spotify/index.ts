@@ -8,6 +8,7 @@ import {
 export type SpotifyPluginOptions = PlatformV0PluginOptions;
 const SPOTIFY_PLUGIN_ID = 'spotify';
 const SPOTIFY_RESOURCE_TYPES = ['track', 'album', 'artist', 'show', 'episode'] as const;
+const SPOTIFY_LOCALE_PREFIX = /^intl-[a-z]{2}(?:-[a-z]{2})?$/i;
 type SpotifyResourceType = (typeof SPOTIFY_RESOURCE_TYPES)[number];
 
 export const spotifyProfile: PlatformV0Profile = {
@@ -23,6 +24,9 @@ export const spotifyProfile: PlatformV0Profile = {
 			}
 
 			const segments = parsed.pathname.split('/').filter(Boolean);
+			if (SPOTIFY_LOCALE_PREFIX.test(segments[0] ?? '')) {
+				segments.shift();
+			}
 			if (segments.length < 2) {
 				return null;
 			}
@@ -30,6 +34,12 @@ export const spotifyProfile: PlatformV0Profile = {
 			const resourceType = segments[0];
 			const resourceId = segments[1];
 			if (!resourceType || !resourceId) {
+				return null;
+			}
+			// A locale segment is only ever the first segment; one in the type or id
+			// position is a malformed link, not a resource. Later segments are ignored
+			// as before.
+			if (SPOTIFY_LOCALE_PREFIX.test(resourceType) || SPOTIFY_LOCALE_PREFIX.test(resourceId)) {
 				return null;
 			}
 
