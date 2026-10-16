@@ -8,6 +8,14 @@ export const IDENTIFIER_RUNG_MAX_ITEMS = 32;
 const ROWS_PER_INSERT = 13_107; // 65,535 PostgreSQL binds / five supplied columns.
 const PRIMARY_LOOKUP_MAX_ITEMS = 32_000; // One query for a maximum 1,000-node backfill page.
 
+/** Stored aliases only; deterministic order decides precedence between aliases. */
+export async function listNodeIdentifierIids(db: KgActionDb, nodeId: string): Promise<string[]> {
+	const rows = await db.execute<{ iid: string }>(sql`
+		SELECT iid FROM kg.node_identifiers WHERE node_id = ${nodeId} ORDER BY created_at, iid
+	`);
+	return rows.map((row) => row.iid);
+}
+
 type IdentifierRow = Pick<
 	typeof nodeIdentifiers.$inferInsert,
 	'nodeId' | 'iid' | 'scheme' | 'rung' | 'source'

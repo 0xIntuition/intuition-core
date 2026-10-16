@@ -59,6 +59,12 @@ describe('IID worker runtime composition', () => {
 			version: '0.1.0-alpha.0',
 			specificationVersion: '@0xintuition/iid-spec@0.1.0-alpha.0',
 		});
+		expect(adapters.iidRegistry.resolveAlias?.('int:isrc:USUM71703861')).toMatchObject({
+			targets: [
+				{ provider: 'musicbrainz', identifierHints: [{ kind: 'isrc', value: 'USUM71703861' }] },
+				{ provider: 'spotify' },
+			],
+		});
 		const resolution = adapters.iidRegistry.resolve({
 			raw: 'int:isrc:USUM71703861',
 			canonical: 'int:isrc:USUM71703861',

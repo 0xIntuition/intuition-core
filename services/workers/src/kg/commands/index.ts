@@ -13,6 +13,7 @@ import {
 	upsertNodeIdentifierRows,
 } from '@0xintuition/database-kg/actions';
 import { sql } from 'drizzle-orm';
+import { runReenrichment } from './reenrichment';
 
 type KgCommandName =
 	| 'kg-requeue-parse'
@@ -25,7 +26,8 @@ type KgCommandName =
 	| 'kg-backfill-classification'
 	| 'kg-backfill-enrichment'
 	| 'kg-reconcile-iid'
-	| 'kg-backfill-identifiers';
+	| 'kg-backfill-identifiers'
+	| 'kg-reenrich-missing-provider';
 
 const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-requeue-parse',
@@ -39,6 +41,7 @@ const KG_COMMANDS: readonly KgCommandName[] = [
 	'kg-backfill-enrichment',
 	'kg-reconcile-iid',
 	'kg-backfill-identifiers',
+	'kg-reenrich-missing-provider',
 ];
 
 /**
@@ -102,6 +105,9 @@ export async function runKgCommand(db: KgActionDb, args: string[]): Promise<void
 			return;
 		case 'kg-backfill-enrichment':
 			await runBackfill(db, 'enrichment', rest, command);
+			return;
+		case 'kg-reenrich-missing-provider':
+			await runReenrichment(db, rest);
 			return;
 		case 'kg-backfill-identifiers':
 			await runIdentifierBackfill(db, rest);

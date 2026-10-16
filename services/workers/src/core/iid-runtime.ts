@@ -81,6 +81,7 @@ export function composeIidWorkerAdapters(input: {
 		),
 		iidInspection,
 		iidRegistry: createIidRegistryAdapter({
+			inspect: iidInspection.inspect,
 			classificationForIid: input.iidRegistry.classificationForIid,
 			providersForIid: input.iidRegistry.providersForIid,
 			identifierHintsForIid: input.iidRegistry.identifierHintsForIid,

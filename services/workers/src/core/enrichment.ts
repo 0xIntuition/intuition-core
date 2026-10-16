@@ -18,6 +18,11 @@ import type {
 	NormalizedAtomIdentity,
 } from './identity-contract';
 import type { IidLadderAdapter } from './iid-ladder';
+import {
+	type DroppedAliasHint,
+	extendProviderPlanWithAliases,
+	type IidRegistryAdapter,
+} from './iid-registry';
 import type { CompactParseResult } from './parse';
 import { resolveFallbackUrl, resolveStructuredDocumentTarget } from './structured-targets';
 
@@ -85,6 +90,8 @@ export const PODCAST_SCOPE_ARTIFACT_TYPE_ALLOWLIST = [
 ] as const;
 
 export type EnrichmentPlan = {
+	skippedAliasIids?: number;
+	droppedAliasHints?: DroppedAliasHint[];
 	classificationResult: WorkerClassificationResult;
 	targetUrl: string | undefined;
 	structuredDocument: CompactParseResult['structuredDocument'];
@@ -195,6 +202,8 @@ export function boundEnrichmentDiagnostics(
 }
 
 export function deriveEnrichmentPlan(input: {
+	aliasIids?: readonly string[];
+	iidRegistry?: IidRegistryAdapter;
 	parseResult: CompactParseResult | null;
 	classificationResult: WorkerClassificationResult;
 	rawInput: string | null;
@@ -206,7 +215,7 @@ export function deriveEnrichmentPlan(input: {
 		resolveFallbackUrl(input.parseResult, input.rawInput);
 
 	const identity = input.classificationResult.identity ?? input.parseResult?.identity;
-	return {
+	const plan: EnrichmentPlan = {
 		classificationResult: input.classificationResult,
 		targetUrl,
 		structuredDocument: input.parseResult?.structuredDocument,
@@ -218,6 +227,22 @@ export function deriveEnrichmentPlan(input: {
 			? { providerPlan: input.classificationResult.providerPlan }
 			: {}),
 	};
+	if (input.aliasIids?.length) {
+		if (!input.iidRegistry)
+			throw new WorkerConfigurationError(
+				'Alias enrichment requires an injected IID registry adapter.'
+			);
+		Object.assign(
+			plan,
+			extendProviderPlanWithAliases({
+				primaryPlan: plan.providerPlan,
+				primaryIid: identity?.canonical,
+				aliasIids: input.aliasIids,
+				registry: input.iidRegistry,
+			})
+		);
+	}
+	return plan;
 }
 
 /**

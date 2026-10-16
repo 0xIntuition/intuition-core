@@ -85,6 +85,64 @@ Typed Wikidata IIDs are handled entirely by the injected `iid` module, including
 
 ### Worker maintenance commands
 
+`kg-reenrich-missing-provider` selects completed IID nodes with stored alias rungs
+that have never received an active artifact from the requested plugin. It is an
+operator batch tool, keyset-paginated by ascending `nodes.id`, not a hot path.
+
+```sh
+bun run command kg-reenrich-missing-provider --plugin spotify --limit 100 --batch-size 25
+bun run command kg-reenrich-missing-provider --plugin spotify --rungs spotify:album --created-since 2026-10-01T00:00:00Z --limit 100 --batch-size 25 --confirm
+bun run command kg-reenrich-missing-provider --plugin spotify --limit 100 --batch-size 25 --confirm --cursor 0xLAST_SUCCESSFUL_BATCH_ID
+```
+
+Dry run is the default and prints one JSON line per batch with `count`, up to ten
+`sampleIds`, cumulative candidate/reset counts, and `cursor`. Only `--confirm`
+resets enrichment through `resetNodeProcessingStage`, restricted to `completed`
+rows, with reason `kg-reenrich-missing-provider:<plugin>`. `--limit` bounds total
+candidates (default 10000); `--batch-size` is 1..5000 (default 1000). Both must be
+positive integers; the total limit must be a safe integer. All value flags accept
+separate and `--flag=value` forms. `--created-since` requires a valid ISO timestamp
+with timezone and filters node creation time inclusively. `--cursor` is exclusive.
+
+Default rungs are all entries mapped to the plugin in `REENRICHMENT_RUNG_PLUGINS`:
+Spotify album/track/artist/show/episode; TMDB movie/tv; Wikidata `wd`, `wd:film`,
+`wd:television-series`; OpenLibrary `olid`/`isbn`; Podcast Index `podcastguid`/`rssitem`.
+`--rungs` may narrow that list; unmapped plugins and rungs are rejected. Provider-local
+Apple Podcasts and Podcast Index IIDs remain omitted under R16.
+
+On an error, the command prints cumulative progress, `lastResetId`, and `cursor`
+for the last fully successful batch, then fails. Resume with the same plugin,
+rungs, date and mode plus `--cursor <printed-cursor>`; adjust `--limit` for the
+remaining candidate budget. A null cursor means restart without `--cursor`.
+`lastResetId` names the greatest ID actually reset; concurrent eligibility changes
+can make it differ from the scanned batch cursor. Each reset is one atomic update;
+an interrupted batch can safely be scanned again. `limitReached: true` means the
+budget ended, and further candidates may remain even without another batch line.
+
+The missing-provider predicate is `NOT EXISTS` correlated on artifact `node_id`,
+requiring `status = 'active'` and `data->'meta'->>'pluginId' = <plugin>`.
+The enrichment engine stamps `meta.pluginId` on every artifact; the worker forwards
+it into persisted `data.meta`. Any active row from that plugin counts, including
+older versions; failed rows do not. No supersession or current-pointer semantics
+are implied. The selector action also supports an optional `missingArtifactKind`,
+which adds an exact kind filter; the command uses plugin-wide absence.
+`idx_artifacts_kind_version_status` helps only when a kind is supplied; there is
+no dedicated JSON provenance index. No index or migration is added by this tool.
+
+Enrichment reads aliases from `kg.node_identifiers`, in `created_at, iid` order,
+and resolves each through the injected IID inspection and registry adapters.
+Primary providers run first; providers are deduplicated. Primary hints win, then
+the first alias to fill an unset hint wins. Conflicting alias values are dropped
+and logged as `droppedAliasHints`; refused aliases are counted as
+`skippedAliasIids` once per distinct IID, excluding an alias equal to the primary.
+This includes noncanonical, unregistered/provider-local and providerless aliases.
+Existing primary-target conflicts still throw. The worker requires the
+`iidRegistry` from `composeIidWorkerAdapters` when stored aliases are present;
+the existing C14 composition boundary supplies adapters rather than Core loading
+identity packages or duplicating registry rules. Reads remain under
+`WORKERS_IID_READ_ENABLED`. The pinned registry emits `mbidType` for typed MBIDs;
+it does not yet emit `podcastIndexFeedId` (packages follow-up under R16).
+
 Run maintenance commands from `services/workers` with the configured KG connection:
 
 ```sh

@@ -106,6 +106,8 @@ function resolveMusicBrainzRequest(
 ): ResolvedMusicBrainzRequest | undefined {
 	const mbid = getIdentifier(request, 'musicbrainz', 'mbid');
 	if (mbid) {
+		const mbidType = getIdentifier(request, 'mbidType');
+		if (mbidType !== undefined && mbidType !== 'recording') return undefined;
 		return { kind: 'mbid', mbid };
 	}
 

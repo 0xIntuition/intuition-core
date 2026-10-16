@@ -5,7 +5,8 @@ import {
 	createTypeProfilesPlugin,
 	jsonLdTypeCategorySchema,
 } from '@0xintuition/atom-classification';
-import { classifiedAtomInputSchema } from '@0xintuition/atom-enrichment';
+import { classifiedAtomInputSchema, createEnrichmentEngine } from '@0xintuition/atom-enrichment';
+import { createMockPlugin } from '@0xintuition/atom-enrichment/testing';
 import { WorkerConfigurationError } from '../shared/errors';
 import { deriveClassificationPlan, deriveClassificationResultFromRuntime } from './classification';
 import {
@@ -19,6 +20,7 @@ import {
 	getArtifactTypeAllowListForEnrichmentPlan,
 } from './enrichment';
 import { createIidLadderAdapter, type IidLadderAdapter } from './iid-ladder';
+import { createIidRegistryAdapter } from './iid-registry';
 
 test('I-2: a legacy ladder remains absent and logs once per adapter', () => {
 	const ladder = {
@@ -742,4 +744,159 @@ test('worker enrichment source retains compact classification provenance', () =>
 		},
 	});
 	expect(input?.source).toMatchObject({ provider: 'imdb', fallbackStage: 'generic' });
+});
+
+// Alias resolution uses the injected inspection and registry; fixture strings have no Core grammar.
+function aliasRegistry() {
+	return createIidRegistryAdapter({
+		packageVersion: '0.1.0',
+		inspect: (iid) =>
+			iid.startsWith('alias:')
+				? {
+						valid: true,
+						iid,
+						scheme: 'fixture',
+						value: iid,
+						class: 'A',
+						typing: 'unambiguous',
+						anchorEligible: true,
+					}
+				: { valid: false, reason: 'unknown-scheme' },
+		classificationForIid: () => undefined,
+		providersForIid: () => ['openlibrary', 'wikidata'],
+		identifierHintsForIid: (iid) => ({ isbn: iid, wikidata: 'Q42' }),
+	});
+}
+
+const aliasPrimary = {
+	raw: 'primary',
+	canonical: 'primary',
+	scheme: 'fixture',
+	value: 'primary',
+	anchorEligible: true,
+	provenance: { producer: 'fixture', version: '1' },
+};
+const aliasClassification = {
+	status: 'recognized' as const,
+	source: 'fixture',
+	identity: aliasPrimary,
+	providerPlan: {
+		status: 'planned' as const,
+		targets: [
+			{
+				provider: 'openlibrary',
+				capabilities: ['openlibrary'],
+				identifierHints: [{ kind: 'isbn', value: 'primary-isbn' }],
+			},
+		],
+		provenance: { producer: 'fixture', version: '1' },
+	},
+};
+
+for (const document of [false, true]) {
+	test(`alias hints reach the plugin for a ${document ? 'document-bearing' : 'bare-IID'} atom`, async () => {
+		const plan = deriveEnrichmentPlan({
+			rawInput: null,
+			classificationResult: aliasClassification,
+			parseResult: document
+				? {
+						kind: 'json',
+						normalizedInput: '{}',
+						identity: aliasPrimary,
+						structuredDocument: {
+							source: 'inline_json',
+							format: 'jsonld',
+							topLevelType: 'object',
+							schemaType: 'Book',
+							data: { name: 'Fixture' },
+							urlCandidates: [],
+						},
+					}
+				: null,
+			aliasIids: ['alias:one'],
+			iidRegistry: aliasRegistry(),
+		});
+		const input = buildClassifiedInputFromPlan(plan)!;
+		const received: unknown[] = [];
+		const engine = createEnrichmentEngine({
+			plugins: [
+				createMockPlugin({
+					id: 'openlibrary',
+					enrich: async (request) => {
+						received.push(request.input.hints?.identifiers);
+						return [];
+					},
+				}),
+			],
+		});
+		await engine.enrich({ input, runtime: 'server' });
+		expect(received).toEqual([{ isbn: 'primary-isbn', wikidata: 'Q42' }]);
+		expect(plan.identity).toEqual(aliasPrimary);
+		expect(plan.droppedAliasHints).toEqual([
+			{ iid: 'alias:one', kind: 'isbn', value: 'alias:one', keptValue: 'primary-isbn' },
+		]);
+	});
+}
+
+test('refused aliases are skipped and counted once per distinct IID', () => {
+	const plan = deriveEnrichmentPlan({
+		rawInput: null,
+		parseResult: null,
+		classificationResult: aliasClassification,
+		iidRegistry: aliasRegistry(),
+		aliasIids: ['int:apple-podcasts:123', 'noncanonical', 'unknown', 'unknown', 'primary'],
+	});
+	expect(plan.skippedAliasIids).toBe(3);
+	expect(plan.providerPlan).toEqual(aliasClassification.providerPlan);
+});
+
+test('without aliases ClassifiedAtomInput is byte-identical to the existing projection', () => {
+	const now = spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-10-16T00:00:00.000Z');
+	try {
+		const input = { rawInput: null, parseResult: null, classificationResult: aliasClassification };
+		const before = buildClassifiedInputFromPlan(deriveEnrichmentPlan(input));
+		const after = buildClassifiedInputFromPlan(
+			deriveEnrichmentPlan({ ...input, aliasIids: [], iidRegistry: aliasRegistry() })
+		);
+		expect(JSON.stringify(after)).toBe(JSON.stringify(before));
+		expect(before).toEqual({
+			atomType: 'unknown',
+			jsonLd: { '@context': 'https://schema.org', '@type': 'Thing' },
+			source: {
+				classificationEngine: 'backend/workers:kg-classification-result',
+				classifiedAt: '2026-10-16T00:00:00.000Z',
+			},
+			hints: { identifiers: { isbn: 'primary-isbn' } },
+		});
+	} finally {
+		now.mockRestore();
+	}
+});
+
+test('conflicts between primary targets still throw when aliases are present', () => {
+	const classificationResult = {
+		...aliasClassification,
+		providerPlan: {
+			...aliasClassification.providerPlan,
+			targets: [
+				...aliasClassification.providerPlan.targets,
+				{
+					provider: 'wikidata',
+					capabilities: ['wikidata'],
+					identifierHints: [{ kind: 'isbn', value: 'conflict' }],
+				},
+			],
+		},
+	};
+	expect(() =>
+		buildClassifiedInputFromPlan(
+			deriveEnrichmentPlan({
+				rawInput: null,
+				parseResult: null,
+				classificationResult,
+				aliasIids: ['alias:one'],
+				iidRegistry: aliasRegistry(),
+			})
+		)
+	).toThrow('conflicting values');
 });

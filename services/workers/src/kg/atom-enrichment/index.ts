@@ -5,6 +5,7 @@ import {
 	failNodeProcessingStage,
 	getNodeForProcessing,
 	type KgActionDb,
+	listNodeIdentifierIids,
 	listNodeProcessingCandidates,
 	markNodeProcessingStageSkipped,
 	reapStuckProcessingNodes,
@@ -20,6 +21,7 @@ import {
 	evaluateEnrichmentProcessingScope,
 } from '../../core/enrichment';
 import type { IidLadderAdapter } from '../../core/iid-ladder';
+import type { IidRegistryAdapter } from '../../core/iid-registry';
 import type { CircuitBreaker } from '../../shared/circuit-breaker';
 import type { WorkerConfig } from '../../shared/config';
 import {
@@ -55,6 +57,7 @@ export async function runKgEnrichmentWorker(input: {
 	signal: AbortSignal;
 	heartbeat: Heartbeat;
 	iidLadder?: IidLadderAdapter;
+	iidRegistry?: IidRegistryAdapter;
 	circuits: {
 		database: CircuitBreaker;
 		runtime: CircuitBreaker;
@@ -123,10 +126,22 @@ export async function runKgEnrichmentWorker(input: {
 			}
 
 			const plan = deriveEnrichmentPlan({
+				aliasIids: input.config.iidReadEnabled
+					? await input.circuits.database.execute(() =>
+							listNodeIdentifierIids(input.db, claimed.id)
+						)
+					: [],
+				iidRegistry: input.iidRegistry,
 				parseResult,
 				classificationResult,
 				rawInput: claimed.data ?? claimed.dataHex,
 			});
+			if (plan.skippedAliasIids || plan.droppedAliasHints?.length) {
+				logger.info('kg enrichment alias diagnostics', {
+					skippedAliasIids: plan.skippedAliasIids ?? 0,
+					droppedAliasHints: plan.droppedAliasHints ?? [],
+				});
+			}
 			if (plan.identity && !input.config.iidResolutionEnabled) {
 				await input.circuits.database.execute(() =>
 					markNodeProcessingStageSkipped(input.db, {

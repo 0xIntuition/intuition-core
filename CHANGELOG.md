@@ -9,6 +9,8 @@ digests, schema or migration changes, config changes, and verification evidence.
 ## Unreleased
 
 - Spotify locale-prefixed links classify as the same resource as the plain link (reference-implementation fix of 2026-10-14).
+- Enrich from stored alias IIDs through the injected registry, retaining primary hints and recording alias conflicts; port the reference behavior from ENG-16544 (2026-10-08).
+- Add dry-run-first `kg-reenrich-missing-provider` with keyset batches, completed-only resets, and resume cursors; port the reference behavior from ENG-16544 (2026-10-08).
 
 - Exclude other nodes' primary IIDs from classification/backfill alias writes (R38 proposed default), time out dry-run backfill pages, and preserve aliases on malformed projections.
 

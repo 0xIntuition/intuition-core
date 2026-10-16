@@ -13,5 +13,6 @@ export * from './iid-reconciliation';
 export * from './node-identifiers';
 export * from './nodes';
 export * from './processing';
+export * from './reenrichment';
 export * from './triples';
 export * from './types';

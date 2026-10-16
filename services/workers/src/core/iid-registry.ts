@@ -6,6 +6,7 @@ import type {
 	NormalizedAtomIdentity,
 	SemanticContractProvenance,
 } from './identity-contract';
+import type { IidInspectionAdapter } from './iid-inspection';
 
 export type PublicIidClassification = {
 	readonly slug: string;
@@ -21,6 +22,8 @@ export type IidSemanticResolution = {
 
 export type IidRegistryAdapter = {
 	resolve(identity: NormalizedAtomIdentity): IidSemanticResolution;
+	/** Present only when canonical public IID inspection was injected. */
+	resolveAlias?(iid: string): IdentityProviderPlan | undefined;
 };
 
 /**
@@ -33,6 +36,7 @@ export function createIidRegistryAdapter(input: {
 	providersForIid: (iid: string) => readonly string[];
 	identifierHintsForIid: (iid: string) => Record<string, string>;
 	packageVersion: string;
+	inspect?: IidInspectionAdapter['inspect'];
 }): IidRegistryAdapter {
 	const packageVersion = requireVersion(input.packageVersion);
 	const classificationProvenance: SemanticContractProvenance = {
@@ -45,6 +49,30 @@ export function createIidRegistryAdapter(input: {
 	};
 
 	return {
+		...(input.inspect
+			? {
+					resolveAlias(iid: string): IdentityProviderPlan | undefined {
+						const inspected = input.inspect!(iid);
+						if (!inspected.valid || inspected.iid !== iid) return undefined;
+						const providers = input.providersForIid(iid);
+						if (providers.length === 0) return undefined;
+						const identifierHints = toIdentifierHints(input.identifierHintsForIid(iid));
+						// An alias earns a provider only through an identifier hint; a provider
+						// with nothing alias-specific to look up would run on the primary's
+						// search text, which the alias does not justify.
+						if (identifierHints.length === 0) return undefined;
+						return {
+							status: 'planned',
+							targets: providers.map((provider) => ({
+								provider,
+								capabilities: [provider],
+								identifierHints,
+							})),
+							provenance: providerProvenance,
+						};
+					},
+				}
+			: {}),
 		resolve(identity) {
 			const classification = input.classificationForIid(identity.canonical);
 			const providers = input.providersForIid(identity.canonical);
@@ -76,6 +104,92 @@ export function createIidRegistryAdapter(input: {
 				},
 			};
 		},
+	};
+}
+
+export type DroppedAliasHint = IdentityProviderHint & { iid: string; keptValue: string };
+
+/** Merge execution targets without changing primary identity or persisted handoffs. */
+export function extendProviderPlanWithAliases(input: {
+	primaryPlan?: IdentityProviderPlan;
+	primaryIid?: string;
+	aliasIids: readonly string[];
+	registry: IidRegistryAdapter;
+}): {
+	providerPlan?: IdentityProviderPlan;
+	skippedAliasIids: number;
+	droppedAliasHints: DroppedAliasHint[];
+} {
+	if (!input.registry.resolveAlias) {
+		throw new WorkerConfigurationError(
+			'Alias enrichment requires injected IID inspection and registry adapters.'
+		);
+	}
+	const targets = new Map<string, IdentityProviderPlan['targets'][number]>();
+	const hints = new Map<string, string>();
+	for (const target of input.primaryPlan?.targets ?? []) {
+		for (const hint of target.identifierHints) {
+			if (hints.has(hint.kind) && hints.get(hint.kind) !== hint.value) {
+				throw new Error(
+					`IID provider plan supplied conflicting values for identifier hint "${hint.kind}".`
+				);
+			}
+			hints.set(hint.kind, hint.value);
+		}
+		const previous = targets.get(target.provider);
+		targets.set(
+			target.provider,
+			previous
+				? {
+						...previous,
+						identifierHints: [...previous.identifierHints, ...target.identifierHints],
+					}
+				: target
+		);
+	}
+	let provenance = input.primaryPlan?.provenance;
+	let skippedAliasIids = 0;
+	const droppedAliasHints: DroppedAliasHint[] = [];
+	for (const iid of new Set(input.aliasIids)) {
+		if (iid === input.primaryIid) continue;
+		const alias = input.registry.resolveAlias(iid);
+		if (!alias) {
+			skippedAliasIids++;
+			continue;
+		}
+		provenance ??= alias.provenance;
+		const dropped = new Set<string>();
+		for (const target of alias.targets) {
+			const accepted = target.identifierHints.filter((hint) => {
+				const keptValue = hints.get(hint.kind);
+				if (keptValue !== undefined && keptValue !== hint.value) {
+					const key = JSON.stringify(hint);
+					if (!dropped.has(key)) droppedAliasHints.push({ iid, ...hint, keptValue });
+					dropped.add(key);
+					return false;
+				}
+				hints.set(hint.kind, hint.value);
+				return true;
+			});
+			const previous = targets.get(target.provider);
+			const merged = new Map((previous?.identifierHints ?? []).map((hint) => [hint.kind, hint]));
+			for (const hint of accepted) merged.set(hint.kind, hint);
+			targets.set(target.provider, {
+				...(previous ?? target),
+				identifierHints: [...merged.values()],
+			});
+		}
+	}
+	return {
+		providerPlan: provenance
+			? {
+					status: targets.size ? 'planned' : 'unsupported',
+					targets: [...targets.values()],
+					provenance,
+				}
+			: input.primaryPlan,
+		skippedAliasIids,
+		droppedAliasHints,
 	};
 }
 

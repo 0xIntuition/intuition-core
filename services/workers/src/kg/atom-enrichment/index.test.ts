@@ -7,7 +7,10 @@ import {
 } from '@0xintuition/atom-enrichment/testing';
 import * as runtimeModule from '@0xintuition/atom-services/runtime';
 import type { KgActionDb } from '@0xintuition/database-kg/actions';
+import type { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import type { IidLadderAdapter } from '../../core/iid-ladder';
+import { createIidRegistryAdapter } from '../../core/iid-registry';
 import { CircuitBreaker } from '../../shared/circuit-breaker';
 import { loadWorkerConfig } from '../../shared/config';
 import { WorkerConfigurationError } from '../../shared/errors';
@@ -30,7 +33,8 @@ test('identity docs describe the worker forwarding and C14 entrypoint boundary',
 	}
 });
 
-function harness(enabled: boolean, iidLadder?: IidLadderAdapter) {
+function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string[] = []) {
+	const aliasQueries: { sql: string; params: unknown[] }[] = [];
 	const controller = new AbortController();
 	let selections = 0;
 	let writes = 0;
@@ -63,6 +67,10 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter) {
 		},
 	};
 	const db = {
+		async execute(statement: SQL) {
+			aliasQueries.push(new PgDialect().sqlToQuery(statement));
+			return aliases.map((iid) => ({ iid }));
+		},
 		async transaction<T>(run: (tx: KgActionDb) => Promise<T>) {
 			return run(db as unknown as KgActionDb);
 		},
@@ -100,6 +108,8 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter) {
 	} as unknown as KgActionDb;
 	return {
 		controller,
+		node,
+		aliasQueries,
 		completion: () => completion,
 		selections: () => selections,
 		writes: () => writes,
@@ -237,3 +247,113 @@ test('changelog records completed forwarding and C14 composition', async () => {
 	);
 	expect(text).toContain('worker entrypoint wires adapters at the C14 composition boundary');
 });
+
+for (const bare of [false, true])
+	test(`worker reads persisted aliases and delivers merged hints to plugins (${bare ? 'bare' : 'document'})`, async () => {
+		const ladder: IidLadderAdapter = {
+			projectIdentityRungs: () => {
+				throw new Error('unused');
+			},
+			isPlainWdPrimaryAllowed: () => false,
+		};
+		const fixture = harness(true, ladder, ['alias:accepted', 'int:apple-podcasts:123']);
+		const primary = {
+			raw: 'primary',
+			canonical: 'primary',
+			scheme: 'fixture',
+			value: 'primary',
+			anchorEligible: true,
+			provenance: { producer: 'fixture', version: '1' },
+		};
+		Object.assign(fixture.node.classificationResult, {
+			identity: primary,
+			providerPlan: {
+				status: 'planned',
+				targets: [
+					{
+						provider: 'openlibrary',
+						capabilities: ['openlibrary'],
+						identifierHints: [{ kind: 'isbn', value: 'primary' }],
+					},
+				],
+				provenance: { producer: 'fixture', version: '1' },
+			},
+		});
+		if (bare)
+			Object.assign(fixture.node, {
+				parseResult: { kind: 'iid', normalizedInput: 'primary', identity: primary },
+			});
+		const received: unknown[] = [];
+		const registry = createIidRegistryAdapter({
+			packageVersion: '0.1.0',
+			inspect: (iid) =>
+				iid === 'alias:accepted'
+					? {
+							valid: true,
+							iid,
+							scheme: 'fixture',
+							value: 'accepted',
+							class: 'A',
+							typing: 'unambiguous',
+							anchorEligible: true,
+						}
+					: { valid: false, reason: 'unknown-scheme' },
+			classificationForIid: () => undefined,
+			providersForIid: () => ['openlibrary', 'wikidata'],
+			identifierHintsForIid: () => ({ isbn: 'alias', wikidata: 'Q42' }),
+		});
+		const log = spyOn(logger, 'info').mockImplementation(() => {});
+		const runtime = spyOn(runtimeModule, 'createEnrichmentRuntime').mockImplementation(
+			(options) => {
+				const result = createRuntime(options);
+				result.presetFactories.default = () =>
+					['openlibrary', 'wikidata'].map((id) =>
+						createMockPlugin({
+							id,
+							artifactTypes: ['wikipedia'],
+							enrich: async (request) => {
+								received.push(request.input.hints?.identifiers);
+								return [
+									createMockArtifact({
+										artifact_type: 'wikipedia',
+										data: {
+											title: 'Fixture',
+											extract: 'Description',
+											language: 'en',
+											pageUrl: 'https://en.wikipedia.org/wiki/Fixture',
+										},
+									}),
+								];
+							},
+						})
+					);
+				return result;
+			}
+		);
+		try {
+			await runKgEnrichmentWorker({
+				...fixture.input,
+				config: { ...fixture.input.config, iidResolutionEnabled: true },
+				iidRegistry: registry,
+			});
+			expect(fixture.aliasQueries).toHaveLength(1);
+			expect(fixture.aliasQueries[0]?.params).toEqual([fixture.node.id]);
+			expect(received).toEqual([
+				{ isbn: 'primary', wikidata: 'Q42' },
+				{ isbn: 'primary', wikidata: 'Q42' },
+			]);
+			expect(fixture.completion()).toMatchObject({ enrichmentStatus: 'completed' });
+			expect(
+				log.mock.calls.find(([message]) => message === 'kg enrichment alias diagnostics')?.[1]
+			).toEqual({
+				skippedAliasIids: 1,
+				droppedAliasHints: [
+					{ iid: 'alias:accepted', kind: 'isbn', value: 'alias', keptValue: 'primary' },
+				],
+			});
+		} finally {
+			runtime.mockRestore();
+			log.mockRestore();
+			fixture.controller.abort();
+		}
+	});
