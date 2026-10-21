@@ -3,7 +3,7 @@
 Run the suite against a packed train:
 
 ```sh
-INTUITION_TRAIN_TARBALLS=/absolute/path/to/train bun run test:conformance
+INTUITION_TRAIN_TARBALLS=/absolute/path/to/train TMPDIR=/tmp bun run test:conformance
 ```
 
 The train directory is an explicit input. When `INTUITION_TRAIN_TARBALLS` is unset
@@ -16,7 +16,8 @@ slot and a Bun version in the second, and prints both identities with the digest
 
 The directory must contain `MANIFEST.txt` with tab-separated tarball filename,
 package name and version, and `sha256=…` fields for `@0xintuition/protocol`,
-`@0xintuition/curves`, and `@0xintuition/ids`, plus the corresponding `.tgz` files.
+`@0xintuition/curves`, `@0xintuition/deployments`, and `@0xintuition/ids`, plus the
+corresponding `.tgz` files. Protocol 4.0.0 requires deployments at runtime.
 The test verifies each digest before installing these tarballs into an OS temp
 consumer outside Core's repository. The real paths of `TMPDIR` and the repository
 are checked before creating anything; a temp root equal to or inside the
@@ -42,29 +43,10 @@ that the resulting term id equals the id of the original input.
 
 Guard regressions run separately with `bun test tests/conformance/guards.test.ts`.
 
-## Known divergences (owned by the public packages)
-
-The public validator accepts odd-length hex atom data. Concrete probe:
-
-```js
-{
-  args: ['0x1111111111111111111111111111111111111111', ['0xabc'], [1n], [[]]],
-  value: 1n,
-}
-```
-
-The builder's calldata decodes through Core's vendored ABI to `data: ['0xabc0']`.
-Train ids, installed ids and `kgAtomId('0xabc')` interpret the original input as
-`0x0abc`-equivalent bytes and produce
-`0xa44b664252d5aebd8c684671e58635ecaf044bb2094fc993589c59a98049eee3`.
-Core's `kgAtomId('0xabc0')` instead produces
-`0x6cace79b9b7381382e1dd98c3aa0e642f3e0b70b2e06245acb5c13c68ddd819c`.
-This builder → bytes → hash divergence remains OPEN for the public packages to
-resolve by rejecting odd-length input or canonicalizing identically. Core's
-protected packages are unchanged; replay vectors remain even-length. The suite
-prints a TODO with this probe and contains an executable rejection regression
-(`bun test --todo tests/iid-uri-creation-conformance.test.ts` with the train set
-executes it and displays the failing TODO without failing the gate).
+Protocol 4.0.0 rejects odd-length hex atom data such as `0xabc` with
+`atom data must be even-length hex bytes`. The suite asserts this rejection
+through the public validator so calldata bytes and atom ids cannot diverge
+through inconsistent padding of odd-length input.
 
 [`POST /api/atoms`](./api-reference.md#post-apiatoms-) ingests an off-chain KG
 row; seed/application writers submit `createAtomsWithUris` transactions through
