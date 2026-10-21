@@ -6,7 +6,12 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export const coreRoot = resolve(import.meta.dir, '../..');
 export const kgDirectory = join(coreRoot, 'packages/database-kg');
-const packageNames = ['@0xintuition/protocol', '@0xintuition/curves', '@0xintuition/ids'];
+const packageNames = [
+	'@0xintuition/protocol',
+	'@0xintuition/curves',
+	'@0xintuition/deployments',
+	'@0xintuition/ids',
+];
 
 type Manifest = {
 	name: string;
