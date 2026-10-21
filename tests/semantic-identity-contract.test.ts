@@ -25,6 +25,40 @@ const fixture = (await Bun.file(
 ).json()) as SemanticFixture;
 
 describe('normalized identity cross-stack contract', () => {
+	test.each([
+		['A', 'dormant-wd-binding'],
+		['D', 'weak-account'],
+		['D', 'provider-local'],
+	])('preserves class %s and reason %s across worker, API, and Explorer', (identityClass, reason) => {
+		const identity = {
+			raw: 'opaque identity',
+			canonical: 'opaque identity',
+			scheme: 'fixture-scheme',
+			value: 'fixture-value',
+			class: identityClass,
+			anchorIneligibilityReason: reason,
+			anchorEligible: false,
+			provenance: { producer: 'public-package-adapter', version: '0.1.0-test' },
+		};
+		const persisted = JSON.parse(
+			JSON.stringify({
+				rawType: 'string',
+				data: identity.raw,
+				classificationType: 'thing',
+				parseResult: {
+					kind: 'iid',
+					normalizedInput: identity.raw,
+					canonicalId: identity.canonical,
+					identity,
+				},
+			})
+		);
+		expect(toCompactParseResultMaybe(persisted.parseResult)?.identity).toEqual(identity);
+		const presented = presentAtom(persisted);
+		expect(presented.identity).toEqual(identity);
+		expect(atomIdentitySchema.parse(presented.identity)).toEqual(identity);
+	});
+
 	test('survives persistence, API presentation, and Explorer validation losslessly', () => {
 		const golden = fixture.resolutionCases.find(({ id }) => id === 'unresolved-isrc');
 		if (!golden) {

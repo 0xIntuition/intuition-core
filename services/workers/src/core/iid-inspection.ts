@@ -9,10 +9,15 @@ export type PublicIidInspection =
 			readonly iid: string;
 			readonly scheme: string;
 			readonly value: string;
-			readonly class: 'A' | 'B' | 'C';
+			readonly class: 'A' | 'B' | 'C' | 'D';
 			readonly typing: 'unambiguous' | 'polymorphic';
 			readonly anchorEligible: boolean;
-			readonly anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme' | 'dormant-wd-binding';
+			readonly anchorIneligibilityReason?:
+				| 'class-c'
+				| 'polymorphic-scheme'
+				| 'dormant-wd-binding'
+				| 'weak-account'
+				| 'provider-local';
 	  }
 	| {
 			readonly valid: false;

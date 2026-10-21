@@ -10,9 +10,14 @@ export type AtomIdentityView = {
 	profile?: 'p0' | 'p1' | 'p2';
 	scheme?: string;
 	value?: string;
-	class?: 'A' | 'B' | 'C';
+	class?: 'A' | 'B' | 'C' | 'D';
 	typing?: 'unambiguous' | 'polymorphic';
-	anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme';
+	anchorIneligibilityReason?:
+		| 'class-c'
+		| 'polymorphic-scheme'
+		| 'dormant-wd-binding'
+		| 'weak-account'
+		| 'provider-local';
 	valid?: boolean;
 	anchorEligible?: boolean;
 	provenance?: {
@@ -317,7 +322,7 @@ function readIdentityProfile(value: unknown): AtomIdentityView['profile'] {
 }
 
 function readIdentityClass(value: unknown): AtomIdentityView['class'] {
-	return value === 'A' || value === 'B' || value === 'C' ? value : undefined;
+	return value === 'A' || value === 'B' || value === 'C' || value === 'D' ? value : undefined;
 }
 
 function readIdentityTyping(value: unknown): AtomIdentityView['typing'] {
@@ -327,7 +332,13 @@ function readIdentityTyping(value: unknown): AtomIdentityView['typing'] {
 function readAnchorIneligibilityReason(
 	value: unknown
 ): AtomIdentityView['anchorIneligibilityReason'] {
-	return value === 'class-c' || value === 'polymorphic-scheme' ? value : undefined;
+	return value === 'class-c' ||
+		value === 'polymorphic-scheme' ||
+		value === 'dormant-wd-binding' ||
+		value === 'weak-account' ||
+		value === 'provider-local'
+		? value
+		: undefined;
 }
 
 function resolveDisplay(value: unknown): AtomDisplayView | undefined {
