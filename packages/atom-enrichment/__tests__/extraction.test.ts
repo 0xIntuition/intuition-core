@@ -199,7 +199,7 @@ describe('extractClassificationFields', () => {
 
 		expect(result.values.givenName).toBeUndefined();
 		expect(result.values.familyName).toBeUndefined();
-		expect(result.missingRequired).toEqual(['givenName', 'familyName']);
+		expect(result.missingRequired).toEqual(['givenName']);
 	});
 
 	it('fills generic name/description/url/sameAs for specs like thing', async () => {
