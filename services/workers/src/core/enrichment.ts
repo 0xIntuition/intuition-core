@@ -4,6 +4,7 @@ import {
 	type EnrichmentIdentityCapability,
 	type EnrichmentRunResult,
 	type IdentifierProviderPlanEntry,
+	redactProviderDiagnostic,
 } from '@0xintuition/atom-enrichment';
 import { WorkerConfigurationError } from '../shared/errors';
 import {
@@ -188,11 +189,16 @@ export function boundEnrichmentDiagnostics(
 	return {
 		errors: result.errors.slice(0, MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND).map((error) => ({
 			...error,
-			message: error.message.slice(0, MAX_ENRICHMENT_ERROR_MESSAGE_LENGTH),
+			pluginId: redactProviderDiagnostic(error.pluginId),
+			message: redactProviderDiagnostic(error.message).slice(
+				0,
+				MAX_ENRICHMENT_ERROR_MESSAGE_LENGTH
+			),
 		})),
 		skipped: result.skipped.slice(0, MAX_ENRICHMENT_DIAGNOSTICS_PER_KIND).map((entry) => ({
 			...entry,
-			reason: entry.reason.slice(0, MAX_ENRICHMENT_SKIP_REASON_LENGTH),
+			pluginId: redactProviderDiagnostic(entry.pluginId),
+			reason: redactProviderDiagnostic(entry.reason).slice(0, MAX_ENRICHMENT_SKIP_REASON_LENGTH),
 		})),
 		totalErrors: result.errors.length,
 		totalSkipped: result.skipped.length,

@@ -1,3 +1,4 @@
+import { redactProviderDiagnostic } from '@0xintuition/atom-enrichment';
 import { Hono } from 'hono';
 import type { z } from 'zod/v4';
 import type { ServiceConfig } from './config';
@@ -117,7 +118,19 @@ export function createAtomServicesApp(options: CreateAppOptions = {}): Hono<Atom
 	app.post('/v1/enrich', async (context) => {
 		const input = await parseJson(context, enrichRequestSchema);
 		const result = await dependencies.enrich(input);
-		return context.json(enrichResponseSchema.parse(result));
+		return context.json(
+			enrichResponseSchema.parse({
+				...result,
+				errors: result.errors.map((error) => ({
+					...error,
+					message: redactProviderDiagnostic(error.message),
+				})),
+				skipped: result.skipped.map((entry) => ({
+					...entry,
+					reason: redactProviderDiagnostic(entry.reason),
+				})),
+			})
+		);
 	});
 
 	app.post('/v1/process', async (context) => {

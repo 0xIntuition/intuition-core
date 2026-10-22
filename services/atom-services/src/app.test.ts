@@ -345,3 +345,35 @@ describe('createAtomServicesApp', () => {
 		expect(await response.text()).toContain('atomsvc_http_requests_total');
 	});
 });
+
+it('redacts provider credentials from /v1/enrich responses', async () => {
+	const dependencies = createMockDependencies();
+	dependencies.enrich = async () => ({
+		...enrichmentResultFixture,
+		errors: [
+			{
+				pluginId: 'etherscan',
+				code: 'upstream_error',
+				retriable: true,
+				message:
+					'HTTP 503 from https://user:SECRET@api.etherscan.io/api?apikey=SECRET Authorization: Bearer SECRET',
+			},
+		],
+	});
+	const app = createAtomServicesApp({ config: createTestConfig(), dependencies });
+	const response = await app.request('http://localhost/v1/enrich', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({
+			input: {
+				atomType: 'thing',
+				jsonLd: { '@context': 'https://schema.org', '@type': 'Thing' },
+				source: { classificationEngine: 'test', classifiedAt: FIXED_NOW },
+			},
+		}),
+	});
+	expect(response.status).toBe(200);
+	const body = await response.text();
+	expect(body).toContain('HTTP 503');
+	expect(body).not.toContain('SECRET');
+});

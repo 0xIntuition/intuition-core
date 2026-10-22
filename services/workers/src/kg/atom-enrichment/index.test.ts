@@ -39,6 +39,7 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 	let selections = 0;
 	let writes = 0;
 	let completion: Record<string, unknown> | undefined;
+	const inserted: unknown[] = [];
 	const node = {
 		id: `0x${'11'.repeat(32)}`,
 		parseStatus: 'completed',
@@ -85,7 +86,12 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 			return query;
 		},
 		insert() {
-			return { values: () => ({ onConflictDoUpdate: () => ({ returning: async () => [] }) }) };
+			return {
+				values: (rows: unknown) => {
+					inserted.push(rows);
+					return { onConflictDoUpdate: () => ({ returning: async () => [] }) };
+				},
+			};
 		},
 		update() {
 			writes++;
@@ -108,6 +114,7 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 	} as unknown as KgActionDb;
 	return {
 		controller,
+		inserted,
 		node,
 		aliasQueries,
 		completion: () => completion,
@@ -357,3 +364,52 @@ for (const bare of [false, true])
 			fixture.controller.abort();
 		}
 	});
+
+for (const partial of [false, true]) {
+	test(`worker redacts persisted ${partial ? 'run diagnostics' : 'processing errors'}`, async () => {
+		const fixture = harness(false);
+		const runtimeSpy = spyOn(runtimeModule, 'createEnrichmentRuntime').mockImplementation(
+			(options) => {
+				const runtime = createRuntime(options);
+				const engine = runtime.createEngine('default');
+				runtime.createEngine = () => ({
+					...engine,
+					enrich: async () => ({
+						status: partial ? 'partial' : 'failed',
+						artifacts: partial ? [createMockArtifact()] : [],
+						errors: [
+							{
+								pluginId: 'etherscan',
+								code: 'upstream_error',
+								retriable: false,
+								message:
+									'HTTP 401 from https://user:SECRET@api.etherscan.io/api?apikey=SECRET Authorization: Bearer SECRET',
+							},
+						],
+						skipped: [],
+						timings: {
+							startedAt: new Date().toISOString(),
+							finishedAt: new Date().toISOString(),
+							durationMs: 0,
+							perPluginMs: {},
+							cacheHits: 0,
+							cacheMisses: 0,
+						},
+					}),
+				});
+				return runtime;
+			}
+		);
+		try {
+			await runKgEnrichmentWorker(fixture.input);
+			expect(fixture.completion()?.enrichmentStatus).toBe(partial ? 'completed' : 'failed');
+			const persisted = JSON.stringify(partial ? fixture.inserted : fixture.completion());
+			expect(persisted).toContain('HTTP 401');
+			expect(persisted).not.toContain('SECRET');
+			expect(persisted).not.toContain('?apikey');
+		} finally {
+			runtimeSpy.mockRestore();
+			fixture.controller.abort();
+		}
+	});
+}

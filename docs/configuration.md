@@ -194,3 +194,5 @@ All optional. Missing keys → the plugin degrades or skips; public sources
 `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET`, `GITHUB_TOKEN`,
 `ETHERSCAN_API_KEY`, `BRANDFETCH_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`,
 `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (reserved for the Search tier).
+
+Provider credentials in request URLs, authorization headers, and credential parameters are redacted before enrichment diagnostics are persisted or returned. Provider credentials never appear in persisted diagnostic rows. Existing rows are not rewritten by this change; rotate ETHERSCAN_API_KEY in environments that previously persisted provider errors.

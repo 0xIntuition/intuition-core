@@ -199,8 +199,7 @@ async function fetchXJson<TValue>(
 ): Promise<TValue> {
 	const response = await fetcher(url, { headers });
 	if (!response.ok) {
-		const body = await safeReadBody(response);
-		throw new Error(`HTTP ${response.status} from X API.${body ? ` ${body}` : ''}`);
+		throw new Error(`HTTP ${response.status} from X API.`);
 	}
 
 	return (await response.json()) as TValue;
@@ -235,13 +234,4 @@ function extractXMediaUrls(item: Record<string, unknown>): string[] {
 function resolveGlobalFetch(): FetchLike | undefined {
 	const globalFetch = (globalThis as { fetch?: FetchLike }).fetch;
 	return typeof globalFetch === 'function' ? globalFetch : undefined;
-}
-
-async function safeReadBody(response: { text(): Promise<string> }): Promise<string | undefined> {
-	try {
-		const text = (await response.text()).trim();
-		return text.length > 0 ? text : undefined;
-	} catch {
-		return undefined;
-	}
 }
