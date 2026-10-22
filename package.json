@@ -39,7 +39,8 @@
 		"devnet:fixtures:iid": "bun run --cwd packages/contracts scripts/devnet-create-iid-fixtures.ts",
 		"abis:sync": "bun run scripts/sync-abis.ts",
 		"abis:check": "bun run scripts/sync-abis.ts --check",
-		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy"
+		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy",
+		"test:atom-runtime": "bun test tests/atom-runtime-packages.test.ts tests/semantic-identity-contract.test.ts"
 	},
 	"catalog": {
 		"typescript": "^5.9.3",
@@ -51,7 +52,10 @@
 		"turbo": "^2.6.2",
 		"typescript": "^5.9.3",
 		"ultracite": "^7.0.11",
-		"@0xintuition/contracts": "workspace:*"
+		"@0xintuition/contracts": "workspace:*",
+		"@0xintuition/atom-parser": "0.1.0-alpha.0",
+		"@0xintuition/atom-classification": "0.1.0-alpha.0",
+		"@0xintuition/atom-enrichment": "0.1.0-alpha.0"
 	},
 	"engines": {
 		"node": ">=20"

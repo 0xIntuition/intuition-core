@@ -7,7 +7,7 @@ papers, regional commerce, your internal systems — and still produce
 **deterministic, canonical atoms** that line up with everyone else's graph.
 
 A complete, runnable example lives in
-[`packages/atom-classification-example-plugin`](../packages/atom-classification-example-plugin)
+[the classification plugin example](https://github.com/0xIntuition/packages/tree/main/examples/atom-classification-plugin)
 (~150 lines). This guide walks its structure.
 
 ## The shape of a plugin
@@ -100,7 +100,8 @@ import {
 	createClassificationEngine,
 	defaultClassificationPreset,
 } from '@0xintuition/atom-classification';
-import { createExampleLexicalSignalPlugin } from '@0xintuition/atom-classification-example-plugin';
+// Copy src/index.ts from the linked example into ./example-plugin.ts.
+import { createExampleLexicalSignalPlugin } from './example-plugin';
 
 const engine = createClassificationEngine({
 	runtime: 'server', // or 'client' in the browser
