@@ -69,9 +69,11 @@ automatically.
 | `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
 
 The worker entrypoint statically imports `@0xintuition/iid`,
-`@0xintuition/iid-registry`, and `@0xintuition/iid-ladder`, pinned to
-`0.1.0-alpha.0`. Before starting a worker it checks the installed package manifests
-against those exact pins and fails fast on a mismatch. The committed lockfile
+`@0xintuition/iid-registry`, and `@0xintuition/iid-ladder` at the exact versions
+pinned in `services/workers/package.json`. When `WORKERS_IID_READ_ENABLED` is on it
+checks the installed package manifests against those exact pins before starting and
+fails fast on a mismatch; with the flag off the legacy path runs and the check is
+skipped, so an installed-version drift cannot stop a node that never enabled IID reads. The committed lockfile
 will be regenerated after publication; prerelease verification uses local tarballs
 in an isolated scratch worktree.
 
@@ -202,4 +204,4 @@ All optional. Missing keys → the plugin degrades or skips; public sources
 `ETHERSCAN_API_KEY`, `BRANDFETCH_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`,
 `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (reserved for the Search tier).
 
-Provider credentials in request URLs, authorization headers, and credential parameters are redacted before enrichment diagnostics are persisted or returned. Provider credentials never appear in persisted diagnostic rows. Existing rows are not rewritten by this change; rotate ETHERSCAN_API_KEY in environments that previously persisted provider errors.
+Provider credentials are stripped at the provider HTTP boundary (`ProviderHttpError` keeps only the status, the provider hostname, and a URL without query, fragment, or userinfo) and the enrichment engine redacts every plugin error message it emits. Workers redact diagnostics again before persisting them, and atom-services redacts classification resolver errors, enrichment errors, skipped reasons, and batch item errors before returning them on every endpoint. Existing rows are not rewritten by this change; rotate ETHERSCAN_API_KEY in environments that previously persisted provider errors.

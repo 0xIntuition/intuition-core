@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { KgActionDb } from '@0xintuition/database-kg/actions';
+import workerManifest from '../../package.json';
 import { runKgClassificationWorker } from '../kg/atom-classification';
 import { runKgEnrichmentWorker } from '../kg/atom-enrichment';
 import { runKgParsingWorker } from '../kg/atom-parsing';
@@ -75,12 +76,28 @@ test('installed IID packages parse, classify, plan, and project a real IID', asy
 	expect(createWorkerIdentityRuntime(false)).toEqual({});
 });
 
+test('the version check guards only the IID read path', () => {
+	const drifted = [{ name: '@0xintuition/iid', version: '0.0.0' }];
+	expect(createWorkerIdentityRuntime(false, drifted)).toEqual({});
+	expect(() => createWorkerIdentityRuntime(true, drifted)).toThrow(WorkerConfigurationError);
+});
+
 test('bootstrap rejects missing, substituted, ranged, and wrong exact installed versions', () => {
-	const names = ['@0xintuition/iid', '@0xintuition/iid-registry', '@0xintuition/iid-ladder'];
-	const manifests = names.map((name) => ({ name, version: '0.1.0-alpha.0' }));
+	const names = [
+		'@0xintuition/iid',
+		'@0xintuition/iid-registry',
+		'@0xintuition/iid-ladder',
+	] as const;
+	const manifests = names.map((name) => ({
+		name,
+		version: workerManifest.dependencies[name],
+	}));
+	for (const manifest of manifests) {
+		expect(manifest.version).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
+	}
 	expect(() => assertIidPackageVersions()).not.toThrow();
 	for (let index = 0; index < manifests.length; index++) {
-		for (const version of ['*', '^0.1.0', 'workspace:*', '0.1.0-alpha.1']) {
+		for (const version of ['*', '^0.1.0', 'workspace:*', '0.1.0-alpha.99']) {
 			expect(() =>
 				assertIidPackageVersions(
 					manifests.map((manifest, i) => (i === index ? { ...manifest, version } : manifest))

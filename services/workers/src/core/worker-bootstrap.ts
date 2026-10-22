@@ -27,8 +27,19 @@ export function assertIidPackageVersions(
 	}
 }
 
-/** Bind the statically imported packages before opening the worker's lifecycle server. */
-export function createWorkerIdentityRuntime(iidReadEnabled: boolean) {
-	assertIidPackageVersions();
-	return iidReadEnabled ? { iidInspection, iidRegistry, iidLadder } : {};
+/**
+ * Bind the statically imported packages before opening the worker's lifecycle server.
+ * The exact-version check guards the IID read path only: with the flag off, the legacy
+ * path never touches these packages, so an installed-version drift must not stop a
+ * node operator who never enabled IID reads.
+ */
+export function createWorkerIdentityRuntime(
+	iidReadEnabled: boolean,
+	manifests: readonly { name: string; version: string }[] = installedManifests
+) {
+	if (!iidReadEnabled) {
+		return {};
+	}
+	assertIidPackageVersions(manifests);
+	return { iidInspection, iidRegistry, iidLadder };
 }

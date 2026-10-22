@@ -1,4 +1,3 @@
-import { redactProviderDiagnostic } from '@0xintuition/atom-enrichment';
 import { Hono } from 'hono';
 import type { z } from 'zod/v4';
 import type { ServiceConfig } from './config';
@@ -23,6 +22,11 @@ import { createRateLimitMiddleware } from './middleware/rate-limit';
 import { requestIdMiddleware } from './middleware/request-id';
 import { InMemoryProcessBatchStore } from './service/batch-store';
 import { createServiceDependencies, type ServiceDependencies } from './service/dependencies';
+import {
+	redactClassificationResponse,
+	redactEnrichmentResponse,
+	redactProcessResponse,
+} from './service/redaction';
 import type { AtomServicesBindings } from './types';
 
 type CreateAppOptions = {
@@ -112,25 +116,13 @@ export function createAtomServicesApp(options: CreateAppOptions = {}): Hono<Atom
 	app.post('/v1/classify', async (context) => {
 		const input = await parseJson(context, classifyRequestSchema);
 		const result = await dependencies.classify(input);
-		return context.json(classifyResponseSchema.parse(result));
+		return context.json(classifyResponseSchema.parse(redactClassificationResponse(result)));
 	});
 
 	app.post('/v1/enrich', async (context) => {
 		const input = await parseJson(context, enrichRequestSchema);
 		const result = await dependencies.enrich(input);
-		return context.json(
-			enrichResponseSchema.parse({
-				...result,
-				errors: result.errors.map((error) => ({
-					...error,
-					message: redactProviderDiagnostic(error.message),
-				})),
-				skipped: result.skipped.map((entry) => ({
-					...entry,
-					reason: redactProviderDiagnostic(entry.reason),
-				})),
-			})
-		);
+		return context.json(enrichResponseSchema.parse(redactEnrichmentResponse(result)));
 	});
 
 	app.post('/v1/process', async (context) => {
@@ -143,7 +135,9 @@ export function createAtomServicesApp(options: CreateAppOptions = {}): Hono<Atom
 			);
 		}
 
-		const processResult = await dependencies.process(input, context.get('requestId'));
+		const processResult = redactProcessResponse(
+			await dependencies.process(input, context.get('requestId'))
+		);
 		dependencies.metrics.recordProcessOutcome(processResult.status);
 		dependencies.metrics.recordPluginOutcomes(processResult.enrichment);
 
@@ -178,9 +172,8 @@ export function createAtomServicesApp(options: CreateAppOptions = {}): Hono<Atom
 		}
 
 		const submission = batchStore.submit(input, async (job, batchContext) => {
-			const processResult = await dependencies.process(
-				job,
-				`${batchContext.jobId}-${batchContext.index}`
+			const processResult = redactProcessResponse(
+				await dependencies.process(job, `${batchContext.jobId}-${batchContext.index}`)
 			);
 			dependencies.metrics.recordProcessOutcome(processResult.status);
 			dependencies.metrics.recordPluginOutcomes(processResult.enrichment);
