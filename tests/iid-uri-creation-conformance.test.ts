@@ -144,7 +144,7 @@ const indexerEvent = indexer.find(
 			`C13 Node/Bun byte identity: ${nodeOutput.length} bytes; sha256=${createHash('sha256').update(nodeOutput).digest('hex')}; Node=${JSON.stringify(nodeIdentity)}; Bun=${JSON.stringify(bunIdentity)}`
 		);
 		expect(golden.publicEntrypoints).toMatchObject({
-			exports: ['.', './package.json'],
+			exports: ['.', './contracts', './package.json'],
 			deepImportRejected: true,
 			installedTarballsOnly: true,
 		});
@@ -240,23 +240,20 @@ const indexerEvent = indexer.find(
 		}
 	});
 
-	// Probe: args = [0x1111111111111111111111111111111111111111, ['0xabc'], [1n], [[]]], value = 1n.
-	// Public validation accepts it; calldata decodes to 0xabc0, while ids hash 0x0abc bytes.
-	test.todo('odd-length hex atom data is rejected by the public validator (public packages finding: builder bytes 0xabc0 vs id helpers 0x0abc)', () => {
+	test('odd-length hex atom data is rejected by the public validator', () => {
 		const result = Bun.spawnSync(
 			[
 				process.execPath,
 				'--input-type=module',
 				'-e',
-				`import { multiVaultValidateCreateAtomsWithUris } from '@0xintuition/protocol';
-let rejected = false;
-try {
+				`import assert from 'node:assert/strict';
+import { multiVaultValidateCreateAtomsWithUris } from '@0xintuition/protocol';
+assert.throws(() => {
   multiVaultValidateCreateAtomsWithUris({
     args: ['0x1111111111111111111111111111111111111111', ['0xabc'], [1n], [[]]],
     value: 1n,
   });
-} catch { rejected = true; }
-if (!rejected) throw new Error('Public validator accepted odd-length hex atom data 0xabc');`,
+}, { message: 'atom data must be even-length hex bytes' });`,
 			],
 			{ cwd: consumer, stdout: 'pipe', stderr: 'pipe', timeout: 30_000 }
 		);

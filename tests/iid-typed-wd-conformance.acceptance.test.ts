@@ -2,19 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-	createIidInspectionAdapter,
-	type PublicIidInspection,
-	parseAtomWithIidRead,
-} from '../services/workers/src/core/iid-inspection';
+import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
+import { inspectionFixture } from '../services/workers/src/core/testing/iid-fixtures';
 import { toCompactParseResultMaybe } from '../services/workers/src/kg/processing';
 
-type Inspection = PublicIidInspection & { profile?: 'p0' | 'p1' | 'p2' };
-type PublicIidModule = {
-	inspectIntuitionId(input: string): Inspection;
-	getScheme(scheme: string): { canonicalize(raw: string): string | undefined } | undefined;
-	parseIntuitionId(input: string): { scheme: string; value: string } | undefined;
-};
+type IidModule = typeof import('@0xintuition/iid');
 type Vector = {
 	id: string;
 	scheme?: string | null;
@@ -51,8 +43,8 @@ function vectors(kind: string): Vector[] {
 	});
 }
 
-async function inspectThroughCore(module: PublicIidModule, iid: string) {
-	const adapter = createIidInspectionAdapter({
+async function inspectThroughCore(module: IidModule, iid: string) {
+	const adapter = inspectionFixture({
 		inspectIntuitionId: module.inspectIntuitionId,
 		packageVersion: '0.1.0-alpha.0',
 	});
@@ -124,7 +116,7 @@ describeWithPublicPackages('typed Wikidata inspection conformance', () => {
 	});
 
 	test('canonicalizes explicitly through the module before Core inspection', async () => {
-		const module = await importModule<PublicIidModule>(iidEntry);
+		const module = await importModule<IidModule>(iidEntry);
 		for (const vector of vectors('canonicalization')) {
 			const canonical = module.getScheme(vector.scheme!)?.canonicalize(vector.raw!);
 			expect(canonical ?? null, vector.id).toBe(vector.canonical);
@@ -140,7 +132,7 @@ describeWithPublicPackages('typed Wikidata inspection conformance', () => {
 	});
 
 	test('preserves validity, typing, eligibility and the module reason without repairing writes', async () => {
-		const module = await importModule<PublicIidModule>(iidEntry);
+		const module = await importModule<IidModule>(iidEntry);
 		for (const vector of vectors('validation')) {
 			const inspection = module.inspectIntuitionId(vector.iid!);
 			const outcome = await inspectThroughCore(module, vector.iid!);
@@ -164,7 +156,7 @@ describeWithPublicPackages('typed Wikidata inspection conformance', () => {
 	});
 
 	test('retains scheme, entire value, typing and profile as reported by the module', async () => {
-		const module = await importModule<PublicIidModule>(iidEntry);
+		const module = await importModule<IidModule>(iidEntry);
 		for (const vector of vectors('parse')) {
 			const parsed = module.parseIntuitionId(vector.input!);
 			expect(parsed?.scheme ?? null, vector.id).toBe(vector.scheme);
@@ -183,7 +175,7 @@ describeWithPublicPackages('typed Wikidata inspection conformance', () => {
 	});
 
 	test('round-trips dormant typed Wikidata identity through the worker handoff', async () => {
-		const module = await importModule<PublicIidModule>(iidEntry);
+		const module = await importModule<IidModule>(iidEntry);
 		const outcome = await inspectThroughCore(module, 'int:wd:written-work:Q47461344');
 		expect(outcome.result.identity).toMatchObject({
 			value: 'written-work:Q47461344',

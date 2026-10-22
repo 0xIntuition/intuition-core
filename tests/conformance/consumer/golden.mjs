@@ -26,7 +26,7 @@ for (const entry of ['@0xintuition/protocol', '@0xintuition/protocol/package.jso
 }
 assert(
 	JSON.stringify(Object.keys(protocolPackage.default.exports).sort()) ===
-		JSON.stringify(['.', './package.json']),
+		JSON.stringify(['.', './contracts', './package.json']),
 	'Unexpected public protocol entrypoints'
 );
 let deepImportRejected = false;

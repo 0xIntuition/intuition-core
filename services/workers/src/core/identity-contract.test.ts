@@ -51,7 +51,13 @@ describe('identity handoff contracts', () => {
 			anchorEligible: false,
 			provenance,
 		};
-		for (const reason of ['class-c', 'polymorphic-scheme', 'dormant-wd-binding']) {
+		for (const reason of [
+			'class-c',
+			'polymorphic-scheme',
+			'dormant-wd-binding',
+			'weak-account',
+			'provider-local',
+		]) {
 			expect(isNormalizedAtomIdentity({ ...identity, anchorIneligibilityReason: reason })).toBe(
 				true
 			);
@@ -59,6 +65,21 @@ describe('identity handoff contracts', () => {
 		expect(
 			isNormalizedAtomIdentity({ ...identity, anchorIneligibilityReason: 'future-reason' })
 		).toBe(false);
+	});
+
+	test('accepts class D identities', () => {
+		expect(
+			isNormalizedAtomIdentity({
+				raw: 'opaque raw identity',
+				canonical: 'opaque canonical identity',
+				scheme: 'fixture-scheme',
+				value: 'fixture-value',
+				class: 'D',
+				anchorIneligibilityReason: 'provider-local',
+				anchorEligible: false,
+				provenance,
+			})
+		).toBe(true);
 	});
 
 	test('rejects incomplete normalized identity records', () => {

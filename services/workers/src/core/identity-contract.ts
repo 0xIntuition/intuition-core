@@ -1,3 +1,4 @@
+import type { AnchorIneligibilityReason, IdentityClass, SchemeTyping } from '@0xintuition/iid';
 /**
  * Core-owned persistence and worker-handoff contracts for normalized identity.
  *
@@ -21,9 +22,9 @@ export type NormalizedAtomIdentity = {
 	/** Atom representation profile, when the producing adapter has that context. */
 	profile?: 'p0' | 'p1' | 'p2';
 	/** Public inspection metadata; optional so older persisted records remain valid. */
-	class?: 'A' | 'B' | 'C';
-	typing?: 'unambiguous' | 'polymorphic';
-	anchorIneligibilityReason?: 'class-c' | 'polymorphic-scheme' | 'dormant-wd-binding';
+	class?: IdentityClass;
+	typing?: SchemeTyping;
+	anchorIneligibilityReason?: AnchorIneligibilityReason;
 	anchorEligible: boolean;
 	provenance: SemanticContractProvenance;
 };
@@ -152,7 +153,7 @@ function isOptionalIdentityProfile(value: unknown): value is NormalizedAtomIdent
 }
 
 function isOptionalIdentityClass(value: unknown): value is NormalizedAtomIdentity['class'] {
-	return value === undefined || value === 'A' || value === 'B' || value === 'C';
+	return value === undefined || value === 'A' || value === 'B' || value === 'C' || value === 'D';
 }
 
 function isOptionalIdentityTyping(value: unknown): value is NormalizedAtomIdentity['typing'] {
@@ -166,7 +167,9 @@ function isOptionalAnchorIneligibilityReason(
 		value === undefined ||
 		value === 'class-c' ||
 		value === 'polymorphic-scheme' ||
-		value === 'dormant-wd-binding'
+		value === 'dormant-wd-binding' ||
+		value === 'weak-account' ||
+		value === 'provider-local'
 	);
 }
 

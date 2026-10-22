@@ -1,5 +1,33 @@
 import type { z } from 'zod/v4';
 
+/** Only the sanitized endpoint is retained; request credentials are never attached. */
+export class ProviderHttpError extends Error {
+	readonly status: number;
+	readonly provider: string;
+	readonly url: string;
+
+	constructor(status: number, requestUrl: string) {
+		let endpoint = '<invalid-url>';
+		let provider = 'unknown';
+		try {
+			const parsed = new URL(requestUrl);
+			parsed.search = '';
+			parsed.hash = '';
+			parsed.username = '';
+			parsed.password = '';
+			endpoint = parsed.toString();
+			provider = parsed.hostname;
+		} catch {
+			// A malformed request URL must not be echoed into diagnostics either.
+		}
+		super(`HTTP ${status} from ${endpoint}`);
+		this.name = 'ProviderHttpError';
+		this.status = status;
+		this.provider = provider;
+		this.url = endpoint;
+	}
+}
+
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export async function fetchJson<TData>(
@@ -9,7 +37,7 @@ export async function fetchJson<TData>(
 ): Promise<TData> {
 	const response = await fetcher(url, init);
 	if (!response.ok) {
-		throw new Error(`HTTP ${response.status} from ${url}`);
+		throw new ProviderHttpError(response.status, url);
 	}
 
 	return (await response.json()) as TData;
@@ -32,7 +60,7 @@ export async function fetchText(
 ): Promise<string> {
 	const response = await fetcher(url, init);
 	if (!response.ok) {
-		throw new Error(`HTTP ${response.status} from ${url}`);
+		throw new ProviderHttpError(response.status, url);
 	}
 
 	return await response.text();

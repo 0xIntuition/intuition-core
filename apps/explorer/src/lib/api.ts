@@ -32,9 +32,11 @@ export const atomIdentitySchema = z.looseObject({
 	profile: z.enum(['p0', 'p1', 'p2']).optional(),
 	scheme: z.string().optional(),
 	value: z.string().optional(),
-	class: z.enum(['A', 'B', 'C']).optional(),
+	class: z.enum(['A', 'B', 'C', 'D']).optional(),
 	typing: z.enum(['unambiguous', 'polymorphic']).optional(),
-	anchorIneligibilityReason: z.enum(['class-c', 'polymorphic-scheme']).optional(),
+	anchorIneligibilityReason: z
+		.enum(['class-c', 'polymorphic-scheme', 'dormant-wd-binding', 'weak-account', 'provider-local'])
+		.optional(),
 	valid: z.boolean().optional(),
 	anchorEligible: z.boolean().optional(),
 	provenance: semanticContractProvenanceSchema.optional(),

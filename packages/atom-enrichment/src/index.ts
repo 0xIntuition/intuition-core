@@ -6,7 +6,6 @@ export {
 	createUpstashCacheAdapterFromEnv,
 	isCachedEntryFresh,
 } from './cache';
-
 export type {
 	ClassificationCategory,
 	ClassificationDefinition,
@@ -22,6 +21,7 @@ export {
 	listBuiltinClassificationSlugs,
 	registerBuiltinClassifications,
 } from './classifications';
+export { redactProviderDiagnostic } from './diagnostics';
 
 export type { EnrichmentEngine, EnrichmentEngineConfig } from './engine';
 export { createEnrichmentEngine } from './engine';

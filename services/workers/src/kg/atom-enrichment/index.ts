@@ -1,3 +1,4 @@
+import { redactProviderDiagnostic } from '@0xintuition/atom-enrichment';
 import { createEnrichmentRuntime } from '@0xintuition/atom-services/runtime';
 import {
 	claimNodeProcessingStage,
@@ -12,6 +13,7 @@ import {
 	releaseClaimedProcessingStageLeases,
 } from '@0xintuition/database-kg/actions';
 import {
+	boundEnrichmentDiagnostics,
 	buildClassifiedInputFromPlan,
 	buildEnrichmentCompletionPromotedFields,
 	buildIidProviderExecutionPlan,
@@ -282,6 +284,7 @@ export async function runKgEnrichmentWorker(input: {
 				});
 				return;
 			}
+			const diagnostics = boundEnrichmentDiagnostics(enrichment);
 			const promotedFields = buildEnrichmentCompletionPromotedFields(plan, enrichment.artifacts);
 			await input.circuits.database.execute(() =>
 				completeNodeEnrichmentStageWithArtifacts(input.db, {
@@ -291,8 +294,8 @@ export async function runKgEnrichmentWorker(input: {
 					targetUrl: plan.targetUrl,
 					traceId: enrichment.traceId ?? runId,
 					timings: enrichment.timings,
-					errors: enrichment.errors,
-					skipped: enrichment.skipped,
+					errors: diagnostics.errors,
+					skipped: diagnostics.skipped,
 					artifacts: enrichment.artifacts.map((artifact) => ({
 						artifactKind: artifact.artifact_type,
 						data: artifact.data,
@@ -315,6 +318,7 @@ export async function runKgEnrichmentWorker(input: {
 			const processingError = toProcessingError(error, {
 				maxAttempts: input.config.maxAttempts,
 			});
+			processingError.message = redactProviderDiagnostic(processingError.message).slice(0, 1000);
 			await input.circuits.database.execute(() =>
 				failNodeProcessingStage(input.db, {
 					stage: 'enrichment',
