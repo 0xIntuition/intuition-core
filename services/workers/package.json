@@ -31,7 +31,10 @@
 		"@0xintuition/atom-services": "workspace:*",
 		"@0xintuition/database-kg": "workspace:*",
 		"drizzle-orm": "0.45.1",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"@0xintuition/iid": "0.1.0-alpha.0",
+		"@0xintuition/iid-registry": "0.1.0-alpha.0",
+		"@0xintuition/iid-ladder": "0.1.0-alpha.0"
 	},
 	"devDependencies": {
 		"@0xintuition/tsconfig": "workspace:*",

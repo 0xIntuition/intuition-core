@@ -68,20 +68,28 @@ automatically.
 | `WORKERS_IID_READ_ENABLED` | `false` | enable IID parse/classification reads after package and persistence compatibility is verified |
 | `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
 
-The IID adapters consume injected `@0xintuition/iid`, `@0xintuition/iid-registry`,
-and `@0xintuition/iid-ladder` modules with exact installed manifest versions.
-The enrichment worker composes the capability for the optional Wikipedia/Wikidata P31 gate from the injected ladder adapter under `WORKERS_IID_READ_ENABLED` and forwards it through the service runtime and engine into plugin context. The worker entrypoint wires adapters at the C14 composition boundary.
-The third module owns primary-rung and alias-only policy. Classification fails
-closed when `WORKERS_IID_READ_ENABLED` is enabled without an `iidLadder` adapter.
-Enrichment also fails closed at startup when reads are enabled without that adapter.
+The worker entrypoint statically imports `@0xintuition/iid`,
+`@0xintuition/iid-registry`, and `@0xintuition/iid-ladder`, pinned to
+`0.1.0-alpha.0`. Before starting a worker it checks the installed package manifests
+against those exact pins and fails fast on a mismatch. The committed lockfile
+will be regenerated after publication; prerelease verification uses local tarballs
+in an isolated scratch worktree.
+
+`WORKERS_IID_READ_ENABLED` is a plain toggle: when enabled, the entrypoint supplies
+inspection, registry, and ladder bindings to every stage. The enrichment worker composes the capability
+for the optional Wikipedia/Wikidata P31 gate from the installed ladder and forwards
+it through the service runtime and engine into plugin context. Public packages own
+inspection, classification, provider selection, and the ladder policy tables.
+Core retains `projectIdentityRungs` to apply alias-only, URL-exclusion, and
+plain-Wikidata admission rules until the public ladder supplies that projection.
 Rung projections persist in `classificationResult`; a policy-admitted primary
 fills `nodes.iid` only when it is null. With the flag off, the legacy path is unchanged.
-The ladder adapter also receives the injected IID inspector to enforce alias-only,
+The rung projection also uses the installed IID inspector to enforce alias-only,
 URL exclusion, and plain-Wikidata admission across canonical input paths. Legacy
 identity metadata does not establish admission. Malformed persisted rung projections
 are ignored while the remaining classification record is retained.
 
-Typed Wikidata IIDs are handled entirely by the injected `iid` module, including validity, typing, and anchor eligibility. Core's Rust path stores them opaquely as strings with `Unknown` classification; the TS parse worker persists the module's identity even when it is not anchor-eligible.
+Typed Wikidata IIDs are handled entirely by the installed `iid` module, including validity, typing, and anchor eligibility. Core's Rust path stores them opaquely as strings with `Unknown` classification; the TS parse worker persists the module's identity even when it is not anchor-eligible.
 
 ### Worker maintenance commands
 
@@ -130,16 +138,15 @@ which adds an exact kind filter; the command uses plugin-wide absence.
 no dedicated JSON provenance index. No index or migration is added by this tool.
 
 Enrichment reads aliases from `kg.node_identifiers`, in `created_at, iid` order,
-and resolves each through the injected IID inspection and registry adapters.
+and resolves each through the installed IID inspection and registry packages.
 Primary providers run first; providers are deduplicated. Primary hints win, then
 the first alias to fill an unset hint wins. Conflicting alias values are dropped
 and logged as `droppedAliasHints`; refused aliases are counted as
 `skippedAliasIids` once per distinct IID, excluding an alias equal to the primary.
 This includes noncanonical, unregistered/provider-local and providerless aliases.
-Existing primary-target conflicts still throw. The worker requires the
-`iidRegistry` from `composeIidWorkerAdapters` when stored aliases are present;
-the existing C14 composition boundary supplies adapters rather than Core loading
-identity packages or duplicating registry rules. Reads remain under
+Existing primary-target conflicts still throw. The entrypoint supplies the static
+`iidRegistry` binding when reads are enabled, including alias resolution through
+the installed IID inspector. Reads remain under
 `WORKERS_IID_READ_ENABLED`. The pinned registry emits `mbidType` for typed MBIDs;
 it does not yet emit `podcastIndexFeedId` (packages follow-up under R16).
 

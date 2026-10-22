@@ -107,12 +107,12 @@ Wikidata `sameAs` can contribute identity. Schema.org TV, music, and artist
 families can agree across related types. Direct URLs and identifier lookups
 bypass the gate. Without the capability, provider outputs stay unchanged.
 
-The enrichment worker composes the capability from the injected ladder adapter
+The enrichment worker composes the capability from the installed ladder package
 under `WORKERS_IID_READ_ENABLED` when the ladder exposes the resolver. It forwards
 the capability per engine through `createEngine(preset, { identity })` into
 `pluginContext.identity`; reads enabled without a ladder fail closed at startup.
 With reads off, plugin context has no identity capability. The worker entrypoint
-wires adapters at the C14 composition boundary.
+statically imports the exact-pinned IID packages and supplies their bindings to every stage.
 
 Classification handoffs preserve optional `source.provider` (1–128 characters)
 and `source.fallbackStage` (1–64 characters). Name-search providers use these

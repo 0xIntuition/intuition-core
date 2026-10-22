@@ -19,8 +19,8 @@ import {
 	evaluateEnrichmentProcessingScope,
 	getArtifactTypeAllowListForEnrichmentPlan,
 } from './enrichment';
-import { createIidLadderAdapter, type IidLadderAdapter } from './iid-ladder';
-import { createIidRegistryAdapter } from './iid-registry';
+import type { IidLadderAdapter } from './iid-ladder';
+import { ladderFixture, registryFixture } from './testing/iid-fixtures';
 
 test('I-2: a legacy ladder remains absent and logs once per adapter', () => {
 	const ladder = {
@@ -73,7 +73,7 @@ for (const provenance of [
 test('enrichment identity capability is composed only for enabled reads with a capable ladder', () => {
 	const compose = composeEnrichmentIdentityCapability;
 	let calls = 0;
-	const ladder = createIidLadderAdapter(
+	const ladder = ladderFixture(
 		{
 			IDENTITY_CATEGORY_RUNG_POLICY: {},
 			IDENTITY_CATEGORY_ALIAS_ONLY_POLICY: {},
@@ -748,7 +748,7 @@ test('worker enrichment source retains compact classification provenance', () =>
 
 // Alias resolution uses the injected inspection and registry; fixture strings have no Core grammar.
 function aliasRegistry() {
-	return createIidRegistryAdapter({
+	return registryFixture({
 		packageVersion: '0.1.0',
 		inspect: (iid) =>
 			iid.startsWith('alias:')

@@ -1,14 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import { deriveIidClassificationResult } from './classification';
 import type { NormalizedAtomIdentity } from './identity-contract';
-import { createIidRegistryAdapter, extendProviderPlanWithAliases } from './iid-registry';
+import { extendProviderPlanWithAliases } from './iid-registry';
+import { registryFixture } from './testing/iid-fixtures';
 
 const PACKAGE_VERSION = '0.1.0-alpha.0';
 
 describe('IID registry adapter', () => {
 	test('preserves public classification, provider order, hints, and package provenance', () => {
 		const calls: string[] = [];
-		const adapter = createIidRegistryAdapter({
+		const adapter = registryFixture({
 			classificationForIid: (iid) => {
 				calls.push(`classification:${iid}`);
 				return {
@@ -91,7 +92,7 @@ describe('IID registry adapter', () => {
 	});
 
 	test('distinguishes polymorphic ambiguity from ratified-unmapped identity', () => {
-		const adapter = createIidRegistryAdapter({
+		const adapter = registryFixture({
 			classificationForIid: () => undefined,
 			providersForIid: () => [],
 			identifierHintsForIid: () => ({}),
@@ -140,7 +141,7 @@ function identityFixture(overrides: Partial<NormalizedAtomIdentity>): Normalized
 }
 
 test('alias provider targets are deduplicated with primary providers first and earliest hints retained', () => {
-	const registry = createIidRegistryAdapter({
+	const registry = registryFixture({
 		packageVersion: PACKAGE_VERSION,
 		inspect: (iid) => ({
 			valid: true,
@@ -189,7 +190,7 @@ test('alias provider targets are deduplicated with primary providers first and e
 
 test('alias inspection refuses repairs and noncanonical input before registry calls', () => {
 	const calls: string[] = [];
-	const registry = createIidRegistryAdapter({
+	const registry = registryFixture({
 		packageVersion: PACKAGE_VERSION,
 		inspect: (iid) =>
 			iid === 'repair'
@@ -217,7 +218,7 @@ test('alias inspection refuses repairs and noncanonical input before registry ca
 });
 
 test('a hintless alias is refused and counted even when the registry names providers', () => {
-	const registry = createIidRegistryAdapter({
+	const registry = registryFixture({
 		packageVersion: PACKAGE_VERSION,
 		inspect: (iid) => ({
 			valid: true,
@@ -246,7 +247,7 @@ test('a hintless alias is refused and counted even when the registry names provi
 });
 
 test('a providerless alias is counted and an accepted alias can start an unsupported plan', () => {
-	const registry = createIidRegistryAdapter({
+	const registry = registryFixture({
 		packageVersion: PACKAGE_VERSION,
 		inspect: (iid) => ({
 			valid: true,

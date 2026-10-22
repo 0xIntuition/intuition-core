@@ -1,11 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { ParseResult } from '@0xintuition/atom-parser/types';
+import type { IidInspection } from '@0xintuition/iid';
 import { WorkerConfigurationError } from '../shared/errors';
-import {
-	createIidInspectionAdapter,
-	type PublicIidInspection,
-	parseAtomWithIidRead,
-} from './iid-inspection';
+import { parseAtomWithIidRead } from './iid-inspection';
+import { inspectionFixture } from './testing/iid-fixtures';
 
 const PACKAGE_VERSION = '0.1.0-alpha.0';
 const SPECIFICATION_VERSION = '@0xintuition/iid-spec@0.1.0-alpha.0';
@@ -13,7 +11,7 @@ const SPECIFICATION_VERSION = '@0xintuition/iid-spec@0.1.0-alpha.0';
 describe('IID inspection adapter', () => {
 	test('maps a public valid inspection without reconstructing colon-bearing values', async () => {
 		const rawInput = 'int:tmdb:movie:603';
-		const adapter = createIidInspectionAdapter({
+		const adapter = inspectionFixture({
 			inspectIntuitionId: () => ({
 				valid: true,
 				iid: rawInput,
@@ -66,7 +64,7 @@ describe('IID inspection adapter', () => {
 	});
 
 	test('preserves the legacy path for every invalid reason and ignores repairs', async () => {
-		const cases: PublicIidInspection[] = [
+		const cases: IidInspection[] = [
 			{ valid: false, reason: 'malformed' },
 			{ valid: false, reason: 'unknown-scheme', scheme: 'src', value: '123' },
 			{
@@ -80,7 +78,7 @@ describe('IID inspection adapter', () => {
 
 		for (const inspection of cases) {
 			const rawInput = inspection.valid ? '' : `historical-${inspection.reason}`;
-			const adapter = createIidInspectionAdapter({
+			const adapter = inspectionFixture({
 				inspectIntuitionId: () => inspection,
 				packageVersion: PACKAGE_VERSION,
 			});
@@ -111,7 +109,7 @@ describe('IID inspection adapter', () => {
 	test('keeps disabled behavior byte-compatible and does not call public inspection', async () => {
 		const rawInput = 'int:isrc:USRC17607839';
 		let inspectionCalls = 0;
-		const adapter = createIidInspectionAdapter({
+		const adapter = inspectionFixture({
 			inspectIntuitionId: () => {
 				inspectionCalls += 1;
 				return validIsrcInspection(rawInput);
@@ -148,7 +146,7 @@ describe('IID inspection adapter', () => {
 	});
 });
 
-function validIsrcInspection(iid: string): PublicIidInspection {
+function validIsrcInspection(iid: `int:${string}:${string}`): IidInspection {
 	return {
 		valid: true,
 		iid,
@@ -174,11 +172,11 @@ function legacyResult(input: string): ParseResult {
 
 test('keeps typed wd values intact and never applies a noncanonical repair', async () => {
 	for (const value of ['film:Q188035', 'written-work:Q47461344']) {
-		const iid = `int:wd:${value}`;
+		const iid = `int:wd:${value}` as const;
 		const outcome = await parseAtomWithIidRead({
 			rawInput: iid,
 			iidReadEnabled: true,
-			adapter: createIidInspectionAdapter({
+			adapter: inspectionFixture({
 				packageVersion: PACKAGE_VERSION,
 				inspectIntuitionId: () => ({
 					valid: true,
@@ -203,7 +201,7 @@ test('keeps typed wd values intact and never applies a noncanonical repair', asy
 	const outcome = await parseAtomWithIidRead({
 		rawInput,
 		iidReadEnabled: true,
-		adapter: createIidInspectionAdapter({
+		adapter: inspectionFixture({
 			packageVersion: PACKAGE_VERSION,
 			inspectIntuitionId: () => ({
 				valid: false,

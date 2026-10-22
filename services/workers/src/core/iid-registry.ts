@@ -1,3 +1,6 @@
+import { inspectIntuitionId } from '@0xintuition/iid';
+import * as registry from '@0xintuition/iid-registry';
+import registryManifest from '@0xintuition/iid-registry/package.json';
 import { WorkerConfigurationError } from '../shared/errors';
 import type {
 	IdentityClassificationDecision,
@@ -7,13 +10,6 @@ import type {
 	SemanticContractProvenance,
 } from './identity-contract';
 import type { IidInspectionAdapter } from './iid-inspection';
-
-export type PublicIidClassification = {
-	readonly slug: string;
-	readonly schemaType: string;
-	readonly displayName: string;
-	readonly category: string;
-};
 
 export type IidSemanticResolution = {
 	identityDecision: IdentityClassificationDecision;
@@ -26,86 +22,74 @@ export type IidRegistryAdapter = {
 	resolveAlias?(iid: string): IdentityProviderPlan | undefined;
 };
 
-/**
- * Maps only public iid-registry calls into Core DTOs. Scheme typing comes from
- * the already-inspected identity; every classification, provider order, and
- * identifier hint remains owned by the registry package.
- */
-export function createIidRegistryAdapter(input: {
-	classificationForIid: (iid: string) => PublicIidClassification | undefined;
-	providersForIid: (iid: string) => readonly string[];
-	identifierHintsForIid: (iid: string) => Record<string, string>;
-	packageVersion: string;
-	inspect?: IidInspectionAdapter['inspect'];
-}): IidRegistryAdapter {
-	const packageVersion = requireVersion(input.packageVersion);
-	const classificationProvenance: SemanticContractProvenance = {
-		producer: '@0xintuition/iid-registry/classificationForIid',
-		version: packageVersion,
-	};
-	const providerProvenance: SemanticContractProvenance = {
-		producer: '@0xintuition/iid-registry/providersForIid+identifierHintsForIid',
-		version: packageVersion,
-	};
+type RegistryCalls = Pick<
+	typeof registry,
+	'classificationForIid' | 'providersForIid' | 'identifierHintsForIid'
+>;
+const classificationProvenance = {
+	producer: '@0xintuition/iid-registry/classificationForIid',
+	version: registryManifest.version,
+};
+const providerProvenance = {
+	producer: '@0xintuition/iid-registry/providersForIid+identifierHintsForIid',
+	version: registryManifest.version,
+};
 
+export function resolveIidAlias(
+	iid: string,
+	calls: RegistryCalls = registry,
+	inspect: IidInspectionAdapter['inspect'] = inspectIntuitionId,
+	provenance: SemanticContractProvenance = providerProvenance
+): IdentityProviderPlan | undefined {
+	const inspected = inspect(iid);
+	if (!inspected.valid || inspected.iid !== iid) return undefined;
+	const providers = calls.providersForIid(iid);
+	const identifierHints = toIdentifierHints(calls.identifierHintsForIid(iid));
+	if (!providers.length || !identifierHints.length) return undefined;
 	return {
-		...(input.inspect
-			? {
-					resolveAlias(iid: string): IdentityProviderPlan | undefined {
-						const inspected = input.inspect!(iid);
-						if (!inspected.valid || inspected.iid !== iid) return undefined;
-						const providers = input.providersForIid(iid);
-						if (providers.length === 0) return undefined;
-						const identifierHints = toIdentifierHints(input.identifierHintsForIid(iid));
-						// An alias earns a provider only through an identifier hint; a provider
-						// with nothing alias-specific to look up would run on the primary's
-						// search text, which the alias does not justify.
-						if (identifierHints.length === 0) return undefined;
-						return {
-							status: 'planned',
-							targets: providers.map((provider) => ({
-								provider,
-								capabilities: [provider],
-								identifierHints,
-							})),
-							provenance: providerProvenance,
-						};
-					},
-				}
-			: {}),
-		resolve(identity) {
-			const classification = input.classificationForIid(identity.canonical);
-			const providers = input.providersForIid(identity.canonical);
-			const identifierHints = toIdentifierHints(input.identifierHintsForIid(identity.canonical));
+		status: 'planned',
+		targets: providers.map((provider) => ({ provider, capabilities: [provider], identifierHints })),
+		provenance,
+	};
+}
 
-			return {
-				identityDecision: classification
-					? {
-							status: 'classified',
-							classificationSlug: classification.slug,
-							schemaType: classification.schemaType,
-							category: classification.category,
-							provenance: classificationProvenance,
-						}
-					: {
-							status: identity.typing === 'polymorphic' ? 'ambiguous' : 'unmapped',
-							provenance: classificationProvenance,
-						},
-				providerPlan: {
-					status: providers.length > 0 ? 'planned' : 'unsupported',
-					targets: providers.map((provider) => ({
-						provider,
-						// Registry provider slugs are capability identifiers. Keep their
-						// ordering and spelling intact for the execution adapter in C10.
-						capabilities: [provider],
-						identifierHints,
-					})),
-					provenance: providerProvenance,
+export function resolveIidIdentity(
+	identity: NormalizedAtomIdentity,
+	calls: RegistryCalls = registry,
+	version: string = registryManifest.version
+): IidSemanticResolution {
+	const classification = calls.classificationForIid(identity.canonical);
+	const providers = calls.providersForIid(identity.canonical);
+	const identifierHints = toIdentifierHints(calls.identifierHintsForIid(identity.canonical));
+	return {
+		identityDecision: classification
+			? {
+					status: 'classified',
+					classificationSlug: classification.slug,
+					schemaType: classification.schemaType,
+					category: classification.category,
+					provenance: { ...classificationProvenance, version },
+				}
+			: {
+					status: identity.typing === 'polymorphic' ? 'ambiguous' : 'unmapped',
+					provenance: { ...classificationProvenance, version },
 				},
-			};
+		providerPlan: {
+			status: providers.length ? 'planned' : 'unsupported',
+			targets: providers.map((provider) => ({
+				provider,
+				capabilities: [provider],
+				identifierHints,
+			})),
+			provenance: { ...providerProvenance, version },
 		},
 	};
 }
+
+export const iidRegistry: IidRegistryAdapter = {
+	resolve: resolveIidIdentity,
+	resolveAlias: resolveIidAlias,
+};
 
 export type DroppedAliasHint = IdentityProviderHint & { iid: string; keptValue: string };
 
@@ -198,14 +182,4 @@ function toIdentifierHints(hints: Record<string, string>): readonly IdentityProv
 		.filter(([kind, value]) => kind.trim().length > 0 && value.trim().length > 0)
 		.sort(([left], [right]) => left.localeCompare(right))
 		.map(([kind, value]) => ({ kind, value }));
-}
-
-function requireVersion(value: string): string {
-	const version = value.trim();
-	if (!version) {
-		throw new WorkerConfigurationError(
-			'@0xintuition/iid-registry adapter requires an exact version.'
-		);
-	}
-	return version;
 }
