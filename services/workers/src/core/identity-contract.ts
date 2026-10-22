@@ -1,3 +1,4 @@
+import type { AnchorIneligibilityReason, IdentityClass, SchemeTyping } from '@0xintuition/iid';
 /**
  * Core-owned persistence and worker-handoff contracts for normalized identity.
  *
@@ -21,14 +22,9 @@ export type NormalizedAtomIdentity = {
 	/** Atom representation profile, when the producing adapter has that context. */
 	profile?: 'p0' | 'p1' | 'p2';
 	/** Public inspection metadata; optional so older persisted records remain valid. */
-	class?: 'A' | 'B' | 'C' | 'D';
-	typing?: 'unambiguous' | 'polymorphic';
-	anchorIneligibilityReason?:
-		| 'class-c'
-		| 'polymorphic-scheme'
-		| 'dormant-wd-binding'
-		| 'weak-account'
-		| 'provider-local';
+	class?: IdentityClass;
+	typing?: SchemeTyping;
+	anchorIneligibilityReason?: AnchorIneligibilityReason;
 	anchorEligible: boolean;
 	provenance: SemanticContractProvenance;
 };

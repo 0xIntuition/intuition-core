@@ -1,36 +1,14 @@
 import type { ParseResult } from '@0xintuition/atom-parser/types';
+import { type IidInspection, inspectIntuitionId } from '@0xintuition/iid';
+import iidManifest from '@0xintuition/iid/package.json';
 import { WorkerConfigurationError } from '../shared/errors';
 import type { SemanticContractProvenance } from './identity-contract';
 import { type CompactParseResult, toCompactParseResult } from './parse';
 
-export type PublicIidInspection =
-	| {
-			readonly valid: true;
-			readonly iid: string;
-			readonly scheme: string;
-			readonly value: string;
-			readonly class: 'A' | 'B' | 'C' | 'D';
-			readonly typing: 'unambiguous' | 'polymorphic';
-			readonly anchorEligible: boolean;
-			readonly anchorIneligibilityReason?:
-				| 'class-c'
-				| 'polymorphic-scheme'
-				| 'dormant-wd-binding'
-				| 'weak-account'
-				| 'provider-local';
-	  }
-	| {
-			readonly valid: false;
-			readonly reason: 'malformed' | 'unknown-scheme' | 'noncanonical';
-			readonly scheme?: string;
-			readonly value?: string;
-			readonly canonical?: string;
-	  };
-
-export type IidFallbackReason = Extract<PublicIidInspection, { valid: false }>['reason'];
+export type IidFallbackReason = Extract<IidInspection, { valid: false }>['reason'];
 
 export type IidInspectionAdapter = {
-	inspect(rawInput: string): PublicIidInspection;
+	inspect(rawInput: string): IidInspection;
 	provenance: SemanticContractProvenance;
 };
 
@@ -39,32 +17,10 @@ export type IidParseOutcome = {
 	fallbackReason?: IidFallbackReason;
 };
 
-/**
- * Binds Core to the public inspection function without copying IID grammar or
- * committing an unpublished package dependency. The composition root must pass
- * the exact consumed package/corpus versions when the packages become eligible.
- */
-export function createIidInspectionAdapter(input: {
-	inspectIntuitionId: (rawInput: string) => PublicIidInspection;
-	packageVersion: string;
-	specificationVersion?: string;
-}): IidInspectionAdapter {
-	return {
-		inspect: input.inspectIntuitionId,
-		provenance: {
-			producer: '@0xintuition/iid/inspectIntuitionId',
-			version: requireVersion(input.packageVersion, '@0xintuition/iid'),
-			...(input.specificationVersion
-				? {
-						specificationVersion: requireVersion(
-							input.specificationVersion,
-							'@0xintuition/iid-spec'
-						),
-					}
-				: {}),
-		},
-	};
-}
+export const iidInspection: IidInspectionAdapter = {
+	inspect: inspectIntuitionId,
+	provenance: { producer: '@0xintuition/iid/inspectIntuitionId', version: iidManifest.version },
+};
 
 /**
  * Runs public IID inspection before generic parsing only when the real read flag
@@ -122,12 +78,4 @@ export async function parseAtomWithIidRead(input: {
 			},
 		},
 	};
-}
-
-function requireVersion(value: string, packageName: string): string {
-	const version = value.trim();
-	if (!version) {
-		throw new WorkerConfigurationError(`${packageName} adapter requires an exact version.`);
-	}
-	return version;
 }

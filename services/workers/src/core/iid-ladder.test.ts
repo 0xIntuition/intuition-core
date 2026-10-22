@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { PublicIidInspection } from './iid-inspection';
-import { createIidLadderAdapter } from './iid-ladder';
+import type { IidInspection, IntuitionId, SchemeName } from '@0xintuition/iid';
+import { ladderFixture } from './testing/iid-fixtures';
 
 const provenance = { producer: 'inspection', version: '1.2.3' };
 const fake = {
@@ -47,26 +47,30 @@ const fake = {
 };
 
 const inspection = {
-	inspect(iid: string): PublicIidInspection {
-		const fixtures: Record<string, { scheme: string; value: string; typing?: 'polymorphic' }> = {
-			'int:isbn:9780684832722': { scheme: 'isbn', value: '9780684832722' },
-			'int:gtin:00012345678905': { scheme: 'gtin', value: '00012345678905' },
-			'int:wd:film:Q83495': { scheme: 'wd', value: 'film:Q83495' },
-			'int:wd:Q42': { scheme: 'wd', value: 'Q42', typing: 'polymorphic' },
-			'int:wd:Q188035': { scheme: 'wd', value: 'Q188035', typing: 'polymorphic' },
-			'int:url:https://example.com/book': {
-				scheme: 'url',
-				value: 'https://example.com/book',
-				typing: 'polymorphic',
-			},
-			'int:spotify:album:provider-id': { scheme: 'spotify', value: 'album:provider-id' },
-			'int:mbid:release-group:album-id': { scheme: 'mbid', value: 'release-group:album-id' },
-		};
+	inspect(iid: string): IidInspection {
+		const fixtures: Record<string, { scheme: SchemeName; value: string; typing?: 'polymorphic' }> =
+			{
+				'int:isbn:9780684832722': { scheme: 'isbn', value: '9780684832722' },
+				'int:gtin:00012345678905': { scheme: 'gtin', value: '00012345678905' },
+				'int:wd:film:Q83495': { scheme: 'wd', value: 'film:Q83495' },
+				'int:wd:Q42': { scheme: 'wd', value: 'Q42', typing: 'polymorphic' },
+				'int:wd:Q188035': { scheme: 'wd', value: 'Q188035', typing: 'polymorphic' },
+				'int:url:https://example.com/book': {
+					scheme: 'url',
+					value: 'https://example.com/book',
+					typing: 'polymorphic',
+				},
+				'int:spotify:album:provider-id': {
+					scheme: 'spotify' as SchemeName,
+					value: 'album:provider-id',
+				},
+				'int:mbid:release-group:album-id': { scheme: 'mbid', value: 'release-group:album-id' },
+			};
 		const fixture = fixtures[iid];
 		return fixture
 			? {
 					valid: true,
-					iid,
+					iid: iid as IntuitionId,
 					...fixture,
 					class: 'A',
 					typing: fixture.typing ?? 'unambiguous',
@@ -90,7 +94,7 @@ function identityFor(iid: string) {
 }
 
 describe('injected IID ladder policy', () => {
-	const adapter = () => createIidLadderAdapter(fake, inspection);
+	const adapter = () => ladderFixture(fake, inspection);
 	test('a legacy ladder without the P31 function exposes no enrichment capability', () => {
 		expect(adapter().resolveWikidataSchemaType).toBeUndefined();
 		expect(adapter().wikidataTypeProvenance).toBeUndefined();
@@ -104,7 +108,7 @@ describe('injected IID ladder policy', () => {
 				return { schemaType: p31.includes('Q11424') ? 'Movie' : 'Thing' };
 			},
 		};
-		const result = createIidLadderAdapter(module, inspection);
+		const result = ladderFixture(module, inspection);
 		expect(result.resolveWikidataSchemaType?.(['Q11424'])).toBe('Movie');
 		expect(result.resolveWikidataSchemaType?.(['Q999999'])).toBeUndefined();
 		expect(calls).toEqual([['Q11424'], ['Q999999']]);
@@ -123,7 +127,7 @@ describe('injected IID ladder policy', () => {
 			...fake,
 			projectIdentifierLadder: () => ({ iid, rung: 'strong' }),
 		};
-		const result = createIidLadderAdapter(module, inspection).projectIdentityRungs({
+		const result = ladderFixture(module, inspection).projectIdentityRungs({
 			schemaType: 'MusicAlbum',
 			identifiers: { gtin: '00012345678905' },
 			...(path === 'identity' ? { identity: identityFor(iid) } : { [path]: iid }),
@@ -147,7 +151,7 @@ describe('injected IID ladder policy', () => {
 		'canonicalUrl',
 	] as const)('finding 2: canonical URL IID is excluded through %s', (path) => {
 		const iid = 'int:url:https://example.com/book';
-		const result = createIidLadderAdapter(
+		const result = ladderFixture(
 			{ ...fake, projectIdentifierLadder: () => ({ iid, rung: 'strong' }) },
 			inspection
 		).projectIdentityRungs({

@@ -10,7 +10,7 @@ import type { KgActionDb } from '@0xintuition/database-kg/actions';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { IidLadderAdapter } from '../../core/iid-ladder';
-import { createIidRegistryAdapter } from '../../core/iid-registry';
+import { registryFixture } from '../../core/testing/iid-fixtures';
 import { CircuitBreaker } from '../../shared/circuit-breaker';
 import { loadWorkerConfig } from '../../shared/config';
 import { WorkerConfigurationError } from '../../shared/errors';
@@ -22,14 +22,14 @@ import { runKgEnrichmentWorker } from './index';
 const createRuntime = runtimeModule.createEnrichmentRuntime;
 const logger: Logger = { info() {}, warn() {}, error() {}, debug() {}, child: () => logger };
 
-test('identity docs describe the worker forwarding and C14 entrypoint boundary', async () => {
+test('identity docs describe forwarding from installed packages', async () => {
 	for (const name of ['configuration.md', 'writing-an-enrichment-plugin.md']) {
 		const doc = await Bun.file(new URL(`../../../../../docs/${name}`, import.meta.url)).text();
 		expect(doc).not.toContain('CORE-T2C-REPORT.md');
 		expect(doc).not.toContain('pending outside the T2c file fence');
 		expect(doc).not.toContain('production runtime still needs to forward');
 		expect(doc).toContain('enrichment worker composes the capability');
-		expect(doc).toContain('C14 composition boundary');
+		expect(doc).toContain('statically imports');
 	}
 });
 
@@ -39,6 +39,7 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 	let selections = 0;
 	let writes = 0;
 	let completion: Record<string, unknown> | undefined;
+	const inserted: unknown[] = [];
 	const node = {
 		id: `0x${'11'.repeat(32)}`,
 		parseStatus: 'completed',
@@ -85,7 +86,12 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 			return query;
 		},
 		insert() {
-			return { values: () => ({ onConflictDoUpdate: () => ({ returning: async () => [] }) }) };
+			return {
+				values: (rows: unknown) => {
+					inserted.push(rows);
+					return { onConflictDoUpdate: () => ({ returning: async () => [] }) };
+				},
+			};
 		},
 		update() {
 			writes++;
@@ -108,6 +114,7 @@ function harness(enabled: boolean, iidLadder?: IidLadderAdapter, aliases: string
 	} as unknown as KgActionDb;
 	return {
 		controller,
+		inserted,
 		node,
 		aliasQueries,
 		completion: () => completion,
@@ -239,13 +246,13 @@ test.each([
 	}
 });
 
-test('changelog records completed forwarding and C14 composition', async () => {
+test('changelog records completed forwarding and static IID bindings', async () => {
 	const text = await Bun.file(new URL('../../../../../CHANGELOG.md', import.meta.url)).text();
 	expect(text).not.toContain('production runtime forwarding remains pending');
 	expect(text).toContain(
 		'worker and runtime forwarding are complete under `WORKERS_IID_READ_ENABLED`'
 	);
-	expect(text).toContain('worker entrypoint wires adapters at the C14 composition boundary');
+	expect(text).toContain('worker entrypoint now statically imports the exact-pinned IID packages');
 });
 
 for (const bare of [false, true])
@@ -284,7 +291,7 @@ for (const bare of [false, true])
 				parseResult: { kind: 'iid', normalizedInput: 'primary', identity: primary },
 			});
 		const received: unknown[] = [];
-		const registry = createIidRegistryAdapter({
+		const registry = registryFixture({
 			packageVersion: '0.1.0',
 			inspect: (iid) =>
 				iid === 'alias:accepted'
@@ -357,3 +364,52 @@ for (const bare of [false, true])
 			fixture.controller.abort();
 		}
 	});
+
+for (const partial of [false, true]) {
+	test(`worker redacts persisted ${partial ? 'run diagnostics' : 'processing errors'}`, async () => {
+		const fixture = harness(false);
+		const runtimeSpy = spyOn(runtimeModule, 'createEnrichmentRuntime').mockImplementation(
+			(options) => {
+				const runtime = createRuntime(options);
+				const engine = runtime.createEngine('default');
+				runtime.createEngine = () => ({
+					...engine,
+					enrich: async () => ({
+						status: partial ? 'partial' : 'failed',
+						artifacts: partial ? [createMockArtifact()] : [],
+						errors: [
+							{
+								pluginId: 'etherscan',
+								code: 'upstream_error',
+								retriable: false,
+								message:
+									'HTTP 401 from https://user:SECRET@api.etherscan.io/api?apikey=SECRET Authorization: Bearer SECRET',
+							},
+						],
+						skipped: [],
+						timings: {
+							startedAt: new Date().toISOString(),
+							finishedAt: new Date().toISOString(),
+							durationMs: 0,
+							perPluginMs: {},
+							cacheHits: 0,
+							cacheMisses: 0,
+						},
+					}),
+				});
+				return runtime;
+			}
+		);
+		try {
+			await runKgEnrichmentWorker(fixture.input);
+			expect(fixture.completion()?.enrichmentStatus).toBe(partial ? 'completed' : 'failed');
+			const persisted = JSON.stringify(partial ? fixture.inserted : fixture.completion());
+			expect(persisted).toContain('HTTP 401');
+			expect(persisted).not.toContain('SECRET');
+			expect(persisted).not.toContain('?apikey');
+		} finally {
+			runtimeSpy.mockRestore();
+			fixture.controller.abort();
+		}
+	});
+}

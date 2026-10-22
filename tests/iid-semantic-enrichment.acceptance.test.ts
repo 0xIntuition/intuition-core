@@ -13,29 +13,15 @@ import {
 import type { FetchLike } from '../packages/atom-enrichment/src/plugins/providers';
 import { deriveIidClassificationResult } from '../services/workers/src/core/classification';
 import { evaluateEnrichmentCompletion } from '../services/workers/src/core/enrichment';
+import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
 import {
-	createIidInspectionAdapter,
-	type PublicIidInspection,
-	parseAtomWithIidRead,
-} from '../services/workers/src/core/iid-inspection';
-import {
-	createIidLadderAdapter,
-	type PublicIidLadderModule,
-} from '../services/workers/src/core/iid-ladder';
-import {
-	createIidRegistryAdapter,
-	type PublicIidClassification,
-} from '../services/workers/src/core/iid-registry';
+	inspectionFixture,
+	ladderFixture,
+	registryFixture,
+} from '../services/workers/src/core/testing/iid-fixtures';
 
-type PublicIidModule = {
-	inspectIntuitionId(input: string): PublicIidInspection;
-};
-
-type PublicRegistryModule = {
-	classificationForIid(iid: string): PublicIidClassification | undefined;
-	providersForIid(iid: string): readonly string[];
-	identifierHintsForIid(iid: string): Record<string, string>;
-};
+type IidModule = typeof import('@0xintuition/iid');
+type RegistryModule = typeof import('@0xintuition/iid-registry');
 
 const packagesRepository = process.env.INTUITION_PACKAGES_REPO
 	? resolve(process.env.INTUITION_PACKAGES_REPO)
@@ -62,7 +48,7 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 		['PodcastSeries', 'int:wd:film:Q83495'],
 	])('finding 1: real module rejects alias primary for %s', async (schemaType, iid) => {
 		const adapter = await realLadder();
-		const publicIid = await importModule<PublicIidModule>(iidEntry);
+		const publicIid = await importModule<IidModule>(iidEntry);
 		const inspected = publicIid.inspectIntuitionId(iid);
 		if (!inspected.valid) throw new Error('Invalid acceptance fixture');
 		for (const input of [
@@ -283,18 +269,18 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 });
 
 async function realLadder() {
-	const module = await importModule<PublicIidLadderModule>(ladderEntry);
-	const publicIid = await importModule<PublicIidModule>(iidEntry);
-	return createIidLadderAdapter(
+	const module = await importModule<typeof import('@0xintuition/iid-ladder')>(ladderEntry);
+	const publicIid = await importModule<IidModule>(iidEntry);
+	return ladderFixture(
 		{ ...module, packageVersion: PACKAGE_VERSION },
 		{ inspect: publicIid.inspectIntuitionId }
 	);
 }
 
 async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
-	const publicIid = await importModule<PublicIidModule>(iidEntry);
-	const publicRegistry = await importModule<PublicRegistryModule>(registryEntry);
-	const inspectionAdapter = createIidInspectionAdapter({
+	const publicIid = await importModule<IidModule>(iidEntry);
+	const publicRegistry = await importModule<RegistryModule>(registryEntry);
+	const inspectionAdapter = inspectionFixture({
 		inspectIntuitionId: publicIid.inspectIntuitionId,
 		packageVersion: PACKAGE_VERSION,
 	});
@@ -310,16 +296,16 @@ async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 		throw new Error(`public IID inspection did not produce identity for ${iid}`);
 	}
 
-	const registryAdapter = createIidRegistryAdapter({
+	const registryAdapter = registryFixture({
 		classificationForIid: publicRegistry.classificationForIid,
 		providersForIid: publicRegistry.providersForIid,
 		identifierHintsForIid: publicRegistry.identifierHintsForIid,
 		packageVersion: PACKAGE_VERSION,
 	});
 	const resolution = registryAdapter.resolve(parsed.result.identity);
-	const module = await importModule<PublicIidLadderModule>(ladderEntry);
+	const module = await importModule<typeof import('@0xintuition/iid-ladder')>(ladderEntry);
 	const classification = deriveIidClassificationResult({
-		ladder: createIidLadderAdapter(
+		ladder: ladderFixture(
 			{ ...module, packageVersion: PACKAGE_VERSION },
 			{ inspect: publicIid.inspectIntuitionId }
 		),

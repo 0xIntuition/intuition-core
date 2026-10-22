@@ -1,6 +1,6 @@
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
-import type { FetchLike } from '../__shared__/http';
+import { type FetchLike, ProviderHttpError } from '../__shared__/http';
 import { getIdentifier } from '../__shared__/request';
 import {
 	type OpenLibraryBooksApiEntry,
@@ -199,10 +199,7 @@ function assertRetryableResponse(response: Response, url: string): void {
 	if (response.ok) {
 		return;
 	}
-	if (response.status === 429) {
-		throw new Error(`Rate limited by OpenLibrary (HTTP 429 from ${url})`);
-	}
-	throw new Error(`Upstream HTTP ${response.status} from ${url}`);
+	throw new ProviderHttpError(response.status, url);
 }
 
 function names(values: Array<{ name?: string }> | undefined): string[] | undefined {

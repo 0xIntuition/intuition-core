@@ -9,6 +9,7 @@ import {
 	type ClassificationRegistry,
 	createDefaultClassificationRegistry,
 } from './classifications';
+import { redactProviderDiagnostic } from './diagnostics';
 import {
 	createEnrichmentPluginRegistry,
 	type RegisterPluginOptions,
@@ -524,7 +525,7 @@ function createPluginError(
 	return {
 		pluginId,
 		code,
-		message,
+		message: redactProviderDiagnostic(message),
 		retriable,
 	};
 }
