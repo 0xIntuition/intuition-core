@@ -62,8 +62,8 @@ const TYPE_DEFINITIONS: BuiltinTypeDefinition[] = [
 		['gtin', 'sku']
 	),
 	createTypeDefinition('MusicRecording', 'song', ['name'], ['byArtist', 'inAlbum'], ['sameAs']),
-	createTypeDefinition('MusicAlbum', 'song', ['name'], ['byArtist', 'sameAs'], ['sameAs']),
-	createTypeDefinition('MusicGroup', 'song', ['name'], ['sameAs'], ['sameAs']),
+	createTypeDefinition('MusicAlbum', 'music-album', ['name'], ['byArtist', 'sameAs'], ['sameAs']),
+	createTypeDefinition('MusicGroup', 'artist', ['name'], ['sameAs'], ['sameAs']),
 	createTypeDefinition(
 		'PodcastSeries',
 		'podcast',

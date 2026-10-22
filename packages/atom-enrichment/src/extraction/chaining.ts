@@ -4,8 +4,11 @@
 // those ids unlock — never fuzzy search. See classification-parity-spec.md §2.
 
 import type { EnrichmentArtifact } from '../types';
+import { getIdentityArtifacts } from './quarantine';
 import { parsePlaces, parseWikidata, parseWikipedia, readString } from './shared';
 import { readCoordinateClaimValue, readStringClaimValues } from './wikidata-claims';
+
+export { getIdentityArtifacts } from './quarantine';
 
 export type ChainHarvest = {
 	/** hints.identifiers entries for the next enrichment pass. */
@@ -96,10 +99,11 @@ function harvestFromWikidata(
  */
 export function harvestChainIdentifiers(artifacts: readonly EnrichmentArtifact[]): ChainHarvest {
 	const harvest: ChainHarvest = { identifiers: {}, pluginSlugs: [] };
-	harvestFromWikipedia(artifacts, harvest);
-	harvestFromWikidata(artifacts, harvest);
+	const identityArtifacts = getIdentityArtifacts(artifacts);
+	harvestFromWikipedia(identityArtifacts, harvest);
+	harvestFromWikidata(identityArtifacts, harvest);
 
-	const presentTypes = new Set(artifacts.map((artifact) => artifact.artifact_type));
+	const presentTypes = new Set(identityArtifacts.map((artifact) => artifact.artifact_type));
 	const slugToArtifactType: Record<string, string> = {
 		wikidata: 'wikidata',
 		tmdb: 'tmdb',
@@ -122,13 +126,13 @@ export function harvestChainIdentifiers(artifacts: readonly EnrichmentArtifact[]
 
 // Confirms whether a places artifact actually resolved (used for loop tests).
 export function hasResolvedPlace(artifacts: readonly EnrichmentArtifact[]): boolean {
-	return artifacts.some(
+	return getIdentityArtifacts(artifacts).some(
 		(artifact) => artifact.artifact_type === 'places' && parsePlaces(artifact.data) !== null
 	);
 }
 
 export function hasWikipediaPivot(artifacts: readonly EnrichmentArtifact[]): boolean {
-	return artifacts.some(
+	return getIdentityArtifacts(artifacts).some(
 		(artifact) =>
 			artifact.artifact_type === 'wikipedia' &&
 			parseWikipedia(artifact.data)?.wikibaseItem !== undefined

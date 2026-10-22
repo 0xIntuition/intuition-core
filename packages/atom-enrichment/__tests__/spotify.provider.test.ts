@@ -5,7 +5,7 @@ import { createMockAtomInput, createMockPluginContext, createMockRequest } from 
 
 describe('spotify enrichment provider', () => {
 	it('returns URL-derived fallback artifacts for podcast shows and episodes without credentials', async () => {
-		const plugin = createSpotifyPlugin();
+		const plugin = createSpotifyPlugin({ fetch: async () => new Response(null, { status: 404 }) });
 		const ctx = createMockPluginContext();
 
 		const showArtifacts = await plugin.enrich(

@@ -9,7 +9,7 @@ export type KgActionRef = {
 	id: string;
 };
 
-export type KgNodeRawType = 'string' | 'json' | 'http_uri' | 'ipfs_uri';
+export type KgNodeRawType = 'string' | 'json' | 'http_uri' | 'ipfs_uri' | 'iid';
 
 export type EnsureNodeInput = {
 	id?: string;

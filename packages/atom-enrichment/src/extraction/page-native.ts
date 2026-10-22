@@ -4,6 +4,7 @@
 // this single mapper covers dozens of URL families with zero per-site code.
 // Ranks below provider-specific extractors and above the OG generic tier.
 
+import { quarantineFields } from './quarantine';
 import { field, findArtifactData, parseMicrodata, readString } from './shared';
 import type { ExtractedField, ExtractionContext } from './types';
 
@@ -259,7 +260,7 @@ function normalizeJsonLdValue(fieldType: string, value: unknown): unknown {
 	}
 }
 
-export function extractPageNativeFields(context: ExtractionContext): ExtractedField[] {
+function extractPageNativeFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const microdata = findArtifactData(context.artifacts, 'microdata', parseMicrodata);
 	const nodes = microdata?.data.jsonLd ?? [];
 	if (nodes.length === 0) return [];
@@ -283,6 +284,8 @@ export function extractPageNativeFields(context: ExtractionContext): ExtractedFi
 	}
 	return fields;
 }
+
+export const extractPageNativeFields = quarantineFields(extractPageNativeFieldsUnchecked);
 
 // Suggestion support: the most entity-like JSON-LD type on the page.
 const PRIMARY_TYPE_PRIORITY: readonly string[] = [

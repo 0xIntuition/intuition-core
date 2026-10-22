@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { spotifyExternalIdentifierSchema } from './schema';
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
 
@@ -55,7 +56,9 @@ export const spotifyTrackResponseSchema = z
 			.optional(),
 		external_ids: z
 			.object({
-				isrc: z.string().optional(),
+				isrc: spotifyExternalIdentifierSchema,
+				upc: spotifyExternalIdentifierSchema,
+				ean: spotifyExternalIdentifierSchema,
 			})
 			.passthrough()
 			.optional(),
@@ -73,6 +76,14 @@ export const spotifyAlbumResponseSchema = z
 		external_urls: z
 			.object({
 				spotify: z.string().optional(),
+			})
+			.passthrough()
+			.optional(),
+		external_ids: z
+			.object({
+				isrc: spotifyExternalIdentifierSchema,
+				upc: spotifyExternalIdentifierSchema,
+				ean: spotifyExternalIdentifierSchema,
 			})
 			.passthrough()
 			.optional(),

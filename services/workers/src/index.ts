@@ -1,3 +1,4 @@
+import { createWorkerIdentityRuntime } from './core/worker-bootstrap';
 import { CircuitBreaker } from './shared/circuit-breaker';
 import { loadWorkerConfig } from './shared/config';
 import { classifyWorkerError, WorkerConfigurationError } from './shared/errors';
@@ -57,6 +58,7 @@ async function main() {
 }
 
 async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
+	const identityRuntime = createWorkerIdentityRuntime(config.iidReadEnabled);
 	const isParseWorker = workerMode === 'kg-parse-worker';
 	const isClassificationWorker = workerMode === 'kg-classification-worker';
 	const heartbeat = new Heartbeat(workerMode);
@@ -130,6 +132,7 @@ async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
 						const { runKgParsingWorker } = await import('./kg/atom-parsing');
 						await runKgParsingWorker({
 							db: connection.db,
+							...identityRuntime,
 							config,
 							logger,
 							metrics,
@@ -141,6 +144,7 @@ async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
 						const { runKgClassificationWorker } = await import('./kg/atom-classification');
 						await runKgClassificationWorker({
 							db: connection.db,
+							...identityRuntime,
 							config,
 							logger,
 							metrics,
@@ -152,6 +156,7 @@ async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
 						const { runKgEnrichmentWorker } = await import('./kg/atom-enrichment');
 						await runKgEnrichmentWorker({
 							db: connection.db,
+							...identityRuntime,
 							config,
 							logger,
 							metrics,

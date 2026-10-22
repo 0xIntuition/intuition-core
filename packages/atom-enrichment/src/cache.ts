@@ -37,6 +37,7 @@ type CreateUpstashCacheAdapterFromEnvOptions = {
 };
 
 const DEFAULT_UPSTASH_HTTP_TIMEOUT_MS = 1_500;
+export const NO_IDENTITY_POLICY_MARKER = 'no-identity';
 
 export function createMemoryCacheAdapter(
 	options: CreateMemoryCacheAdapterOptions = {}
@@ -170,7 +171,8 @@ export function buildCacheKey(
 			locale?: string;
 		};
 		jsonLd?: Record<string, unknown>;
-	}
+	},
+	policy?: { identity?: string }
 ): string {
 	const normalizedIdentifiers = normalizeIdentifiers(input.hints?.identifiers);
 	const normalizedName = normalizeName(
@@ -190,6 +192,7 @@ export function buildCacheKey(
 	const normalizedJsonLd = normalizeStructuredValue(input.jsonLd ?? {});
 
 	const fingerprint = stableStringify({
+		policy: { identity: policy?.identity ?? NO_IDENTITY_POLICY_MARKER },
 		atomType: input.atomType,
 		hints: {
 			name: normalizedName,

@@ -202,6 +202,15 @@ function tryUrl(normalizedInput: string): UrlData | undefined {
 		return undefined;
 	}
 
+	// `URL` accepts any syntactically valid scheme (for example `did:`,
+	// `urn:`, and `int:`). In this parser, however, the `url` kind is the
+	// remotely inspectable HTTP(S) lane. Treating arbitrary identifiers as
+	// URLs would send them through URL classification and remote-fetch policy
+	// before their owning parser gets a chance to recognize them.
+	if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+		return undefined;
+	}
+
 	return {
 		canonicalUrl: parsed.href,
 		scheme: parsed.protocol.replace(/:$/, ''),

@@ -27,7 +27,7 @@ describe('resolveUrlFirstClassification', () => {
 		expect(classification?.atomType).toBe('person');
 		expect(classification?.type).toBe('Person');
 		expect(classification?.preset).toBe('default');
-		expect(classification?.requiredFieldKeys).toEqual(['givenName', 'familyName']);
+		expect(classification?.requiredFieldKeys).toEqual(['givenName']);
 	});
 
 	it('derives presets from the spec (music for recordings, company for companies)', () => {

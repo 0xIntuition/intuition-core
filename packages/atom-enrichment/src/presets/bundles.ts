@@ -12,6 +12,7 @@ import {
 	createNpmPlugin,
 	createOEmbedPlugin,
 	createOpenGraphPlugin,
+	createOpenLibraryPlugin,
 	createPlacesPlugin,
 	createPodcastIndexPlugin,
 	createProductListingPlugin,
@@ -35,6 +36,7 @@ type GitHubPluginOptions = NonNullable<Parameters<typeof createGitHubPlugin>[0]>
 type MicrodataPluginOptions = NonNullable<Parameters<typeof createMicrodataPlugin>[0]>;
 type MusicBrainzPluginOptions = NonNullable<Parameters<typeof createMusicBrainzPlugin>[0]>;
 type OEmbedPluginOptions = NonNullable<Parameters<typeof createOEmbedPlugin>[0]>;
+type OpenLibraryPluginOptions = NonNullable<Parameters<typeof createOpenLibraryPlugin>[0]>;
 type ProductListingPluginOptions = NonNullable<Parameters<typeof createProductListingPlugin>[0]>;
 type SpotifyPluginOptions = NonNullable<Parameters<typeof createSpotifyPlugin>[0]>;
 type TmdbPluginOptions = NonNullable<Parameters<typeof createTmdbPlugin>[0]>;
@@ -80,6 +82,7 @@ export type ServerDefaultPresetOptions = {
 	microdata?: MicrodataPluginOptions;
 	musicbrainz?: MusicBrainzPluginOptions;
 	oembed?: OEmbedPluginOptions;
+	openlibrary?: OpenLibraryPluginOptions;
 	opengraph?: OpenGraphPluginOptions;
 	places?: PlacesPluginOptions;
 	podcastIndex?: PodcastIndexPluginOptions;
@@ -116,6 +119,7 @@ export function createServerDefaultPresetOptions(
 		microdata: {},
 		musicbrainz: {},
 		oembed: {},
+		openlibrary: {},
 		opengraph: {},
 		places: {
 			apiKey: env.GOOGLE_PLACES_API_KEY,
@@ -185,6 +189,7 @@ export function serverDefaultPreset(options: ServerDefaultPresetOptions = {}): E
 		createSpotifyPlugin(options.spotify),
 		createAppleMusicPlugin(options.appleMusic),
 		createMusicBrainzPlugin(options.musicbrainz),
+		createOpenLibraryPlugin(options.openlibrary),
 		createTmdbPlugin(options.tmdb),
 		createPlacesPlugin(options.places),
 		createPodcastIndexPlugin(options.podcastIndex),

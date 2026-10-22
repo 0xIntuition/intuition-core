@@ -1,7 +1,11 @@
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
 import { type FetchLike, fetchJsonWithSchema } from '../__shared__/http';
-import { getIdentifier, getRequestName } from '../__shared__/request';
+import {
+	getIdentifier,
+	getRequestName,
+	isSynthesizedProviderPlaceholderTitle,
+} from '../__shared__/request';
 import { musicBrainzRecordingResponseSchema, musicBrainzSearchResponseSchema } from './external';
 import { musicbrainzDataSchema } from './schema';
 
@@ -102,7 +106,14 @@ function resolveMusicBrainzRequest(
 ): ResolvedMusicBrainzRequest | undefined {
 	const mbid = getIdentifier(request, 'musicbrainz', 'mbid');
 	if (mbid) {
+		const mbidType = getIdentifier(request, 'mbidType');
+		if (mbidType !== undefined && mbidType !== 'recording') return undefined;
 		return { kind: 'mbid', mbid };
+	}
+
+	const isrc = getIdentifier(request, 'isrc');
+	if (isrc && /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/i.test(isrc)) {
+		return { kind: 'search', query: `isrc:${isrc.toUpperCase()}` };
 	}
 
 	if (!isMusicRecordingRequest(request)) {
@@ -110,7 +121,7 @@ function resolveMusicBrainzRequest(
 	}
 
 	const name = getRequestName(request);
-	if (!name) {
+	if (!name || isSynthesizedProviderPlaceholderTitle(request, name)) {
 		return undefined;
 	}
 

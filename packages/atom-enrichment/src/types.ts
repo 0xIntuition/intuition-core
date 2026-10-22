@@ -10,6 +10,8 @@ export const atomTypeSchema = z.enum([
 	'product',
 	'podcast',
 	'song',
+	'music-album',
+	'artist',
 	'software',
 	'unknown',
 ]);
@@ -103,6 +105,8 @@ export const classifiedAtomInputSchema = z
 			.object({
 				classificationEngine: z.string().min(1).max(128),
 				classifiedAt: z.iso.datetime(),
+				provider: z.string().min(1).max(128).optional(),
+				fallbackStage: z.string().min(1).max(64).optional(),
 			})
 			.strict(),
 		hints: z
@@ -138,6 +142,7 @@ export const enrichmentArtifactMetaSchema = z
 		pluginId: classificationSlugLikeSchema,
 		provider: z.string().min(1).max(128),
 		fetchedAt: z.iso.datetime(),
+		identityStrength: z.enum(['identifier', 'url', 'title']).optional(),
 		confidence: z.number().min(0).max(1).optional(),
 		sourceUrl: z.string().url().optional(),
 		fromCache: z.boolean().optional(),

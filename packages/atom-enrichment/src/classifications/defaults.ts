@@ -28,6 +28,7 @@ import {
 	npmPackageDataSchema,
 	oembedDataSchema,
 	opengraphDataSchema,
+	openLibraryDataSchema,
 	placesDataSchema,
 	productListingDataSchema,
 	pubmedDataSchema,
@@ -373,6 +374,15 @@ export const builtinClassificationDefinitions = [
 		description: 'Product catalog metadata including pricing and availability.',
 		schemaVersion: '1.0.0',
 		runtime: 'server',
+	},
+	{
+		slug: 'openlibrary',
+		displayName: 'OpenLibrary Metadata',
+		category: 'knowledge',
+		dataSchema: openLibraryDataSchema,
+		description: 'Book, work, edition, or author metadata resolved from ISBN and OLID identities.',
+		schemaVersion: '1.0.0',
+		runtime: 'universal',
 	},
 	{
 		slug: 'isbn',

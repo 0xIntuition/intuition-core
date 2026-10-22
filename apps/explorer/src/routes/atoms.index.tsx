@@ -9,8 +9,8 @@ import { PageHeader } from '@/components/layout/app-shell';
 import { DataTable, Pager } from '@/components/ui/data-table';
 import { Card, ErrorNote, IdChip, Input } from '@/components/ui/primitives';
 import { type AtomListItem, api } from '@/lib/api';
-import { formatId, formatRelativeTime, previewData } from '@/lib/format';
-import { extractImageFromRecord } from '@/lib/images';
+import { atomDisplayImage, atomDisplayLabel } from '@/lib/atom-presentation';
+import { formatId, formatRelativeTime } from '@/lib/format';
 
 const PAGE_SIZE = 25;
 
@@ -29,19 +29,14 @@ const columns: ColumnDef<AtomListItem>[] = [
 	{
 		id: 'thumb',
 		header: '',
-		cell: ({ row }) => (
-			<AtomThumb
-				id={row.original.id}
-				imageUrl={extractImageFromRecord(row.original.dataResolved)}
-			/>
-		),
+		cell: ({ row }) => <AtomThumb id={row.original.id} imageUrl={atomDisplayImage(row.original)} />,
 	},
 	{
 		id: 'data',
-		header: 'Data',
+		header: 'Name',
 		cell: ({ row }) => (
 			<span className="block max-w-md truncate text-[13px]" title={row.original.data ?? ''}>
-				{previewData(row.original.data, 80) || <span className="text-faint">(empty)</span>}
+				{atomDisplayLabel(row.original, 80) || <span className="text-faint">(empty)</span>}
 			</span>
 		),
 	},

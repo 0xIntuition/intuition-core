@@ -1,260 +1,113 @@
-import { createSequencedDomainHtmlAdapter } from '../shared/domain-html/adapter';
-import {
-	extractCanonicalUrl,
-	extractDocumentTitle,
-	extractPrimaryJsonLd,
-	normalizeWhitespace,
-} from '../shared/domain-html/document';
-import {
-	type DomainHtmlFetchLike,
-	fetchHtmlDocument,
-	fetchJsonDocument,
-} from '../shared/domain-html/fetch';
+import type { DomainHtmlFetchLike } from '../shared/domain-html/fetch';
+import { resolveDomainHtmlFetch } from '../shared/domain-html/fetch';
 import { buildIdentityResolverAtom } from '../shared/domain-html/identity';
-import { slugify, toRecordMaybe, toStringMaybe } from '../shared/helpers';
+import { toRecordMaybe, toStringMaybe } from '../shared/helpers';
 import type { PlatformStageAdapter } from '../shared/platform';
 
 export type ImdbDomainHtmlAdapterOptions = {
+	apiKey?: string;
 	fetch?: DomainHtmlFetchLike;
 };
-
 export type ImdbDomainHtmlAdapter = PlatformStageAdapter;
 
-type ImdbSuggestionRecord = {
-	id?: string;
-	l?: string;
-	qid?: string;
-	s?: string;
-	i?: {
-		imageUrl?: string;
-	};
-};
+export function buildTmdbFindEndpoint(imdbId: string): string {
+	return `https://api.themoviedb.org/3/find/${encodeURIComponent(imdbId)}?external_source=imdb_id`;
+}
 
-type ImdbHtmlSourceInput = {
-	entityId: string | undefined;
-	canonicalUrl: string;
-	html: string;
-	jsonLd: Record<string, unknown> | undefined;
-	schemaType: 'Movie' | 'TVSeries' | 'Person';
-	category: 'thing' | 'person';
-	canonicalIdPrefix: 'imdb:title:' | 'imdb:name:';
-	provider: 'imdb-html';
-};
-
-type ImdbSuggestionSourceInput = {
-	entityId: string | undefined;
-	canonicalUrl: string;
-	suggestion: ImdbSuggestionRecord | undefined;
-	schemaType: 'Movie' | 'TVSeries' | 'Person';
-	category: 'thing' | 'person';
-	canonicalIdPrefix: 'imdb:title:' | 'imdb:name:';
-	provider: 'imdb-suggestion';
-};
-
+/** Retain the exported adapter name, but resolve exclusively through TMDB's catalog API. */
 export function createImdbDomainHtmlAdapter(
 	options: ImdbDomainHtmlAdapterOptions = {}
 ): ImdbDomainHtmlAdapter {
-	return createSequencedDomainHtmlAdapter({
-		domain: 'imdb',
-		subtypes: ['title', 'person'],
-		fetch: options.fetch,
-		sources: [
-			{
-				id: 'imdb-html',
-				resolve: async ({ subtype, canonicalUrl, classificationMeta, fetcher }) => {
-					const html = await fetchHtmlDocument(fetcher, {
-						url: canonicalUrl,
-					});
-					if (!html) {
-						return null;
-					}
-
-					const resolvedCanonicalUrl = extractCanonicalUrl(html) ?? canonicalUrl;
-					const jsonLd = extractPrimaryJsonLd(html);
-
-					if (subtype === 'person') {
-						return buildImdbAtomFromHtml({
-							entityId: toStringMaybe(classificationMeta.personId),
-							canonicalUrl: resolvedCanonicalUrl,
-							html,
-							jsonLd,
-							schemaType: 'Person',
-							category: 'person',
-							canonicalIdPrefix: 'imdb:name:',
-							provider: 'imdb-html',
-						});
-					}
-
-					const jsonLdType = normalizeSchemaType(toStringMaybe(jsonLd?.['@type']));
-					return buildImdbAtomFromHtml({
-						entityId: toStringMaybe(classificationMeta.titleId),
-						canonicalUrl: resolvedCanonicalUrl,
-						html,
-						jsonLd,
-						schemaType: jsonLdType === 'TVSeries' ? 'TVSeries' : 'Movie',
-						category: 'thing',
-						canonicalIdPrefix: 'imdb:title:',
-						provider: 'imdb-html',
-					});
-				},
-			},
-			{
-				id: 'imdb-suggestion',
-				resolve: async ({ subtype, canonicalUrl, classificationMeta, fetcher }) => {
-					const entityId =
-						subtype === 'person'
-							? toStringMaybe(classificationMeta.personId)
-							: toStringMaybe(classificationMeta.titleId);
-					const suggestion = await fetchSuggestionRecord({
-						fetcher,
-						entityId,
-						kind: subtype === 'person' ? 'name' : 'title',
-					});
-
-					if (subtype === 'person') {
-						return buildImdbAtomFromSuggestion({
-							entityId,
-							canonicalUrl,
-							suggestion,
-							schemaType: 'Person',
-							category: 'person',
-							canonicalIdPrefix: 'imdb:name:',
-							provider: 'imdb-suggestion',
-						});
-					}
-
-					return buildImdbAtomFromSuggestion({
-						entityId,
-						canonicalUrl,
-						suggestion,
-						schemaType: mapSuggestionTitleType(suggestion?.qid),
-						category: 'thing',
-						canonicalIdPrefix: 'imdb:title:',
-						provider: 'imdb-suggestion',
-					});
-				},
-			},
-		],
-	});
-}
-
-function buildImdbAtomFromHtml(input: ImdbHtmlSourceInput) {
-	const name =
-		toStringMaybe(input.jsonLd?.name) ??
-		normalizeImdbDocumentTitle(extractDocumentTitle(input.html)) ??
-		undefined;
-	if (!name) {
-		return null;
-	}
-
-	const sameAs = normalizeUrlArray([input.canonicalUrl, toStringMaybe(input.jsonLd?.url) ?? '']);
-	const description = toStringMaybe(input.jsonLd?.description);
-	const image =
-		toStringMaybe(input.jsonLd?.image) ?? toStringMaybe(input.jsonLd?.thumbnailUrl) ?? undefined;
-
-	return buildIdentityResolverAtom({
-		schemaType: input.schemaType,
-		category: input.category,
-		title: name,
-		description,
-		canonicalId: `${input.canonicalIdPrefix}${input.entityId ?? slugify(input.canonicalUrl)}`,
-		canonicalUrl: input.canonicalUrl,
-		sameAs,
-		pluginId: 'imdb',
-		provider: input.provider,
-		fields: {
-			...(image ? { image } : {}),
-		},
-	});
-}
-
-function buildImdbAtomFromSuggestion(input: ImdbSuggestionSourceInput) {
-	const name = normalizeWhitespace(input.suggestion?.l);
-	if (!name) {
-		return null;
-	}
-
-	const description = normalizeWhitespace(input.suggestion?.s);
-	const image = toStringMaybe(input.suggestion?.i?.imageUrl);
-
-	return buildIdentityResolverAtom({
-		schemaType: input.schemaType,
-		category: input.category,
-		title: name,
-		description,
-		canonicalId: `${input.canonicalIdPrefix}${input.entityId ?? slugify(input.canonicalUrl)}`,
-		canonicalUrl: input.canonicalUrl,
-		pluginId: 'imdb',
-		provider: input.provider,
-		fields: {
-			...(image ? { image } : {}),
-		},
-	});
-}
-
-async function fetchSuggestionRecord(input: {
-	fetcher: DomainHtmlFetchLike;
-	entityId: string | undefined;
-	kind: 'title' | 'name';
-}): Promise<ImdbSuggestionRecord | undefined> {
-	if (!input.entityId) {
-		return undefined;
-	}
-
-	const bucket = input.kind === 'title' ? 't' : 'n';
-	const payload = await fetchJsonDocument<{ d?: unknown[] }>(input.fetcher, {
-		url: `https://v2.sg.media-imdb.com/suggestion/${bucket}/${input.entityId}.json`,
-	});
-	const records = payload?.d;
-	if (!Array.isArray(records)) {
-		return undefined;
-	}
-
-	for (const entry of records) {
-		const record = toRecordMaybe(entry);
-		if (record && toStringMaybe(record.id) === input.entityId) {
-			return record as ImdbSuggestionRecord;
+	const apiKey = options.apiKey?.trim();
+	return async ({ runtime, domain, classification, canonicalUrl }) => {
+		if (runtime !== 'server' || domain !== 'imdb' || classification.subtype !== 'title')
+			return null;
+		const imdbId = toStringMaybe(classification.meta.titleId);
+		if (!imdbId || !/^tt\d+$/.test(imdbId)) return null;
+		const diagnose = (status: 'hit' | 'miss' | 'ambiguous' | 'unavailable', hits: number) => {
+			classification.meta.imdbBridge = { status, hits };
+		};
+		const fetcher = resolveDomainHtmlFetch(options.fetch);
+		if (!apiKey || !fetcher) {
+			diagnose('unavailable', 0);
+			return null;
 		}
-	}
-
-	const firstRecord = toRecordMaybe(records[0]);
-	return firstRecord as ImdbSuggestionRecord | undefined;
-}
-
-function normalizeImdbDocumentTitle(value: string | undefined): string | undefined {
-	const normalized = normalizeWhitespace(value);
-	if (!normalized) {
-		return undefined;
-	}
-
-	return normalized
-		.replace(/\s+-\s+IMDb$/i, '')
-		.replace(/\s+\(.*?\)\s+-\s+IMDb$/i, '')
-		.trim();
-}
-
-function normalizeSchemaType(value: string | undefined): 'Movie' | 'TVSeries' | undefined {
-	if (value === 'TVSeries' || value === 'Movie') {
-		return value;
-	}
-
-	return undefined;
-}
-
-function mapSuggestionTitleType(value: string | undefined): 'Movie' | 'TVSeries' {
-	const normalized = value?.trim().toLowerCase();
-	if (
-		normalized === 'tvseries' ||
-		normalized === 'tvmini-series' ||
-		normalized === 'tvminiseries' ||
-		normalized === 'tv'
-	) {
-		return 'TVSeries';
-	}
-
-	return 'Movie';
-}
-
-function normalizeUrlArray(values: string[]): string[] {
-	return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+		const endpoint = new URL(buildTmdbFindEndpoint(imdbId));
+		endpoint.searchParams.set('api_key', apiKey);
+		let response: Awaited<ReturnType<DomainHtmlFetchLike>>;
+		try {
+			response = await fetcher(endpoint.toString(), { headers: { accept: 'application/json' } });
+		} catch {
+			diagnose('unavailable', 0);
+			throw new Error('TMDB find upstream request failed');
+		}
+		if (!response.ok) {
+			diagnose('unavailable', 0);
+			if (response.status === 429) throw new Error('TMDB find 429 rate limit');
+			if (response.status === 401 || response.status === 403)
+				throw new Error(`TMDB find auth ${response.status}`);
+			if (response.status >= 500) throw new Error(`TMDB find upstream ${response.status}`);
+			return null;
+		}
+		let payload: Record<string, unknown> | undefined;
+		try {
+			payload = toRecordMaybe(JSON.parse(await response.text()));
+		} catch {
+			diagnose('unavailable', 0);
+			return null;
+		}
+		if (!Array.isArray(payload?.movie_results) || !Array.isArray(payload?.tv_results)) {
+			diagnose('unavailable', 0);
+			return null;
+		}
+		const hits = payload.movie_results.length + payload.tv_results.length;
+		if (hits !== 1) {
+			diagnose(hits === 0 ? 'miss' : 'ambiguous', hits);
+			return null;
+		}
+		const mediaType = payload.movie_results.length ? 'movie' : 'tv';
+		const record = toRecordMaybe(
+			(mediaType === 'movie' ? payload.movie_results : payload.tv_results)[0]
+		);
+		const title = toStringMaybe(record?.[mediaType === 'movie' ? 'title' : 'name'])
+			?.replace(/\s+/g, ' ')
+			.trim();
+		if (
+			!record ||
+			typeof record.id !== 'number' ||
+			!Number.isSafeInteger(record.id) ||
+			record.id <= 0 ||
+			!title
+		) {
+			diagnose('unavailable', hits);
+			return null;
+		}
+		const tmdbId = String(record.id);
+		const date = toStringMaybe(record[mediaType === 'movie' ? 'release_date' : 'first_air_date']);
+		const year = date?.match(/^(\d{4})-/)?.[1];
+		diagnose('hit', hits);
+		const atom = buildIdentityResolverAtom({
+			schemaType: mediaType === 'movie' ? 'Movie' : 'TVSeries',
+			category: 'thing',
+			title,
+			canonicalId: `imdb:title:${imdbId}`,
+			canonicalUrl,
+			sameAs: [canonicalUrl, `https://www.themoviedb.org/${mediaType}/${tmdbId}`],
+			pluginId: 'imdb',
+			provider: 'imdb-tmdb',
+			fields: {
+				imdbId,
+				tmdbId,
+				mediaType,
+				identifier: `tmdb:${mediaType}:${tmdbId}`,
+				...(date ? { datePublished: date } : {}),
+				...(year ? { year: Number(year) } : {}),
+			},
+		});
+		return {
+			...atom,
+			hints: { identifiers: { imdbId, tmdbId, mediaType } },
+			metadata: { ...atom.metadata, imdbBridge: { status: 'hit', hits } },
+		};
+	};
 }

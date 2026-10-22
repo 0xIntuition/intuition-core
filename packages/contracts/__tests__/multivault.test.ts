@@ -24,8 +24,11 @@ describe('MultiVault contract artifacts', () => {
 		}, {});
 
 		expect(namesByType.function?.has('createAtoms')).toBe(true);
+		expect(namesByType.function?.has('createAtomsWithUris')).toBe(true);
+		expect(namesByType.function?.has('getAtomUriConfig')).toBe(true);
 		expect(namesByType.function?.has('createTriples')).toBe(true);
 		expect(namesByType.event?.has('AtomCreated')).toBe(true);
+		expect(namesByType.event?.has('AtomContextRegistered')).toBe(true);
 		expect(namesByType.event?.has('TripleCreated')).toBe(true);
 
 		for (const eventName of MULTIVAULT_RINDEXER_EVENTS) {

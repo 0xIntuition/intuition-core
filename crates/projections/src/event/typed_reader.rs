@@ -55,6 +55,22 @@ fn sql_fragment(event_type: &str) -> Option<&'static str> {
                FROM atom_created_events
                WHERE sequence_number > $1"#,
         ),
+        "AtomContextRegistered" => Some(
+            r#"SELECT sequence_number, block_number, block_timestamp, block_hash,
+                      transaction_hash, log_index,
+                      'AtomContextRegistered'::TEXT AS event_type,
+                      jsonb_build_object(
+                          'registrant', registrant,
+                          'term_id', term_id_hex,
+                          'uris', uris
+                      ) AS event_data,
+                      term_id_hex AS term_id,
+                      NULL::TEXT AS entity_id,
+                      true AS is_canonical,
+                      block_timestamp AS ingested_at
+               FROM atom_context_registered_events
+               WHERE sequence_number > $1"#,
+        ),
         "TripleCreated" => Some(
             r#"SELECT sequence_number, block_number, block_timestamp, block_hash,
                       transaction_hash, log_index,
@@ -236,17 +252,18 @@ mod tests {
     }
 
     #[test]
-    fn all_six_event_types() {
+    fn all_seven_event_types() {
         let q = build_union_query(&[
             "AtomCreated",
+            "AtomContextRegistered",
             "TripleCreated",
             "Deposited",
             "Redeemed",
             "SharePriceChanged",
             "ProtocolFeeAccrued",
         ]);
-        // 5 UNION ALL connectors for 6 fragments
-        assert_eq!(q.matches("UNION ALL").count(), 5);
+        // 6 UNION ALL connectors for 7 fragments
+        assert_eq!(q.matches("UNION ALL").count(), 6);
     }
 
     #[test]
@@ -287,5 +304,18 @@ mod tests {
         assert!(!q.contains("subject_id::TEXT"));
         assert!(!q.contains("predicate_id::TEXT"));
         assert!(!q.contains("object_id::TEXT"));
+    }
+
+    #[test]
+    fn atom_context_registered_reconstructs_ordered_opaque_uri_array() {
+        let q = build_union_query(&["AtomContextRegistered"]);
+
+        assert!(q.contains("FROM atom_context_registered_events"));
+        assert!(q.contains("'term_id', term_id_hex"));
+        assert!(q.contains("'uris', uris"));
+        assert!(!q.contains("uris->"));
+        assert!(!q.contains("jsonb_array_elements"));
+        assert!(!q.contains("convert_from"));
+        assert!(!q.contains("decode("));
     }
 }

@@ -1,4 +1,6 @@
-import { accounts, nodes } from '../schema';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+
+import { accounts, nodeContexts, nodeIdentifiers, nodes } from '../schema';
 import { invalidInput } from './errors';
 import { kgAtomId, normalizeProtocolTermId } from './ids';
 import type { EnsureNodeInput, KgActionDb } from './types';
@@ -52,7 +54,10 @@ export async function ensureNodeWithCreation(
 			data: input.data,
 			dataHex: input.dataHex,
 			dataResolved: input.dataResolved ?? {},
-			searchText: input.searchText ?? input.data ?? input.id,
+			// Search text is a presentation projection, not a fallback copy of the
+			// atom's opaque/content-addressed input. Callers that understand the
+			// value must opt in; parse/enrichment workers promote it later.
+			searchText: input.searchText ?? '',
 			createdBy: input.createdBy,
 		})
 		.onConflictDoNothing()
@@ -64,6 +69,69 @@ export async function ensureNodeWithCreation(
 export async function ensureNode(db: KgActionDb, input: EnsureNodeInput): Promise<string> {
 	const { nodeId } = await ensureNodeWithCreation(db, input);
 	return nodeId;
+}
+
+/** Read immutable on-chain context in contract event/array order. */
+export async function listNodeContexts(db: KgActionDb, nodeId: string) {
+	return db
+		.select({
+			nodeId: nodeContexts.nodeId,
+			eventSequence: nodeContexts.eventSequence,
+			blockNumber: nodeContexts.blockNumber,
+			blockTimestamp: nodeContexts.blockTimestamp,
+			blockHash: nodeContexts.blockHash,
+			transactionHash: nodeContexts.transactionHash,
+			logIndex: nodeContexts.logIndex,
+			ordinal: nodeContexts.ordinal,
+			registrant: nodeContexts.registrant,
+			uriHex: nodeContexts.uriHex,
+			uriText: nodeContexts.uriText,
+		})
+		.from(nodeContexts)
+		.where(eq(nodeContexts.nodeId, nodeId))
+		.orderBy(asc(nodeContexts.eventSequence), asc(nodeContexts.ordinal))
+		.execute();
+}
+
+/**
+ * Exact primary or alias IID read, with primary cluster matches ranked first.
+ * Keeps qualified columns explicit for the nested union.
+ */
+export async function listPublicNodesByIid(
+	db: KgActionDb,
+	iid: string,
+	options: { limit: number; offset: number }
+) {
+	return db
+		.select({
+			id: nodes.id,
+			createdAt: nodes.createdAt,
+			isOnchain: nodes.isOnchain,
+			rawType: nodes.rawType,
+			data: nodes.data,
+			iid: nodes.iid,
+			dataResolved: nodes.dataResolved,
+			parseResult: nodes.parseResult,
+			classificationType: nodes.classificationType,
+			parseStatus: nodes.parseStatus,
+			classificationStatus: nodes.classificationStatus,
+			classificationResult: nodes.classificationResult,
+			enrichmentStatus: nodes.enrichmentStatus,
+			enrichmentError: nodes.enrichmentError,
+			enrichedAt: nodes.enrichedAt,
+		})
+		.from(nodes)
+		.where(
+			and(
+				sql`${nodes.id} in (select ${nodes.id} from ${nodes} where ${nodes.iid} = ${iid} union select ${nodeIdentifiers.nodeId} from ${nodeIdentifiers} where ${nodeIdentifiers.iid} = ${iid})`,
+				eq(nodes.status, 'active'),
+				eq(nodes.visibility, 'public')
+			)
+		)
+		.orderBy(desc(sql`(${nodes.iid} = ${iid}) IS TRUE`), desc(nodes.createdAt), desc(nodes.id))
+		.limit(options.limit)
+		.offset(options.offset)
+		.execute();
 }
 
 function createNodeId(input: EnsureNodeInput): string {

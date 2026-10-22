@@ -125,6 +125,7 @@ impl PgProjection for PositionTrackingProjection {
                     process_redeemed_typed(&mut tx, metadata, data).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::SharePriceChanged { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {

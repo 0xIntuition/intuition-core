@@ -18,6 +18,7 @@ import {
 	createYouTubePlugin,
 	type EtherscanPluginOptions,
 	type GitHubPluginOptions,
+	type ImdbPluginOptions,
 	type NpmPluginOptions,
 	type SpotifyPluginOptions,
 	type XPluginOptions,
@@ -39,7 +40,7 @@ export type DefaultClassificationPresetOptions = {
 	amazonPluginOptions?: PlatformV0PluginOptions;
 	etherscanPluginOptions?: EtherscanPluginOptions;
 	githubPluginOptions?: GitHubPluginOptions;
-	imdbPluginOptions?: PlatformV0PluginOptions;
+	imdbPluginOptions?: ImdbPluginOptions;
 	instagramPluginOptions?: PlatformV0PluginOptions;
 	npmPluginOptions?: NpmPluginOptions;
 	platformV0PluginOptions?: DefaultClassificationPresetPlatformOptions;

@@ -4,6 +4,7 @@
 // the merge keeps the first value per key and drops keys the target spec does
 // not define, so extractors can be generous.
 
+import { quarantineFields } from './quarantine';
 import {
 	CONFIDENCE,
 	field,
@@ -28,7 +29,7 @@ const GENERATED_SPOTIFY_NAME_PATTERN =
 
 // ── Music: spotify → apple-music ─────────────────────────────────────────────
 
-export function extractMusicFields(context: ExtractionContext): ExtractedField[] {
+function extractMusicFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const spotify = findArtifactData(context.artifacts, 'spotify', parseSpotify);
 	const appleMusic = findArtifactData(context.artifacts, 'apple-music', parseAppleMusic);
 	const fields: ExtractedField[] = [];
@@ -82,13 +83,15 @@ export function extractMusicFields(context: ExtractionContext): ExtractedField[]
 	return fields;
 }
 
+export const extractMusicFields = quarantineFields(extractMusicFieldsUnchecked);
+
 // ── Podcasts: spotify shows/episodes (apple podcasts arrives page-native) ───
 
 // Layers podcast peers (cross-provider augmentation): Spotify is primary,
 // the iTunes catalog and Podcast Index fill in when the pasted URL came from
 // elsewhere — and their canonical URLs (including the RSS feed) all land in
 // sameAs so dedup keys cover the whole media family.
-export function extractPodcastFields(
+function extractPodcastFieldsUnchecked(
 	context: ExtractionContext,
 	kind: 'series' | 'episode'
 ): ExtractedField[] {
@@ -177,6 +180,8 @@ export function extractPodcastFields(
 	return fields;
 }
 
+export const extractPodcastFields = quarantineFields(extractPodcastFieldsUnchecked);
+
 // ── Software: github repo / npm package ──────────────────────────────────────
 
 const GITHUB_REPO_URL_PATTERN = /^https?:\/\/(www\.)?github\.com\/[^/]+\/[^/]+/i;
@@ -200,7 +205,7 @@ function parseGitHubRepoFromUrl(url: string): { owner: string; repo: string } | 
 	return { owner, repo: repo.replace(/\.git$/, '') };
 }
 
-export function extractSoftwareFields(context: ExtractionContext): ExtractedField[] {
+function extractSoftwareFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const repo = findArtifactData(context.artifacts, 'github-repo', parseGithubRepo);
 	if (repo) {
 		const codeRepository = GITHUB_REPO_URL_PATTERN.test(context.url)
@@ -221,7 +226,9 @@ export function extractSoftwareFields(context: ExtractionContext): ExtractedFiel
 	];
 }
 
-export function extractSoftwareApplicationFields(context: ExtractionContext): ExtractedField[] {
+export const extractSoftwareFields = quarantineFields(extractSoftwareFieldsUnchecked);
+
+function extractSoftwareApplicationFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const repo = findArtifactData(context.artifacts, 'github-repo', parseGithubRepo);
 	const npm = findArtifactData(context.artifacts, 'npm-package', parseNpm);
 	const fields: ExtractedField[] = [];
@@ -244,9 +251,13 @@ export function extractSoftwareApplicationFields(context: ExtractionContext): Ex
 	return fields;
 }
 
+export const extractSoftwareApplicationFields = quarantineFields(
+	extractSoftwareApplicationFieldsUnchecked
+);
+
 // ── Video: youtube → generic oembed ──────────────────────────────────────────
 
-export function extractVideoObjectFields(context: ExtractionContext): ExtractedField[] {
+function extractVideoObjectFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const youtube = findArtifactData(context.artifacts, 'youtube', parseYoutube);
 	const fields: ExtractedField[] = [];
 
@@ -270,6 +281,8 @@ export function extractVideoObjectFields(context: ExtractionContext): ExtractedF
 	}
 	return fields;
 }
+
+export const extractVideoObjectFields = quarantineFields(extractVideoObjectFieldsUnchecked);
 
 // ── Social media accounts: x-profile artifact, else pure URL parse ──────────
 
@@ -379,7 +392,7 @@ export function parseSocialAccountUrl(
 	return undefined;
 }
 
-export function extractSocialMediaAccountFields(context: ExtractionContext): ExtractedField[] {
+function extractSocialMediaAccountFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const xProfile = findArtifactData(context.artifacts, 'x-profile', parseXProfile);
 	if (xProfile) {
 		return [
@@ -397,6 +410,10 @@ export function extractSocialMediaAccountFields(context: ExtractionContext): Ext
 		field('url', context.url, 'input-url', CONFIDENCE.inputUrl),
 	];
 }
+
+export const extractSocialMediaAccountFields = quarantineFields(
+	extractSocialMediaAccountFieldsUnchecked
+);
 
 // ── Ethereum: explorer URLs + etherscan/coingecko artifacts ─────────────────
 
@@ -440,12 +457,14 @@ function resolveEthereumAddress(context: ExtractionContext): string | undefined 
 	return ETHEREUM_ADDRESS_PATTERN.exec(context.url)?.[0];
 }
 
-export function extractEthereumAccountFields(context: ExtractionContext): ExtractedField[] {
+function extractEthereumAccountFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const address = resolveEthereumAddress(context);
 	return address ? [field('address', address, 'input-url', CONFIDENCE.provider)] : [];
 }
 
-export function extractEthereumContractFields(context: ExtractionContext): ExtractedField[] {
+export const extractEthereumAccountFields = quarantineFields(extractEthereumAccountFieldsUnchecked);
+
+function extractEthereumContractFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const fields = extractEthereumAccountFields(context);
 	const chainId = resolveExplorerChainId(context.url);
 	if (chainId !== undefined) {
@@ -454,7 +473,11 @@ export function extractEthereumContractFields(context: ExtractionContext): Extra
 	return fields;
 }
 
-export function extractEthereumErc20Fields(context: ExtractionContext): ExtractedField[] {
+export const extractEthereumContractFields = quarantineFields(
+	extractEthereumContractFieldsUnchecked
+);
+
+function extractEthereumErc20FieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const fields = extractEthereumContractFields(context);
 	const token = findArtifactData(context.artifacts, 'token-metadata', parseTokenMetadata);
 	const etherscan = findArtifactData(context.artifacts, 'etherscan', parseEtherscan);
@@ -473,9 +496,11 @@ export function extractEthereumErc20Fields(context: ExtractionContext): Extracte
 	return fields;
 }
 
+export const extractEthereumErc20Fields = quarantineFields(extractEthereumErc20FieldsUnchecked);
+
 // ── Physical places: Google Places artifact ──────────────────────────────────
 
-export function extractPlacesBackedFields(context: ExtractionContext): ExtractedField[] {
+function extractPlacesBackedFieldsUnchecked(context: ExtractionContext): ExtractedField[] {
 	const places = findArtifactData(context.artifacts, 'places', parsePlaces);
 	if (!places) return [];
 
@@ -497,3 +522,5 @@ export function extractPlacesBackedFields(context: ExtractionContext): Extracted
 	}
 	return fields;
 }
+
+export const extractPlacesBackedFields = quarantineFields(extractPlacesBackedFieldsUnchecked);

@@ -7,6 +7,7 @@
 //!
 //! Addresses are extracted from:
 //! - `AtomCreated`         — `creator`
+//! - `AtomContextRegistered` — `registrant`
 //! - `TripleCreated`       — `creator`
 //! - `Deposited`           — `sender`, `receiver`
 //! - `Redeemed`            — `sender`, `receiver`
@@ -45,6 +46,9 @@ fn extract_addresses_typed(event: &ParsedEvent) -> Vec<(String, DateTime<Utc>)> 
     match event {
         ParsedEvent::AtomCreated { metadata, data } => {
             vec![(data.creator.clone(), metadata.block_timestamp)]
+        }
+        ParsedEvent::AtomContextRegistered { metadata, data } => {
+            vec![(data.registrant.clone(), metadata.block_timestamp)]
         }
         ParsedEvent::TripleCreated { metadata, data } => {
             vec![(data.creator.clone(), metadata.block_timestamp)]
@@ -91,6 +95,7 @@ impl PgProjection for AccountRegistryProjection {
         // SharePriceChanged is intentionally absent — it carries no addresses.
         &[
             EventType::AtomCreated,
+            EventType::AtomContextRegistered,
             EventType::TripleCreated,
             EventType::Deposited,
             EventType::Redeemed,
@@ -218,6 +223,17 @@ mod tests {
                     vec![]
                 }
             },
+            "AtomContextRegistered" => match get_str(data, "registrant") {
+                Ok(addr) => vec![(addr, ts)],
+                Err(_) => {
+                    tracing::warn!(
+                        sequence_number = seq,
+                        event_type = %event.event_type,
+                        "Missing registrant field; skipping address extraction"
+                    );
+                    vec![]
+                }
+            },
             "Deposited" | "Redeemed" => {
                 let sender = get_str(data, "sender");
                 let receiver = get_str(data, "receiver");
@@ -279,9 +295,10 @@ mod tests {
     #[test]
     fn event_types_excludes_share_price_changed() {
         let types = AccountRegistryProjection.event_types();
-        assert_eq!(types.len(), 5);
+        assert_eq!(types.len(), 6);
         assert!(!types.contains(&EventType::SharePriceChanged));
         assert!(types.contains(&EventType::AtomCreated));
+        assert!(types.contains(&EventType::AtomContextRegistered));
         assert!(types.contains(&EventType::TripleCreated));
         assert!(types.contains(&EventType::Deposited));
         assert!(types.contains(&EventType::Redeemed));
@@ -294,6 +311,17 @@ mod tests {
         let addrs = extract_addresses(&event);
         assert_eq!(addrs.len(), 1);
         assert_eq!(addrs[0].0, "0xCreator");
+    }
+
+    #[test]
+    fn extract_addresses_atom_context_registered() {
+        let event = make_event(
+            "AtomContextRegistered",
+            json!({ "registrant": "0xRegistrant" }),
+        );
+        let addrs = extract_addresses(&event);
+        assert_eq!(addrs.len(), 1);
+        assert_eq!(addrs[0].0, "0xRegistrant");
     }
 
     #[test]
@@ -418,6 +446,22 @@ mod tests {
         let addrs = extract_addresses_typed(&event);
         assert_eq!(addrs.len(), 1);
         assert_eq!(addrs[0].0, "0xCreator");
+    }
+
+    #[test]
+    fn typed_atom_context_registered_returns_registrant_and_timestamp() {
+        let event = make_parsed(
+            "AtomContextRegistered",
+            serde_json::json!({
+                "registrant": "0xRegistrant",
+                "term_id": "0x07",
+                "uris": ["0xff00", "0xff00"]
+            }),
+        );
+        let expected_timestamp = event.metadata().block_timestamp();
+        let addrs = extract_addresses_typed(&event);
+
+        assert_eq!(addrs, vec![("0xRegistrant".to_owned(), expected_timestamp)]);
     }
 
     #[test]

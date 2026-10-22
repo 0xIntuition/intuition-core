@@ -220,8 +220,8 @@ fn accumulate_typed(d: &mut Deltas, event: &ParsedEvent) {
             // `amount` is already `BigDecimal` — no parse needed.
             d.fees += &data.amount;
         }
-        ParsedEvent::SharePriceChanged { .. } => {
-            // SharePriceChanged has no stats impact.
+        ParsedEvent::AtomContextRegistered { .. } | ParsedEvent::SharePriceChanged { .. } => {
+            // Context registration and share-price updates have no stats impact.
         }
         ParsedEvent::Unknown(raw) => {
             warn!(

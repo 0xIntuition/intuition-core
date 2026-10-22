@@ -9,6 +9,19 @@ export function createDefaultTestPlugins(
 ): AtomClassificationPlugin[] {
 	return defaultClassificationPreset({
 		...options,
+		imdbPluginOptions: {
+			credentials: { tmdb: { apiKey: 'fixture-key' } },
+			fetch: async () => ({
+				ok: true,
+				status: 200,
+				text: async () =>
+					JSON.stringify({
+						movie_results: [{ id: 603, title: 'The Matrix', release_date: '1999-03-30' }],
+						tv_results: [],
+					}),
+			}),
+			...(options.imdbPluginOptions ?? {}),
+		},
 		githubPluginOptions: {
 			useDefaultDomainApiAdapter: false,
 			...(options.githubPluginOptions ?? {}),

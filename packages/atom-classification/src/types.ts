@@ -54,6 +54,8 @@ export const classificationEntityCategorySchema = z.enum([
 	'product',
 	'podcast',
 	'song',
+	'music-album',
+	'artist',
 	'software',
 ]);
 

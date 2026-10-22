@@ -23,6 +23,11 @@ export type ApiConfig = {
 	 * clients can mint a fresh bucket per request and bypass limits entirely.
 	 */
 	trustProxy: boolean;
+	/**
+	 * Expose the additive semantic atom envelope on read endpoints. Default-off
+	 * until identity/context ingestion and consumer compatibility are verified.
+	 */
+	atomSemanticReadsEnabled: boolean;
 };
 
 function parseAuthMode(raw: string | undefined): ApiAuthMode {
@@ -31,6 +36,17 @@ function parseAuthMode(raw: string | undefined): ApiAuthMode {
 		return mode;
 	}
 	throw new Error(`API_AUTH must be one of: open, public-read, gated (got "${raw}")`);
+}
+
+export function parseBooleanFlag(raw: string | undefined, name: string): boolean {
+	const normalized = (raw ?? 'false').trim().toLowerCase();
+	if (normalized === 'true' || normalized === '1') {
+		return true;
+	}
+	if (normalized === 'false' || normalized === '0' || normalized === '') {
+		return false;
+	}
+	throw new Error(`${name} must be true, false, 1, or 0 (got "${raw}")`);
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): ApiConfig {
@@ -49,5 +65,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 		authMode: parseAuthMode(env.API_AUTH),
 		rateLimitRpm: Number.parseInt(env.API_RATE_LIMIT_RPM ?? '120', 10),
 		trustProxy: (env.API_TRUST_PROXY ?? '').trim() === '1',
+		atomSemanticReadsEnabled: parseBooleanFlag(
+			env.API_ATOM_SEMANTIC_READS_ENABLED,
+			'API_ATOM_SEMANTIC_READS_ENABLED'
+		),
 	};
 }

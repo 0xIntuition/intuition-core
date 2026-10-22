@@ -139,7 +139,7 @@ describe('builtin profile modularity', () => {
 		const fixtures: Array<{
 			domain: (typeof profiles)[number]['domain'];
 			classification: ClassificationClientClassificationHint;
-			expectedSchemaType: string;
+			expectedSchemaType: string | null;
 		}> = [
 			{
 				domain: 'spotify',
@@ -274,7 +274,7 @@ describe('builtin profile modularity', () => {
 						titleId: 'tt0133093',
 					},
 				},
-				expectedSchemaType: 'Movie',
+				expectedSchemaType: null,
 			},
 			{
 				domain: 'tmdb',
@@ -307,6 +307,10 @@ describe('builtin profile modularity', () => {
 				now: new Date().toISOString(),
 			});
 
+			if (fixture.expectedSchemaType === null) {
+				expect(atom).toBeNull();
+				continue;
+			}
 			expect(atom?.schemaType).toBe(fixture.expectedSchemaType);
 			expect(atom?.metadata?.platform).toBe(fixture.domain);
 		}

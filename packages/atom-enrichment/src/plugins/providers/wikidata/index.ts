@@ -1,8 +1,15 @@
+import { pickWikidataLabel } from '../../../extraction/wikidata-claims';
 import { defineEnrichmentPlugin, type EnrichmentPlugin } from '../../../plugins';
 import type { EnrichmentRequest } from '../../../types';
 import { type FetchLike, fetchJsonWithSchema } from '../__shared__/http';
-import { getIdentifier, getRequestName, getRequestUrl } from '../__shared__/request';
-import { wikidataEntityLookupResponseSchema, wikidataSearchResponseSchema } from './external';
+import {
+	getIdentifier,
+	getRequestName,
+	getRequestUrl,
+	isSynthesizedProviderPlaceholderTitle,
+} from '../__shared__/request';
+import { fetchWikidataEntity, wikidataTypeAgreement } from '../__shared__/wikidata-type';
+import { wikidataSearchResponseSchema } from './external';
 import { wikidataDataSchema } from './schema';
 
 type CreateWikidataPluginOptions = {
@@ -56,14 +63,18 @@ export function createWikidataPlugin(options: CreateWikidataPluginOptions = {}):
 		TTL: options.TTL ?? 43_200,
 
 		supports(request: EnrichmentRequest) {
-			return !!resolveWikidataEntityId(request) || !!getRequestName(request);
+			return (
+				!!resolveWikidataEntityId(request) ||
+				(!!getRequestName(request) && !isSynthesizedProviderPlaceholderTitle(request))
+			);
 		},
 
 		async enrich(request, ctx) {
 			let entityId = resolveWikidataEntityId(request);
+			const identityStrength = entityId ? 'identifier' : 'title';
 			if (!entityId) {
 				const name = getRequestName(request);
-				if (!name) {
+				if (!name || isSynthesizedProviderPlaceholderTitle(request, name)) {
 					return [];
 				}
 
@@ -73,24 +84,28 @@ export function createWikidataPlugin(options: CreateWikidataPluginOptions = {}):
 				}
 			}
 
-			const payload = await fetchJsonWithSchema(
-				fetcher,
-				`https://www.wikidata.org/wiki/Special:EntityData/${encodeURIComponent(entityId)}.json`,
-				wikidataEntityLookupResponseSchema,
-				{ signal: ctx.signal }
-			);
-
-			const entity = payload.entities?.[entityId];
+			const entity = await fetchWikidataEntity(fetcher, entityId, ctx.signal);
 			if (!entity) {
 				return [];
 			}
+			const agreement =
+				identityStrength === 'title'
+					? wikidataTypeAgreement(
+							entity.claims,
+							request.input.jsonLd['@type'],
+							ctx.identity,
+							ctx.logger,
+							ctx.signal
+						)
+					: 'unknown';
+			if (agreement === 'mismatch') return [];
 
-			const label = pickLocalizedValue(entity.labels, [language, 'en']) ?? entity.id;
+			const label = pickWikidataLabel(entity.labels, language) ?? entity.id;
 			if (!label) {
 				return [];
 			}
 
-			const description = pickLocalizedValue(entity.descriptions, [language, 'en']);
+			const description = pickWikidataLabel(entity.descriptions, language);
 			const aliases = pickAliases(entity.aliases, [language, 'en']);
 			const sitelinks = normalizeSitelinks(entity.sitelinks);
 			const sourceUrl = sitelinks?.enwiki ?? `https://www.wikidata.org/wiki/${entityId}`;
@@ -109,6 +124,7 @@ export function createWikidataPlugin(options: CreateWikidataPluginOptions = {}):
 					}),
 					meta: {
 						pluginId: 'wikidata',
+						...(agreement === 'agree' ? {} : { identityStrength }),
 						provider: 'wikidata',
 						fetchedAt: ctx.now(),
 						sourceUrl,
@@ -179,30 +195,6 @@ function parseWikidataEntityIdFromUrl(url: string): string | undefined {
 	} catch {
 		return undefined;
 	}
-}
-
-function pickLocalizedValue(
-	map: Record<string, WikidataMonolingualValue> | undefined,
-	preferredLocales: string[]
-): string | undefined {
-	if (!map) {
-		return undefined;
-	}
-
-	for (const locale of preferredLocales) {
-		const value = map[locale]?.value;
-		if (typeof value === 'string' && value.length > 0) {
-			return value;
-		}
-	}
-
-	for (const entry of Object.values(map)) {
-		if (typeof entry.value === 'string' && entry.value.length > 0) {
-			return entry.value;
-		}
-	}
-
-	return undefined;
 }
 
 function pickAliases(

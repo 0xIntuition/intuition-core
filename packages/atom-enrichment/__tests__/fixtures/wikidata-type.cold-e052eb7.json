@@ -1,0 +1,70 @@
+{
+	"baseCommit": "e052eb77804fbac125df6eaca5c1c5826fb5a8c6",
+	"provenance": "Recorded before production edits using original base provider modules, wikidata/external.ts and __shared__/wikidata-type.ts loaded in memory from Git objects. Other shared modules and the engine are the current worktree. Fixed clock; injected fetch; no identity; serialized artifacts and error codes only.",
+	"outputs": {
+		"wikipedia: valid film": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: P31: {}": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: missing claims": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: non-array P31": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: 503 on entity": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: invalid JSON": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: QID-resolved": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"title\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikipedia: URL-resolved": {
+			"artifacts": "[{\"artifact_type\":\"wikipedia\",\"data\":{\"title\":\"Shared title\",\"extract\":\"Description\",\"pageUrl\":\"https://en.wikipedia.org/wiki/Shared_title\",\"language\":\"en\",\"wikibaseItem\":\"Q123\"},\"meta\":{\"pluginId\":\"wikipedia\",\"identityStrength\":\"url\",\"provider\":\"wikipedia\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://en.wikipedia.org/wiki/Shared_title\"}}]",
+			"errorCodes": []
+		},
+		"wikidata: valid film": {
+			"artifacts": "[{\"artifact_type\":\"wikidata\",\"data\":{\"entityId\":\"Q123\",\"label\":\"Shared title\",\"claims\":{\"P31\":[{\"mainsnak\":{\"datavalue\":{\"value\":{\"id\":\"Q11424\"}}}}]},\"instanceOf\":[\"Q11424\"]},\"meta\":{\"pluginId\":\"wikidata\",\"identityStrength\":\"title\",\"provider\":\"wikidata\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://www.wikidata.org/wiki/Q123\"}}]",
+			"errorCodes": []
+		},
+		"wikidata: P31: {}": {
+			"artifacts": "[]",
+			"errorCodes": ["internal_error"]
+		},
+		"wikidata: missing claims": {
+			"artifacts": "[{\"artifact_type\":\"wikidata\",\"data\":{\"entityId\":\"Q123\",\"label\":\"Shared title\"},\"meta\":{\"pluginId\":\"wikidata\",\"identityStrength\":\"title\",\"provider\":\"wikidata\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://www.wikidata.org/wiki/Q123\"}}]",
+			"errorCodes": []
+		},
+		"wikidata: non-array P31": {
+			"artifacts": "[]",
+			"errorCodes": ["internal_error"]
+		},
+		"wikidata: 503 on entity": {
+			"artifacts": "[]",
+			"errorCodes": ["upstream_error"]
+		},
+		"wikidata: invalid JSON": {
+			"artifacts": "[]",
+			"errorCodes": ["internal_error"]
+		},
+		"wikidata: QID-resolved": {
+			"artifacts": "[{\"artifact_type\":\"wikidata\",\"data\":{\"entityId\":\"Q123\",\"label\":\"Shared title\",\"claims\":{\"P31\":[{\"mainsnak\":{\"datavalue\":{\"value\":{\"id\":\"Q11424\"}}}}]},\"instanceOf\":[\"Q11424\"]},\"meta\":{\"pluginId\":\"wikidata\",\"identityStrength\":\"identifier\",\"provider\":\"wikidata\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://www.wikidata.org/wiki/Q123\"}}]",
+			"errorCodes": []
+		},
+		"wikidata: URL-resolved": {
+			"artifacts": "[{\"artifact_type\":\"wikidata\",\"data\":{\"entityId\":\"Q123\",\"label\":\"Shared title\",\"claims\":{\"P31\":[{\"mainsnak\":{\"datavalue\":{\"value\":{\"id\":\"Q11424\"}}}}]},\"instanceOf\":[\"Q11424\"]},\"meta\":{\"pluginId\":\"wikidata\",\"identityStrength\":\"identifier\",\"provider\":\"wikidata\",\"fetchedAt\":\"2026-10-04T12:00:00.000Z\",\"sourceUrl\":\"https://www.wikidata.org/wiki/Q123\"}}]",
+			"errorCodes": []
+		}
+	}
+}

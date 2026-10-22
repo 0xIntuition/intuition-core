@@ -5,6 +5,7 @@
 
 import type { EnrichmentArtifact } from '../types';
 import { pickPrimaryJsonLdType } from './page-native';
+import { getIdentityArtifacts } from './quarantine';
 import { parseMicrodata, parseWikidata } from './shared';
 
 // Wikidata P31 (instance of) entity ids → classification spec slugs.
@@ -205,5 +206,7 @@ export function suggestClassifications(
 	url: string,
 	artifacts: readonly EnrichmentArtifact[]
 ): string[] {
-	return [...new Set([...suggestFromUrl(url), ...suggestFromArtifacts(artifacts)])];
+	return [
+		...new Set([...suggestFromUrl(url), ...suggestFromArtifacts(getIdentityArtifacts(artifacts))]),
+	];
 }

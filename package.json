@@ -20,6 +20,7 @@
 		"scope:dry-run": "bun run scripts/scope-dry-run.ts",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
+		"test:conformance": "bun test tests/iid-uri-creation-conformance.test.ts",
 		"dev": "turbo run dev",
 		"dev:local": "scripts/dev-local.sh",
 		"dev:local:dry-run": "scripts/dev-local.sh --dry-run",
@@ -35,6 +36,7 @@
 		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs",
 		"preinstall": "node scripts/enforce-bun-install.mjs",
 		"devnet:deploy": "bun run --cwd packages/contracts devnet:deploy",
+		"devnet:fixtures:iid": "bun run --cwd packages/contracts scripts/devnet-create-iid-fixtures.ts",
 		"abis:sync": "bun run scripts/sync-abis.ts",
 		"abis:check": "bun run scripts/sync-abis.ts --check",
 		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy"

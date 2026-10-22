@@ -77,8 +77,7 @@ export function createAmazonDomainApiAdapter(
 			},
 		});
 		if (!response.ok) {
-			const body = await safeReadBody(response);
-			throw new Error(`HTTP ${response.status} from Canopy Amazon API.${body ? ` ${body}` : ''}`);
+			throw new Error(`HTTP ${response.status} from Canopy Amazon API.`);
 		}
 
 		const payload = (await response.json()) as CanopyAmazonProductPayload;
@@ -167,13 +166,4 @@ function buildAmazonDescription(
 function resolveGlobalFetch(): FetchLike | undefined {
 	const globalFetch = (globalThis as { fetch?: FetchLike }).fetch;
 	return typeof globalFetch === 'function' ? globalFetch : undefined;
-}
-
-async function safeReadBody(response: { text(): Promise<string> }): Promise<string | undefined> {
-	try {
-		const text = (await response.text()).trim();
-		return text.length > 0 ? text : undefined;
-	} catch {
-		return undefined;
-	}
 }

@@ -30,8 +30,8 @@
 use chrono::{DateTime, Utc};
 
 use crate::models::{
-    AtomCreatedRecord, DepositedRecord, ProtocolFeeAccruedRecord, RedeemedRecord,
-    SharePriceChangedRecord, StoredEvent, TripleCreatedRecord,
+    AtomContextRegisteredRecord, AtomCreatedRecord, DepositedRecord, ProtocolFeeAccruedRecord,
+    RedeemedRecord, SharePriceChangedRecord, StoredEvent, TripleCreatedRecord,
 };
 use crate::types::{BlockNumber, LogIndex, SequenceNumber};
 
@@ -111,6 +111,11 @@ pub enum ParsedEvent {
     AtomCreated {
         metadata: EventMetadata,
         data: AtomCreatedRecord,
+    },
+    /// `AtomContextRegistered` event with ordered opaque URI bytes.
+    AtomContextRegistered {
+        metadata: EventMetadata,
+        data: AtomContextRegisteredRecord,
     },
     /// `TripleCreated` event with validated fields.
     TripleCreated {
@@ -266,6 +271,12 @@ impl ParsedEvent {
                     event.event_data
                 )
             }
+            EventType::AtomContextRegistered => parse_variant!(
+                EventType::AtomContextRegistered,
+                AtomContextRegistered,
+                metadata,
+                event.event_data
+            ),
             EventType::TripleCreated => parse_variant!(
                 EventType::TripleCreated,
                 TripleCreated,
@@ -301,6 +312,7 @@ impl ParsedEvent {
     pub fn metadata(&self) -> EventMetadataRef<'_> {
         match self {
             Self::AtomCreated { metadata, .. }
+            | Self::AtomContextRegistered { metadata, .. }
             | Self::TripleCreated { metadata, .. }
             | Self::Deposited { metadata, .. }
             | Self::Redeemed { metadata, .. }
@@ -315,6 +327,7 @@ impl ParsedEvent {
     pub fn event_type(&self) -> &str {
         match self {
             Self::AtomCreated { metadata, .. }
+            | Self::AtomContextRegistered { metadata, .. }
             | Self::TripleCreated { metadata, .. }
             | Self::Deposited { metadata, .. }
             | Self::Redeemed { metadata, .. }
@@ -329,6 +342,7 @@ impl ParsedEvent {
     pub fn sequence_number(&self) -> SequenceNumber {
         match self {
             Self::AtomCreated { metadata, .. }
+            | Self::AtomContextRegistered { metadata, .. }
             | Self::TripleCreated { metadata, .. }
             | Self::Deposited { metadata, .. }
             | Self::Redeemed { metadata, .. }
@@ -359,6 +373,7 @@ impl ParsedEvent {
         match self {
             Self::Unknown(e) => Ok(e.clone()),
             Self::AtomCreated { metadata, data } => reserialise!(metadata, data),
+            Self::AtomContextRegistered { metadata, data } => reserialise!(metadata, data),
             Self::TripleCreated { metadata, data } => reserialise!(metadata, data),
             Self::Deposited { metadata, data } => reserialise!(metadata, data),
             Self::Redeemed { metadata, data } => reserialise!(metadata, data),
@@ -502,6 +517,7 @@ fn _event_type_exhaustive_check(et: crate::types::EventType) -> &'static str {
     use crate::types::EventType;
     match et {
         EventType::AtomCreated => "AtomCreated",
+        EventType::AtomContextRegistered => "AtomContextRegistered",
         EventType::TripleCreated => "TripleCreated",
         EventType::Deposited => "Deposited",
         EventType::Redeemed => "Redeemed",
@@ -515,6 +531,7 @@ fn _parsed_event_exhaustive_check(e: &ParsedEvent) -> Option<crate::types::Event
     use crate::types::EventType;
     match e {
         ParsedEvent::AtomCreated { .. } => Some(EventType::AtomCreated),
+        ParsedEvent::AtomContextRegistered { .. } => Some(EventType::AtomContextRegistered),
         ParsedEvent::TripleCreated { .. } => Some(EventType::TripleCreated),
         ParsedEvent::Deposited { .. } => Some(EventType::Deposited),
         ParsedEvent::Redeemed { .. } => Some(EventType::Redeemed),
@@ -597,6 +614,21 @@ mod tests {
                 "term_id": HEX_7,
                 "atom_data": "ipfs://QmFoo",
                 "atom_wallet": "0xWallet"
+            }),
+        )
+    }
+
+    fn atom_context_registered_event() -> StoredEvent {
+        make_stored(
+            "AtomContextRegistered",
+            json!({
+                "registrant": "0xRegistrant",
+                "term_id": HEX_7,
+                "uris": [
+                    "0x68747470733a2f2f6578616d706c652e636f6d",
+                    "0xff00",
+                    "0x68747470733a2f2f6578616d706c652e636f6d"
+                ]
             }),
         )
     }
@@ -704,6 +736,42 @@ mod tests {
         assert_eq!(data.creator, "0xCreator");
         assert_eq!(data.atom_data, "ipfs://QmFoo");
         assert_eq!(data.atom_wallet, "0xWallet");
+    }
+
+    #[test]
+    fn parse_atom_context_registered_preserves_ordered_opaque_uri_bytes() {
+        let parsed = ParsedEvent::parse(atom_context_registered_event())
+            .expect("AtomContextRegistered parse should succeed");
+        let ParsedEvent::AtomContextRegistered { metadata, data } = parsed else {
+            panic!("expected AtomContextRegistered variant");
+        };
+
+        assert_eq!(metadata.sequence_number, 42);
+        assert_eq!(data.registrant, "0xRegistrant");
+        assert_eq!(data.term_id, HEX_7);
+        assert_eq!(
+            data.uris,
+            vec![
+                "0x68747470733a2f2f6578616d706c652e636f6d",
+                "0xff00",
+                "0x68747470733a2f2f6578616d706c652e636f6d",
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_atom_context_registered_rejects_scalar_uri_payload() {
+        let event = make_stored(
+            "AtomContextRegistered",
+            json!({
+                "registrant": "0xRegistrant",
+                "term_id": HEX_7,
+                "uris": "0xff00"
+            }),
+        );
+
+        let error = ParsedEvent::parse(event).expect_err("scalar uris must not be accepted");
+        assert_eq!(error.event_type, "AtomContextRegistered");
     }
 
     #[test]
@@ -837,6 +905,11 @@ mod tests {
     #[test]
     fn round_trip_atom_created() {
         assert_round_trip(atom_created_event());
+    }
+
+    #[test]
+    fn round_trip_atom_context_registered() {
+        assert_round_trip(atom_context_registered_event());
     }
 
     #[test]

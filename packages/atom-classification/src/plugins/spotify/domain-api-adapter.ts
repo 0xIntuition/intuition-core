@@ -331,7 +331,7 @@ function mapSpotifyPayloadToResolverAtom(input: {
 
 		return {
 			schemaType: 'MusicAlbum',
-			category: 'song',
+			category: 'music-album',
 			title: name,
 			canonicalId: `spotify:album:${spotifyId}`,
 			sameAs: [spotifyUrl],
@@ -363,7 +363,7 @@ function mapSpotifyPayloadToResolverAtom(input: {
 
 		return {
 			schemaType: 'MusicGroup',
-			category: 'song',
+			category: 'artist',
 			title: name,
 			canonicalId: `spotify:artist:${spotifyId}`,
 			sameAs: [spotifyUrl],

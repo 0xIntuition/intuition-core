@@ -348,6 +348,8 @@ async function fetchSpotifyData(params: {
 	durationMs?: number;
 	popularity?: number;
 	isrc?: string;
+	upc?: string;
+	ean?: string;
 	genres?: string[];
 	totalEpisodes?: number;
 	languages?: string[];
@@ -408,6 +410,8 @@ async function fetchSpotifyData(params: {
 			durationMs: payload.duration_ms,
 			popularity: payload.popularity,
 			isrc: payload.external_ids?.isrc,
+			upc: payload.external_ids?.upc,
+			ean: payload.external_ids?.ean,
 		});
 	}
 
@@ -441,6 +445,9 @@ async function fetchSpotifyData(params: {
 				.filter((entry): entry is { name: string; spotifyId: string } => !!entry),
 			releaseDate: payload.release_date,
 			popularity: payload.popularity,
+			isrc: payload.external_ids?.isrc,
+			upc: payload.external_ids?.upc,
+			ean: payload.external_ids?.ean,
 			genres: payload.genres,
 		});
 	}
