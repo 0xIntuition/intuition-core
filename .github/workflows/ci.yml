@@ -37,6 +37,9 @@ jobs:
       - name: Test
         run: bun run test
 
+      - name: Published atom runtime consumer contracts
+        run: bun run test:atom-runtime
+
       - name: Validate compose config
         run: |
           docker compose config -q
