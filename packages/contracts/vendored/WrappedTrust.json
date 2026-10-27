@@ -1,6 +1,6 @@
 {
 	"contractName": "WrappedTrust",
-	"source": "@0xintuition/contracts-v2@1.0.0-alpha.0 src/WrappedTrust.sol",
+	"source": "@0xintuition/contracts-v2@1.1.0-alpha.0 src/WrappedTrust.sol",
 	"compiler": {
 		"solc": "0.8.29",
 		"optimizerRuns": 10000,

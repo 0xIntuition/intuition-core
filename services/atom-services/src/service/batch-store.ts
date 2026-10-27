@@ -5,6 +5,7 @@ import type {
 	ProcessBatchSubmitResponse,
 	ProcessResponse,
 } from '../contracts';
+import { redactErrorMessage } from './redaction';
 
 type BatchJobRecord = ProcessBatchStatusResponse;
 
@@ -92,7 +93,7 @@ export class InMemoryProcessBatchStore {
 					response: null,
 					error: {
 						code: 'BATCH_ITEM_FAILED',
-						message: error instanceof Error ? error.message : 'Batch item execution failed.',
+						message: redactErrorMessage(error, 'Batch item execution failed.'),
 					},
 				});
 			}

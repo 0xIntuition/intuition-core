@@ -1,7 +1,10 @@
 # projections — event store → typed read models + graph.
 # Build context: repo root.
 
-FROM rust:1-slim AS builder
+# Match the pinned toolchain used by the ingestion image and CI. A floating
+# `rust:1-slim` tag makes two services in the same release build with
+# potentially different compilers.
+FROM rust:1.97.1-slim-bookworm@sha256:99e09cb2284e2ddbb73a995deee3e91783fd04d177602ccf6eab326d778ee777 AS builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -12,6 +15,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY Cargo.toml ./
+COPY Cargo.lock ./
 COPY crates/shared/Cargo.toml ./crates/shared/
 COPY crates/rindexer-ingestion/Cargo.toml ./crates/rindexer-ingestion/
 COPY crates/projections/Cargo.toml ./crates/projections/
@@ -22,15 +26,15 @@ RUN mkdir -p crates/shared/src && echo "" > crates/shared/src/lib.rs \
     && mkdir -p crates/projections/src && echo "fn main() {}" > crates/projections/src/main.rs \
     && mkdir -p crates/curves/src && echo "" > crates/curves/src/lib.rs
 
-RUN cargo build --release -p projections || true
+RUN cargo build --locked --release -p projections
 
 COPY crates/shared ./crates/shared
 COPY crates/curves ./crates/curves
 COPY crates/projections ./crates/projections
 RUN touch crates/shared/src/lib.rs crates/curves/src/lib.rs crates/projections/src/main.rs \
-    && cargo build --release -p projections
+	&& cargo build --locked --release -p projections
 
-FROM debian:trixie-slim
+FROM debian:trixie-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258
 
 ARG VERSION=dev
 ARG VCS_REF=unknown

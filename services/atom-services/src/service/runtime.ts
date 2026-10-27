@@ -17,6 +17,7 @@ import {
 	createUpstashCacheAdapterFromEnv,
 	cryptoPreset,
 	type CacheAdapter as EnrichmentCacheAdapter,
+	type EnrichmentIdentityCapability,
 	type EnrichmentPlugin,
 	musicPreset,
 	serverDefaultPreset,
@@ -30,6 +31,7 @@ export type ProcessingRuntimeOptions = {
 	classificationMemoryCacheMaxEntries: number;
 	classificationResolverCacheTtlMs: number;
 	cacheHttpTimeoutMs: number;
+	cacheEnvVarName?: string;
 	env: Record<string, string | undefined>;
 };
 
@@ -78,6 +80,7 @@ export function createPresetFactories(
 export function createCacheRuntime(options: ProcessingRuntimeOptions): CacheRuntime {
 	const warnings: string[] = [];
 	const classificationResolverCacheTtlMs = options.classificationResolverCacheTtlMs;
+	const cacheEnvVarName = options.cacheEnvVarName ?? 'ATOM_SERVICES_CACHE_PROVIDER';
 
 	if (options.cacheProvider === 'none') {
 		return {
@@ -110,7 +113,7 @@ export function createCacheRuntime(options: ProcessingRuntimeOptions): CacheRunt
 		}
 
 		warnings.push(
-			'ATOM_SERVICES_CACHE_PROVIDER=upstash requested, but UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are missing. Falling back to in-memory cache.'
+			`${cacheEnvVarName}=upstash requested, but UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are missing. Falling back to in-memory cache.`
 		);
 	}
 
@@ -127,12 +130,15 @@ export function createCacheRuntime(options: ProcessingRuntimeOptions): CacheRunt
 	};
 }
 
-export function createClassificationRuntime(options: ProcessingRuntimeOptions) {
+export function createClassificationRuntime(
+	options: ProcessingRuntimeOptions,
+	existingCacheRuntime?: CacheRuntime
+) {
 	const canopyApiKey = options.env.CANOPY_API_KEY;
 	const spotifyClientId = options.env.SPOTIFY_CLIENT_ID;
 	const spotifyClientSecret = options.env.SPOTIFY_CLIENT_SECRET;
 	const xBearerToken = options.env.X_BEARER_TOKEN;
-	const cacheRuntime = createCacheRuntime(options);
+	const cacheRuntime = existingCacheRuntime ?? createCacheRuntime(options);
 
 	return {
 		engine: createServerEngine({
@@ -180,15 +186,22 @@ export function createClassificationRuntime(options: ProcessingRuntimeOptions) {
 	};
 }
 
-export function createEnrichmentRuntime(options: ProcessingRuntimeOptions) {
-	const cacheRuntime = createCacheRuntime(options);
+export function createEnrichmentRuntime(
+	options: ProcessingRuntimeOptions,
+	existingCacheRuntime?: CacheRuntime
+) {
+	const cacheRuntime = existingCacheRuntime ?? createCacheRuntime(options);
 	const presetFactories = createPresetFactories(options.env);
 
 	return {
-		createEngine: (preset: EnrichmentPreset) =>
+		createEngine: (
+			preset: EnrichmentPreset,
+			engineOptions?: { identity?: EnrichmentIdentityCapability }
+		) =>
 			createEnrichmentEngine({
 				plugins: presetFactories[preset](),
 				cache: cacheRuntime.enrichmentCache,
+				...(engineOptions?.identity ? { identity: engineOptions.identity } : {}),
 			}),
 		presetFactories,
 		presetSummary: {

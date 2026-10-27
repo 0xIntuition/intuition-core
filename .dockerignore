@@ -1,6 +1,7 @@
 .git
 .gitignore
 .planning
+.train-packages
 .github
 node_modules
 **/node_modules

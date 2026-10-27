@@ -71,6 +71,7 @@ impl PgProjection for TermAggregatesProjection {
                     process_share_price_changed_typed(metadata, data, &mut tx).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::Deposited { .. }
                 | ParsedEvent::Redeemed { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {

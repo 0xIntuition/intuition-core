@@ -1,7 +1,7 @@
 {
 	"name": "intuition-core",
 	"private": true,
-	"description": "Intuition Core — the open backend, in a box. Self-hosted indexer, atom intelligence, and a query API for the Intuition knowledge graph.",
+	"description": "Intuition Core \u2014 the open backend, in a box. Self-hosted indexer, atom intelligence, and a query API for the Intuition knowledge graph.",
 	"license": "MIT",
 	"packageManager": "bun@1.3.11",
 	"workspaces": [
@@ -20,6 +20,7 @@
 		"scope:dry-run": "bun run scripts/scope-dry-run.ts",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
+		"test:conformance": "bun test tests/iid-uri-creation-conformance.test.ts",
 		"dev": "turbo run dev",
 		"dev:local": "scripts/dev-local.sh",
 		"dev:local:dry-run": "scripts/dev-local.sh --dry-run",
@@ -35,9 +36,11 @@
 		"guard:supply-chain": "node scripts/guard-supply-chain-policy.mjs",
 		"preinstall": "node scripts/enforce-bun-install.mjs",
 		"devnet:deploy": "bun run --cwd packages/contracts devnet:deploy",
+		"devnet:fixtures:iid": "bun run --cwd packages/contracts scripts/devnet-create-iid-fixtures.ts",
 		"abis:sync": "bun run scripts/sync-abis.ts",
 		"abis:check": "bun run scripts/sync-abis.ts --check",
-		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy"
+		"testnet:deploy": "bun run --cwd packages/contracts testnet:deploy",
+		"test:atom-runtime": "bun test tests/atom-runtime-packages.test.ts tests/semantic-identity-contract.test.ts"
 	},
 	"catalog": {
 		"typescript": "^5.9.3",
@@ -53,5 +56,39 @@
 	},
 	"engines": {
 		"node": ">=20"
+	},
+	"dependencies": {
+		"@0xintuition/atom-classification": "file:./.tarballs/0xintuition-atom-classification-0.1.0-alpha.0.tgz",
+		"@0xintuition/atom-enrichment": "file:./.tarballs/0xintuition-atom-enrichment-0.1.0-alpha.0.tgz",
+		"@0xintuition/atom-parser": "file:./.tarballs/0xintuition-atom-parser-0.1.0-alpha.0.tgz",
+		"@0xintuition/classifications": "file:./.tarballs/0xintuition-classifications-0.1.0-alpha.1.tgz",
+		"@0xintuition/curves": "file:./.tarballs/0xintuition-curves-0.1.0-alpha.1.tgz",
+		"@0xintuition/deployments": "file:./.tarballs/0xintuition-deployments-0.1.0-alpha.1.tgz",
+		"@0xintuition/ids": "file:./.tarballs/0xintuition-ids-0.1.0-alpha.1.tgz",
+		"@0xintuition/iid": "file:./.tarballs/0xintuition-iid-0.1.0-alpha.0.tgz",
+		"@0xintuition/iid-ladder": "file:./.tarballs/0xintuition-iid-ladder-0.1.0-alpha.1.tgz",
+		"@0xintuition/iid-registry": "file:./.tarballs/0xintuition-iid-registry-0.1.0-alpha.0.tgz",
+		"@0xintuition/iid-spec": "file:./.tarballs/0xintuition-iid-spec-0.1.0-alpha.0.tgz",
+		"@0xintuition/pipeline-runtime": "file:./.tarballs/0xintuition-pipeline-runtime-0.1.0-alpha.0.tgz",
+		"@0xintuition/predicates": "file:./.tarballs/0xintuition-predicates-0.1.0-alpha.1.tgz",
+		"@0xintuition/protocol": "file:./.tarballs/0xintuition-protocol-4.0.0.tgz",
+		"@0xintuition/schema-org": "file:./.tarballs/0xintuition-schema-org-0.1.0-alpha.0.tgz"
+	},
+	"overrides": {
+		"@0xintuition/atom-classification": "file:./.tarballs/0xintuition-atom-classification-0.1.0-alpha.0.tgz",
+		"@0xintuition/atom-enrichment": "file:./.tarballs/0xintuition-atom-enrichment-0.1.0-alpha.0.tgz",
+		"@0xintuition/atom-parser": "file:./.tarballs/0xintuition-atom-parser-0.1.0-alpha.0.tgz",
+		"@0xintuition/classifications": "file:./.tarballs/0xintuition-classifications-0.1.0-alpha.1.tgz",
+		"@0xintuition/curves": "file:./.tarballs/0xintuition-curves-0.1.0-alpha.1.tgz",
+		"@0xintuition/deployments": "file:./.tarballs/0xintuition-deployments-0.1.0-alpha.1.tgz",
+		"@0xintuition/ids": "file:./.tarballs/0xintuition-ids-0.1.0-alpha.1.tgz",
+		"@0xintuition/iid": "file:./.tarballs/0xintuition-iid-0.1.0-alpha.0.tgz",
+		"@0xintuition/iid-ladder": "file:./.tarballs/0xintuition-iid-ladder-0.1.0-alpha.1.tgz",
+		"@0xintuition/iid-registry": "file:./.tarballs/0xintuition-iid-registry-0.1.0-alpha.0.tgz",
+		"@0xintuition/iid-spec": "file:./.tarballs/0xintuition-iid-spec-0.1.0-alpha.0.tgz",
+		"@0xintuition/pipeline-runtime": "file:./.tarballs/0xintuition-pipeline-runtime-0.1.0-alpha.0.tgz",
+		"@0xintuition/predicates": "file:./.tarballs/0xintuition-predicates-0.1.0-alpha.1.tgz",
+		"@0xintuition/protocol": "file:./.tarballs/0xintuition-protocol-4.0.0.tgz",
+		"@0xintuition/schema-org": "file:./.tarballs/0xintuition-schema-org-0.1.0-alpha.0.tgz"
 	}
 }

@@ -1,9 +1,31 @@
 import { describe, expect, test } from 'bun:test';
-import { loadWorkerConfig } from './config';
+import { loadWorkerConfig, PROCESSING_SECRET_ENV_KEYS } from './config';
 
 describe('worker config', () => {
 	test('defaults processing scope to full', () => {
 		expect(loadWorkerConfig({}).processingScope).toBe('full');
+	});
+
+	test('keeps IID read and resolution paths disabled by default', () => {
+		const config = loadWorkerConfig({});
+		expect(config.iidReadEnabled).toBe(false);
+		expect(config.iidResolutionEnabled).toBe(false);
+	});
+
+	test('allows IID read and resolution switches to be enabled independently', () => {
+		expect(loadWorkerConfig({ WORKERS_IID_READ_ENABLED: 'true' }).iidReadEnabled).toBe(true);
+		expect(loadWorkerConfig({ WORKERS_IID_RESOLUTION_ENABLED: 'true' }).iidResolutionEnabled).toBe(
+			true
+		);
+	});
+
+	test('rejects malformed IID switch values', () => {
+		expect(() => loadWorkerConfig({ WORKERS_IID_READ_ENABLED: 'yes' })).toThrow(
+			/WORKERS_IID_READ_ENABLED/
+		);
+		expect(() => loadWorkerConfig({ WORKERS_IID_RESOLUTION_ENABLED: '1' })).toThrow(
+			/WORKERS_IID_RESOLUTION_ENABLED/
+		);
 	});
 
 	test('accepts music and podcast processing scope presets', () => {
@@ -20,5 +42,24 @@ describe('worker config', () => {
 				WORKERS_PROCESSING_SCOPE: 'movies',
 			})
 		).toThrow(/WORKERS_PROCESSING_SCOPE/);
+	});
+
+	test('copies only allow-listed provider and cache keys into config.env', () => {
+		const config = loadWorkerConfig({
+			DATABASE_URL: 'postgres://secret',
+			ADMIN_API_KEY: 'super-secret-admin-key',
+			UNRELATED_SECRET: 'should-not-leak',
+			SPOTIFY_CLIENT_ID: 'spotify-id',
+			UPSTASH_REDIS_REST_TOKEN: 'upstash-token',
+		});
+
+		expect(config.env).toEqual({
+			SPOTIFY_CLIENT_ID: 'spotify-id',
+			UPSTASH_REDIS_REST_TOKEN: 'upstash-token',
+		});
+		expect(config.env.DATABASE_URL).toBeUndefined();
+		expect(config.env.ADMIN_API_KEY).toBeUndefined();
+		expect(config.env.UNRELATED_SECRET).toBeUndefined();
+		expect(PROCESSING_SECRET_ENV_KEYS).toContain('SPOTIFY_CLIENT_ID');
 	});
 });

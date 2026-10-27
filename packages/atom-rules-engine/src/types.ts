@@ -5,7 +5,7 @@ import type {
 	CanonicalEnrichmentArtifactSlug,
 	PersistedEnrichmentArtifactInput,
 	ProcessEnrichmentArtifactInput,
-} from '@0xintuition/types/enrichment';
+} from './artifacts';
 
 export type DecisionVariantId =
 	| 'spotify-track'

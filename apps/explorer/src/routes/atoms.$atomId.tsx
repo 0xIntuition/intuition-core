@@ -17,7 +17,14 @@ import {
 	Skeleton,
 } from '@/components/ui/primitives';
 import { api } from '@/lib/api';
-import { formatId, formatRelativeTime, previewData } from '@/lib/format';
+import {
+	ATOM_SEMANTIC_READS_ENABLED,
+	atomDisplayImage,
+	atomDisplayLabel,
+	contextDisplayValue,
+	safeContextHref,
+} from '@/lib/atom-presentation';
+import { formatId, formatRelativeTime } from '@/lib/format';
 import { extractImageFromRecord } from '@/lib/images';
 
 export const Route = createFileRoute('/atoms/$atomId')({
@@ -28,6 +35,12 @@ function AtomDetailPage() {
 	const { atomId } = Route.useParams();
 
 	const atom = useQuery({ queryKey: ['atom', atomId], queryFn: () => api.atom(atomId) });
+	const canonicalIid = atom.data?.data.identity?.canonical ?? null;
+	const iidCluster = useQuery({
+		queryKey: ['iid-atoms', canonicalIid],
+		queryFn: () => api.iidAtoms(canonicalIid as string, { limit: 25 }),
+		enabled: ATOM_SEMANTIC_READS_ENABLED && Boolean(canonicalIid),
+	});
 	const artifacts = useQuery({
 		queryKey: ['atom-artifacts', atomId],
 		queryFn: () => api.atomArtifacts(atomId, { limit: 50 }),
@@ -75,16 +88,14 @@ function AtomDetailPage() {
 							<AtomThumb
 								id={data.id}
 								imageUrl={
-									extractImageFromRecord(data.dataResolved) ??
+									atomDisplayImage(data) ??
 									extractImageFromRecord(
 										artifacts.data?.data.map((a) => a.extracted).find(extractImageFromRecord)
 									)
 								}
 								size={36}
 							/>
-							<span className="max-w-2xl truncate">
-								{previewData(data.data, 80) || formatId(data.id)}
-							</span>
+							<span className="max-w-2xl truncate">{atomDisplayLabel(data, 80)}</span>
 							<ClassificationBadge type={data.classificationType} />
 							<OnchainBadge isOnchain={data.isOnchain} />
 						</span>
@@ -103,6 +114,99 @@ function AtomDetailPage() {
 							<JsonViewer maxHeight={220} value={data?.data ?? null} />
 						</div>
 					</Card>
+
+					{ATOM_SEMANTIC_READS_ENABLED && data?.identity ? (
+						<Card>
+							<CardHeader hint={data.identity.profile ?? data.identity.scheme} title="Identity" />
+							<div className="p-3">
+								<JsonViewer value={data.identity} />
+							</div>
+						</Card>
+					) : null}
+
+					{ATOM_SEMANTIC_READS_ENABLED && canonicalIid ? (
+						<Card>
+							<CardHeader
+								hint={`${iidCluster.data?.data.length ?? '…'} exact match${iidCluster.data?.data.length === 1 ? '' : 'es'}`}
+								title="Same identity"
+							/>
+							{iidCluster.isLoading ? (
+								<div className="space-y-2 p-3">
+									<Skeleton className="h-10 w-full" />
+								</div>
+							) : iidCluster.error ? (
+								<div className="p-3">
+									<ErrorNote error={iidCluster.error} />
+								</div>
+							) : iidCluster.data && iidCluster.data.data.length > 0 ? (
+								<ul className="divide-y divide-border/60">
+									{iidCluster.data.data.map((member) => (
+										<li key={member.id}>
+											<Link
+												className="flex items-center gap-2 px-3 py-2 hover:bg-surface-2"
+												params={{ atomId: member.id }}
+												to="/atoms/$atomId"
+											>
+												<AtomThumb id={member.id} imageUrl={atomDisplayImage(member)} />
+												<span className="min-w-0 flex-1 truncate text-[12px]">
+													{atomDisplayLabel(member, 64)}
+												</span>
+												{member.id === atomId ? (
+													<span className="text-[10px] uppercase text-faint">current</span>
+												) : null}
+											</Link>
+										</li>
+									))}
+								</ul>
+							) : (
+								<EmptyState>No public atoms currently share this exact IID.</EmptyState>
+							)}
+						</Card>
+					) : null}
+
+					{ATOM_SEMANTIC_READS_ENABLED && data?.context ? (
+						<Card>
+							<CardHeader
+								hint={`${data.context.length} on-chain entr${data.context.length === 1 ? 'y' : 'ies'}`}
+								title="Atom context"
+							/>
+							{data.context.length > 0 ? (
+								<ol className="divide-y divide-border/60">
+									{data.context.map((entry) => {
+										const label = contextDisplayValue(entry);
+										const href = safeContextHref(entry);
+										return (
+											<li
+												className="flex items-start gap-3 px-3 py-2"
+												key={`${entry.eventSequence ?? entry.transactionHash ?? 'context'}:${entry.ordinal}`}
+											>
+												<span className="font-mono text-[11px] text-faint tabular-nums">
+													{entry.eventSequence ? `${entry.eventSequence}:` : ''}
+													{entry.ordinal}
+												</span>
+												{href ? (
+													<a
+														className="min-w-0 break-all text-[12px] text-accent hover:underline"
+														href={href}
+														rel="noreferrer noopener"
+														target="_blank"
+													>
+														{label}
+													</a>
+												) : (
+													<span className="min-w-0 break-all font-mono text-[12px] text-muted">
+														{label}
+													</span>
+												)}
+											</li>
+										);
+									})}
+								</ol>
+							) : (
+								<EmptyState>No context URIs were registered for this atom.</EmptyState>
+							)}
+						</Card>
+					) : null}
 
 					{data?.dataResolved != null && Object.keys(data.dataResolved as object).length > 0 ? (
 						<Card>

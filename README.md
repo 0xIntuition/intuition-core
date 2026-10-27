@@ -487,7 +487,7 @@ Details: **[docs/local-devnet.md](./docs/local-devnet.md)**.
 | **workers** | `services/workers` | lease-based parse → classify → enrich over every new atom |
 | **api** | `services/api` | REST reads + key-gated, attributed writes |
 | **atom-services** | `services/atom-services` | stateless `POST /v1/classify` · `/v1/enrich` · `/v1/process` |
-| **atom intelligence** | `packages/atom-*` | the parser, 17 classification plugins, enrichment adapters, rules engine |
+| **atom intelligence** | published `@0xintuition/atom-parser`, `atom-classification`, `atom-enrichment`; local `packages/atom-rules-engine` | shared parsing/classification/enrichment runtimes, with Core worker orchestration and rules |
 | **data layer** | `packages/database-*`, `migrations/` | schemas + versioned, auto-applied migrations |
 | **protocol surface** | `packages/contracts` | pinned [`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2) ABIs, address book, devnet deployer |
 | **explorer** | `apps/explorer` | dashboard + data explorer — service health, pipeline status, atoms/triples/artifacts; the reference API consumer |
@@ -549,7 +549,7 @@ Scoped indexing plan: **[docs/indexing-scope.md](./docs/indexing-scope.md)**.
 intuition-core/
 ├─ apps/            web apps — explorer (dashboard + data explorer on :3100)
 ├─ crates/          Rust — shared · rindexer-ingestion · projections · curves
-├─ packages/        TypeScript libraries — atom-* intelligence · database schemas · contracts · types
+├─ packages/        TypeScript libraries — rules engine · database schemas · contracts · types
 ├─ services/        deployable services — api · workers · atom-services
 ├─ migrations/      event-store SQL migrations (TimescaleDB)
 ├─ docker/          per-service Dockerfiles

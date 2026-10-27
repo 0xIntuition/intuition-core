@@ -30,6 +30,14 @@ const workerConfigSchema = z
 		WORKERS_ENRICHMENT_VERSION: z.string().min(1).max(64).default('v1'),
 		WORKERS_DEFAULT_PRESET: enrichmentPresetSchema.default('default'),
 		WORKERS_PROCESSING_SCOPE: z.enum(PROCESSING_SCOPE_PRESETS).default('full'),
+		WORKERS_IID_READ_ENABLED: z
+			.enum(['true', 'false'])
+			.default('false')
+			.transform((value) => value === 'true'),
+		WORKERS_IID_RESOLUTION_ENABLED: z
+			.enum(['true', 'false'])
+			.default('false')
+			.transform((value) => value === 'true'),
 		WORKERS_CACHE_PROVIDER: z.enum(['memory', 'none', 'upstash']).default('memory'),
 		WORKERS_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).default(500),
 		WORKERS_CLASSIFICATION_MEMORY_CACHE_MAX_ENTRIES: z.coerce.number().int().min(10).optional(),
@@ -95,6 +103,8 @@ export type WorkerConfig = {
 	enrichmentVersion: string;
 	defaultPreset: z.infer<typeof enrichmentPresetSchema>;
 	processingScope: ProcessingScopePreset;
+	iidReadEnabled: boolean;
+	iidResolutionEnabled: boolean;
 	cacheProvider: 'memory' | 'none' | 'upstash';
 	memoryCacheMaxEntries: number;
 	classificationMemoryCacheMaxEntries: number;
@@ -114,6 +124,37 @@ export type WorkerConfig = {
 	};
 	env: Record<string, string | undefined>;
 };
+
+export const PROCESSING_SECRET_ENV_KEYS = [
+	'BRANDFETCH_API_KEY',
+	'CANOPY_API_KEY',
+	'COINGECKO_API_KEY',
+	'ETHERSCAN_API_KEY',
+	'GITHUB_TOKEN',
+	'GOOGLE_PLACES_API_KEY',
+	'PODCAST_INDEX_API_KEY',
+	'PODCAST_INDEX_API_SECRET',
+	'SPOTIFY_CLIENT_ID',
+	'SPOTIFY_CLIENT_SECRET',
+	'SPOTIFY_MARKET',
+	'TMDB_API_KEY',
+	'UPSTASH_REDIS_REST_TOKEN',
+	'UPSTASH_REDIS_REST_URL',
+	'X_BEARER_TOKEN',
+	'YOUTUBE_API_KEY',
+] as const;
+
+export function pickProcessingEnv(
+	source: Record<string, string | undefined>
+): Record<string, string | undefined> {
+	const picked: Record<string, string | undefined> = {};
+	for (const key of PROCESSING_SECRET_ENV_KEYS) {
+		if (source[key] !== undefined) {
+			picked[key] = source[key];
+		}
+	}
+	return picked;
+}
 
 export function loadWorkerConfig(
 	source: Record<string, string | undefined> = process.env
@@ -145,6 +186,8 @@ export function loadWorkerConfig(
 		enrichmentVersion: parsed.WORKERS_ENRICHMENT_VERSION,
 		defaultPreset: parsed.WORKERS_DEFAULT_PRESET,
 		processingScope: parsed.WORKERS_PROCESSING_SCOPE,
+		iidReadEnabled: parsed.WORKERS_IID_READ_ENABLED,
+		iidResolutionEnabled: parsed.WORKERS_IID_RESOLUTION_ENABLED,
 		cacheProvider: parsed.WORKERS_CACHE_PROVIDER,
 		memoryCacheMaxEntries: parsed.WORKERS_MEMORY_CACHE_MAX_ENTRIES,
 		classificationMemoryCacheMaxEntries:
@@ -164,6 +207,6 @@ export function loadWorkerConfig(
 			inspectBytes: parsed.WORKERS_PARSE_INSPECT_BYTES,
 			ipfsGatewayBaseUrl: parsed.WORKERS_PARSE_IPFS_GATEWAY_BASE_URL,
 		},
-		env: source,
+		env: pickProcessingEnv(source),
 	};
 }

@@ -703,7 +703,7 @@ All configuration is via environment variables:
 | `PROJECTIONS_POLL_INTERVAL_MS` | No | `1000` | Sleep time (ms) when caught up |
 | `LEADERBOARD_REFRESH_INTERVAL_SECS` | No | `30` | Leaderboard batch refresh interval |
 | `POSITION_TRACKING_SHARDS` | No | `4` | Number of shards for vault_state + position_tracking |
-| `USE_TYPED_READER` | No | `false` | Use per-type typed tables instead of monolithic event_store |
+| `USE_TYPED_READER` | No | `false` for the standalone binary; `true` in Core Compose | Use per-type typed tables instead of monolithic event_store. Required for `atom_context:dual`. |
 | `ENABLED_PROJECTIONS` | No | -- | Comma-separated whitelist of projections to run |
 | `DISABLED_PROJECTIONS` | No | -- | Comma-separated blacklist of projections to skip |
 | `PG_POOL_MAX_CONNECTIONS` | No | Auto-calculated | Override PG connection pool size (default: `3 × num_projections + 5`) |

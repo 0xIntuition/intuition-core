@@ -31,6 +31,7 @@ pub type EntityId = String;
 #[serde(rename_all = "PascalCase")]
 pub enum EventType {
     AtomCreated,
+    AtomContextRegistered,
     TripleCreated,
     Deposited,
     Redeemed,
@@ -42,6 +43,7 @@ impl EventType {
     pub fn as_str(&self) -> &'static str {
         match self {
             EventType::AtomCreated => "AtomCreated",
+            EventType::AtomContextRegistered => "AtomContextRegistered",
             EventType::TripleCreated => "TripleCreated",
             EventType::Deposited => "Deposited",
             EventType::Redeemed => "Redeemed",
@@ -82,6 +84,7 @@ impl std::str::FromStr for EventType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "AtomCreated" => Ok(Self::AtomCreated),
+            "AtomContextRegistered" => Ok(Self::AtomContextRegistered),
             "TripleCreated" => Ok(Self::TripleCreated),
             "Deposited" => Ok(Self::Deposited),
             "Redeemed" => Ok(Self::Redeemed),
@@ -103,6 +106,7 @@ mod event_type_tests {
     fn from_str_round_trips_every_variant() {
         let variants = [
             EventType::AtomCreated,
+            EventType::AtomContextRegistered,
             EventType::TripleCreated,
             EventType::Deposited,
             EventType::Redeemed,
@@ -129,6 +133,27 @@ mod event_type_tests {
         // never accept accidentally-lowercased event types from upstream.
         assert!(EventType::from_str("atomcreated").is_err());
         assert!(EventType::from_str("ATOMCREATED").is_err());
+    }
+
+    #[test]
+    fn atom_context_registered_conversions_are_exact() {
+        let event_type = EventType::AtomContextRegistered;
+
+        assert_eq!(event_type.as_str(), "AtomContextRegistered");
+        assert_eq!(event_type.to_string(), "AtomContextRegistered");
+        assert_eq!(
+            EventType::from_str("AtomContextRegistered").unwrap(),
+            event_type
+        );
+        assert_eq!(
+            serde_json::to_value(event_type).unwrap(),
+            serde_json::json!("AtomContextRegistered")
+        );
+        assert_eq!(
+            serde_json::from_value::<EventType>(serde_json::json!("AtomContextRegistered"))
+                .unwrap(),
+            event_type
+        );
     }
 }
 

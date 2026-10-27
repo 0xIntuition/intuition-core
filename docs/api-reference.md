@@ -38,6 +38,12 @@ Create an atom from any raw input. The ID is `keccak(ATOM_SALT, keccak(bytes))`
 — a pure function of the input, identical to the onchain derivation — so the
 endpoint is **idempotent**: `201` on first create, `200` with the same ID after.
 
+This endpoint ingests an off-chain KG row with the protocol-compatible term id;
+it does **not** submit a transaction. Seed/application writers perform on-chain
+creation (`createAtomsWithUris`) through the public `@0xintuition/protocol`
+builder, and Core indexes the resulting `AtomContextRegistered` events (see
+[Architecture](./architecture.md#the-two-databases)).
+
 ```bash
 curl -X POST localhost:3000/api/atoms \
   -H "Authorization: Bearer ik_…" -H 'Content-Type: application/json' \

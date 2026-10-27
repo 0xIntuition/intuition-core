@@ -37,6 +37,9 @@ jobs:
       - name: Test
         run: bun run test
 
+      - name: Published atom runtime consumer contracts
+        run: bun run test:atom-runtime
+
       - name: Validate compose config
         run: |
           docker compose config -q
@@ -99,8 +102,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned to the same Rust version as the image builders in docker/Dockerfile.*
+      # so CI, images and local gates agree; bump them together.
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.97.1
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2

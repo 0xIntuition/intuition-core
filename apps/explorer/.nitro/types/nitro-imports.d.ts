@@ -6,8 +6,8 @@ declare global {
   const appendResponseHeader: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').appendResponseHeader
   const appendResponseHeaders: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').appendResponseHeaders
   const assertMethod: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').assertMethod
-  const cachedEventHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/cache').cachedEventHandler
-  const cachedFunction: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/cache').cachedFunction
+  const cachedEventHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/cache').cachedEventHandler
+  const cachedFunction: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/cache').cachedFunction
   const callNodeListener: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').callNodeListener
   const clearResponseHeaders: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').clearResponseHeaders
   const clearSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').clearSession
@@ -18,19 +18,19 @@ declare global {
   const createEventStream: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').createEventStream
   const createRouter: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').createRouter
   const defaultContentType: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defaultContentType
-  const defineCachedEventHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/cache').defineCachedEventHandler
-  const defineCachedFunction: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/cache').defineCachedFunction
+  const defineCachedEventHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/cache').defineCachedEventHandler
+  const defineCachedFunction: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/cache').defineCachedFunction
   const defineEventHandler: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineEventHandler
   const defineLazyEventHandler: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineLazyEventHandler
-  const defineNitroErrorHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/error/utils').defineNitroErrorHandler
-  const defineNitroPlugin: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/plugin').defineNitroPlugin
+  const defineNitroErrorHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/error/utils').defineNitroErrorHandler
+  const defineNitroPlugin: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/plugin').defineNitroPlugin
   const defineNodeListener: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineNodeListener
   const defineNodeMiddleware: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineNodeMiddleware
-  const defineRenderHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/renderer').defineRenderHandler
+  const defineRenderHandler: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/renderer').defineRenderHandler
   const defineRequestMiddleware: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineRequestMiddleware
   const defineResponseMiddleware: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineResponseMiddleware
-  const defineRouteMeta: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/meta').defineRouteMeta
-  const defineTask: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/task').defineTask
+  const defineRouteMeta: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/meta').defineRouteMeta
+  const defineTask: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/task').defineTask
   const defineWebSocket: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineWebSocket
   const defineWebSocketHandler: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').defineWebSocketHandler
   const deleteCookie: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').deleteCookie
@@ -59,7 +59,7 @@ declare global {
   const getResponseHeaders: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getResponseHeaders
   const getResponseStatus: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getResponseStatus
   const getResponseStatusText: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getResponseStatusText
-  const getRouteRules: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/route-rules').getRouteRules
+  const getRouteRules: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/route-rules').getRouteRules
   const getRouterParam: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getRouterParam
   const getRouterParams: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getRouterParams
   const getSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').getSession
@@ -76,7 +76,7 @@ declare global {
   const isStream: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').isStream
   const isWebResponse: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').isWebResponse
   const lazyEventHandler: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').lazyEventHandler
-  const nitroPlugin: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/plugin').nitroPlugin
+  const nitroPlugin: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/plugin').nitroPlugin
   const parseCookies: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').parseCookies
   const promisifyNodeListener: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').promisifyNodeListener
   const proxyRequest: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').proxyRequest
@@ -86,7 +86,7 @@ declare global {
   const readRawBody: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').readRawBody
   const readValidatedBody: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').readValidatedBody
   const removeResponseHeader: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').removeResponseHeader
-  const runTask: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/task').runTask
+  const runTask: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/task').runTask
   const sanitizeStatusCode: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').sanitizeStatusCode
   const sanitizeStatusMessage: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').sanitizeStatusMessage
   const sealSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').sealSession
@@ -113,13 +113,13 @@ declare global {
   const toWebRequest: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').toWebRequest
   const unsealSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').unsealSession
   const updateSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').updateSession
-  const useAppConfig: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/config').useAppConfig
+  const useAppConfig: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/config').useAppConfig
   const useBase: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').useBase
-  const useEvent: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/context').useEvent
-  const useNitroApp: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/app').useNitroApp
-  const useRuntimeConfig: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/config').useRuntimeConfig
+  const useEvent: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/context').useEvent
+  const useNitroApp: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/app').useNitroApp
+  const useRuntimeConfig: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/config').useRuntimeConfig
   const useSession: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').useSession
-  const useStorage: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+dc5a286b3a87f87b/node_modules/nitropack/dist/runtime/internal/storage').useStorage
+  const useStorage: typeof import('../../../../node_modules/.bun/nitropack@2.13.4+f8116778c8665221/node_modules/nitropack/dist/runtime/internal/storage').useStorage
   const writeEarlyHints: typeof import('../../../../node_modules/.bun/h3@1.15.11/node_modules/h3').writeEarlyHints
 }
 export { useNitroApp } from 'nitropack/runtime/internal/app';

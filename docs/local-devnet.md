@@ -28,16 +28,11 @@ roles) straight from the npm package, and finishes by creating a test atom and
 verifying the `AtomCreated` event fires. Re-runs detect the existing
 deployment and just re-verify.
 
-Because Anvil runs with its default mnemonic, the deployment is deterministic:
-
-| Contract | Address (chain 31337) |
-| --- | --- |
-| **MultiVault proxy** | `0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f` |
-| WrappedTrust (WTRUST) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-
-The full address set (plus the actual deploy block) is written to
-`devnet/deployments-devnet.json`. Chain state persists on the `anvil_data`
-volume across restarts.
+The deployment is deterministic for a fresh Anvil state, but the persisted
+volume may already contain transactions and deployments. Always treat
+`devnet/deployments-devnet.json` as authoritative for the MultiVault address
+and start block. Chain state persists on the `anvil_data` volume across
+restarts.
 
 ## 2. Point the indexer at your chain
 
@@ -46,9 +41,11 @@ In `.env`:
 ```bash
 INTUITION_RPC_URL=http://anvil:8545
 CHAIN_ID=31337
-MULTIVAULT_CONTRACT_ADDRESS=0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
-MULTIVAULT_START_BLOCK=0
+# Copy these two values from devnet/deployments-devnet.json.
+MULTIVAULT_CONTRACT_ADDRESS=0x...
+MULTIVAULT_START_BLOCK=...
 MULTIVAULT_END_BLOCK=
+USE_TYPED_READER=true
 ```
 
 ```bash
@@ -58,14 +55,46 @@ docker compose --profile devnet --profile indexing up
 The indexer follows your local chain head; every atom you create onchain shows
 up in the graph within seconds.
 
-## 3. Create atoms onchain
+## 3. Create canonical IID atoms with URI context
+
+The canonical acceptance command creates one music recording and one book:
+
+```bash
+bun run devnet:fixtures:iid
+```
+
+It creates `int:isrc:USUM71703861` with MusicBrainz context and
+`int:isbn:9780684832722` with OpenLibrary context. The command:
+
+- refuses to run on any chain except Anvil chain `31337`;
+- reads the active deployment and URI limits from chain state;
+- derives the term ID from IID bytes only;
+- simulates `createAtomsWithUris` before sending;
+- joins `AtomCreated` and `AtomContextRegistered` by exact `termId`; and
+- is idempotent when the atoms already exist.
+
+With semantic API reads enabled, verify the final read models using the term
+IDs printed by the command:
+
+```bash
+API_ATOM_SEMANTIC_READS_ENABLED=true docker compose up -d api
+curl "localhost:3000/api/atoms/<term-id>"
+curl "localhost:3000/api/iids/int%3Aisbn%3A9780684832722/atoms"
+```
+
+The atom detail must show identity, classification, resolution, display, and
+on-chain context as separate fields. The context transaction hash and log
+index must match the `AtomContextRegistered` event—not the adjacent
+`AtomCreated` event.
+
+## 4. Create arbitrary atoms onchain
 
 Anvil's account #0 is pre-funded (key
 `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80` — the
 universal Foundry dev key, safe only for local chains):
 
 ```bash
-MV=0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f
+MV=$(jq -r .MultiVault devnet/deployments-devnet.json)
 COST=$(cast call $MV "getAtomCost()(uint256)" --rpc-url http://localhost:8545 | awk '{print $1}')
 
 cast send $MV "createAtoms(bytes[],uint256[])" \
@@ -94,6 +123,7 @@ With [Foundry](https://getfoundry.sh)'s `anvil` installed:
 ```bash
 anvil --disable-code-size-limit &   # terminal 1
 bun run devnet:deploy               # terminal 2 — deploy + acceptance test
+bun run devnet:fixtures:iid         # canonical ISRC + ISBN fixtures
 ```
 
 Or run the whole native dev stack (datastores, API, workers, chain) under
@@ -117,7 +147,8 @@ Requirements: a key funded with tTRUST for gas (~40 transactions — faucet at
 https://testnet.hub.intuition.systems). The canonical wrapped-TRUST token is
 reused by default (it's shared infra, like WETH; set `TRUST_TOKEN=fresh` for a
 fully isolated one). State lands in `devnet/deployments-testnet.json`, the
-createAtoms acceptance test runs, and the CLI prints the `.env` block that
+`createAtomsWithUris` acceptance test runs (including URI config and context-event
+validation), and the CLI prints the `.env` block that
 points the Core indexer at your new instance.
 
 ## Upgrading the contracts
@@ -138,10 +169,11 @@ The protocol version is pinned in **one place**:
 
 ## Gotchas we already hit for you
 
-- **Contract size:** the published bytecode is the production build; MultiVault's
-  runtime (27,666 bytes) exceeds EIP-170's 24,576-byte cap, which the Intuition
-  L3 raises. Anvil must therefore run with `--disable-code-size-limit` — the
-  compose file and Process Compose overlay already do.
+- **Contract size and linking:** the default local deployment uses
+  MultiVaultMigrationMode and requires Anvil's `--disable-code-size-limit`.
+  MultiVault and MultiVaultMigrationMode also contain a `MultiVaultLib` link
+  placeholder; the deployer deploys the library first and links its address
+  into the selected implementation bytecode.
 - **Proxies are mandatory:** the implementations call `_disableInitializers()`
   in their constructors; everything is initialized through
   `TransparentUpgradeableProxy` init-data, exactly like production.
@@ -150,13 +182,17 @@ The protocol version is pinned in **one place**:
 - The deployer account must be the admin (the deploy makes admin-only calls);
   the deployer defaults to Anvil account #0 for both.
 
-## Upstream follow-ups (tracked for `contracts-v2@1.0.0-alpha.1`)
+## Upstream artifact follow-ups
 
 The npm package doesn't yet export everything a from-scratch deployment needs;
-`packages/contracts/vendored/` fills the gaps (see its README for provenance).
-Once upstream ships these, the vendored artifacts get deleted:
+`packages/contracts/vendored/` fills the remaining gaps (see its README for
+provenance). Follow-up cleanup is:
 
-- Export `AtomWarden` + `WrappedTrust` ABIs/bytecodes.
+- Move the remaining `AtomWarden` + `WrappedTrust` consumers to the exports now
+  available in `@0xintuition/contracts-v2@1.1.0-alpha.0` and delete those
+  vendored copies.
 - Ship the OZ infra bytecodes (`TransparentUpgradeableProxy`,
   `TimelockController`, `UpgradeableBeacon`) or a first-party deploy module.
+- Publish an EIP-170-compatible MultiVault artifact (or a reproducible build
+  profile) alongside its library link references.
 - Add a `deployments` export (canonical addresses per chain).
