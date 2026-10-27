@@ -9,7 +9,7 @@ function probe(overrides: Record<string, string>) {
 			cwd: coreRoot,
 			env: {
 				...process.env,
-				INTUITION_TRAIN_TARBALLS: `${coreRoot}/.train-packages`,
+				INTUITION_TRAIN_TARBALLS: `${coreRoot}/.tarballs`,
 				INTUITION_CONFORMANCE_NODE: Bun.which('node') ?? '',
 				...overrides,
 			},

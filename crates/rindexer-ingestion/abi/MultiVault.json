@@ -345,7 +345,7 @@
 		"name": "claimAtomWalletDepositFees",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "atomId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -848,7 +848,7 @@
 		"name": "getAtomCreatedAt",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "atomId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -867,7 +867,7 @@
 		"name": "getAtomCreator",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "atomId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -1169,7 +1169,7 @@
 		"name": "getTripleIdFromCounterId",
 		"inputs": [
 			{
-				"name": "counterId",
+				"name": "counterTripleId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -1656,7 +1656,7 @@
 		"name": "isAtom",
 		"inputs": [
 			{
-				"name": "atomId",
+				"name": "termId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -1694,7 +1694,7 @@
 		"name": "isTermCreated",
 		"inputs": [
 			{
-				"name": "id",
+				"name": "termId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -1745,7 +1745,7 @@
 		"name": "maxRedeem",
 		"inputs": [
 			{
-				"name": "sender",
+				"name": "account",
 				"type": "address",
 				"internalType": "address"
 			},
@@ -1859,7 +1859,7 @@
 				"internalType": "uint256"
 			},
 			{
-				"name": "assetsAfterFixedFees",
+				"name": "feeBaseAssets",
 				"type": "uint256",
 				"internalType": "uint256"
 			},
@@ -1944,7 +1944,17 @@
 		"name": "previewTripleCreate",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "subjectId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			},
+			{
+				"name": "predicateId",
+				"type": "bytes32",
+				"internalType": "bytes32"
+			},
+			{
+				"name": "objectId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			},
@@ -1961,7 +1971,7 @@
 				"internalType": "uint256"
 			},
 			{
-				"name": "assetsAfterFixedFees",
+				"name": "feeBaseAssets",
 				"type": "uint256",
 				"internalType": "uint256"
 			},
@@ -2687,7 +2697,7 @@
 				"internalType": "address"
 			},
 			{
-				"name": "amount",
+				"name": "feeAmount",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
@@ -2786,7 +2796,7 @@
 				"internalType": "uint256"
 			},
 			{
-				"name": "totalShares",
+				"name": "receiverSharesAfter",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
@@ -2960,7 +2970,7 @@
 				"internalType": "address"
 			},
 			{
-				"name": "amount",
+				"name": "feeAmount",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
@@ -2985,7 +2995,7 @@
 				"internalType": "address"
 			},
 			{
-				"name": "amount",
+				"name": "feeAmount",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
@@ -3004,7 +3014,7 @@
 				"internalType": "address"
 			},
 			{
-				"name": "receiver",
+				"name": "account",
 				"type": "address",
 				"indexed": true,
 				"internalType": "address"
@@ -3028,19 +3038,19 @@
 				"internalType": "uint256"
 			},
 			{
-				"name": "totalShares",
+				"name": "accountSharesAfter",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
 			},
 			{
-				"name": "assets",
+				"name": "assetsAfterFees",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
 			},
 			{
-				"name": "fees",
+				"name": "totalFees",
 				"type": "uint256",
 				"indexed": false,
 				"internalType": "uint256"
@@ -3422,7 +3432,7 @@
 		"name": "MultiVaultCore_AtomDoesNotExist",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "atomId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -3449,7 +3459,7 @@
 		"name": "MultiVaultCore_TripleDoesNotExist",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "tripleId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			}
@@ -3534,7 +3544,17 @@
 	},
 	{
 		"type": "error",
+		"name": "MultiVault_DefaultCurveHasFeeHook",
+		"inputs": []
+	},
+	{
+		"type": "error",
 		"name": "MultiVault_DefaultCurveMustBeInitializedViaCreatePaths",
+		"inputs": []
+	},
+	{
+		"type": "error",
+		"name": "MultiVault_DefaultCurveNotRegistered",
 		"inputs": []
 	},
 	{
@@ -3669,7 +3689,7 @@
 		"name": "MultiVault_TripleExists",
 		"inputs": [
 			{
-				"name": "termId",
+				"name": "tripleId",
 				"type": "bytes32",
 				"internalType": "bytes32"
 			},

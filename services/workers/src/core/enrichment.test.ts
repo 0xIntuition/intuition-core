@@ -861,7 +861,7 @@ test('without aliases ClassifiedAtomInput is byte-identical to the existing proj
 		expect(JSON.stringify(after)).toBe(JSON.stringify(before));
 		expect(before).toEqual({
 			atomType: 'unknown',
-			jsonLd: { '@context': 'https://schema.org', '@type': 'Thing' },
+			jsonLd: { '@context': 'https://schema.org/', '@type': 'Thing' },
 			source: {
 				classificationEngine: 'backend/workers:kg-classification-result',
 				classifiedAt: '2026-10-16T00:00:00.000Z',

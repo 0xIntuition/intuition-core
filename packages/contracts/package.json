@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@0xintuition/contracts-v2": "1.1.0-alpha.0",
+		"@0xintuition/deployments": "0.1.0-alpha.1",
 		"viem": "^2.23.2"
 	}
 }

@@ -44,6 +44,3 @@ export const MultiVaultSizeFitArtifact: LinkableVendoredArtifact = {
 	abi: multiVaultSizeFit.abi as Abi,
 	bytecode: multiVaultSizeFit.bytecode,
 };
-
-export const AtomWardenAbi = AtomWardenArtifact.abi;
-export const WrappedTrustAbi = WrappedTrustArtifact.abi;

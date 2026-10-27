@@ -88,6 +88,8 @@ GitHub metadata — no API keys needed for public sources).
 curl localhost:3000/api/atoms/0x951d…   # watch parse/classify/enrich complete
 ```
 
+> **Network egress & SSRF controls:** When `WORKERS_PARSE_REMOTE_FETCH=true` (the default), the parse worker fetches remote URLs over HTTPS and blocks private/loopback/link-local IP ranges (`WORKERS_PARSE_ALLOW_PRIVATE_NETWORKS=false`, `WORKERS_PARSE_ALLOW_HTTP=false`). Operators running in restricted networks should enforce outbound egress allow-listing at the container or firewall layer and set `WORKERS_PARSE_REMOTE_FETCH=false` if arbitrary public URL fetching is not desired.
+
 ## 3. Connect atoms with triples
 
 ```bash

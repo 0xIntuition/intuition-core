@@ -125,6 +125,37 @@ export type WorkerConfig = {
 	env: Record<string, string | undefined>;
 };
 
+export const PROCESSING_SECRET_ENV_KEYS = [
+	'BRANDFETCH_API_KEY',
+	'CANOPY_API_KEY',
+	'COINGECKO_API_KEY',
+	'ETHERSCAN_API_KEY',
+	'GITHUB_TOKEN',
+	'GOOGLE_PLACES_API_KEY',
+	'PODCAST_INDEX_API_KEY',
+	'PODCAST_INDEX_API_SECRET',
+	'SPOTIFY_CLIENT_ID',
+	'SPOTIFY_CLIENT_SECRET',
+	'SPOTIFY_MARKET',
+	'TMDB_API_KEY',
+	'UPSTASH_REDIS_REST_TOKEN',
+	'UPSTASH_REDIS_REST_URL',
+	'X_BEARER_TOKEN',
+	'YOUTUBE_API_KEY',
+] as const;
+
+export function pickProcessingEnv(
+	source: Record<string, string | undefined>
+): Record<string, string | undefined> {
+	const picked: Record<string, string | undefined> = {};
+	for (const key of PROCESSING_SECRET_ENV_KEYS) {
+		if (source[key] !== undefined) {
+			picked[key] = source[key];
+		}
+	}
+	return picked;
+}
+
 export function loadWorkerConfig(
 	source: Record<string, string | undefined> = process.env
 ): WorkerConfig {
@@ -176,6 +207,6 @@ export function loadWorkerConfig(
 			inspectBytes: parsed.WORKERS_PARSE_INSPECT_BYTES,
 			ipfsGatewayBaseUrl: parsed.WORKERS_PARSE_IPFS_GATEWAY_BASE_URL,
 		},
-		env: source,
+		env: pickProcessingEnv(source),
 	};
 }

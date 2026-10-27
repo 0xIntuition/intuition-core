@@ -63,10 +63,13 @@ automatically.
 | `WORKERS_MAX_ATTEMPTS` | `5` | per stage |
 | `WORKERS_PARSE_REMOTE_FETCH` | `true` | fetch remote URLs during parse |
 | `WORKERS_PARSE_ALLOW_HTTP` | `false` | plain-http fetches off by default |
+| `WORKERS_PARSE_ALLOW_PRIVATE_NETWORKS` | `false` | block loopback, RFC1918, and link-local IP ranges during remote parse fetches |
 | `WORKERS_PARSE_IPFS_GATEWAY_BASE_URL` | unset | optional IPFS gateway |
 | `WORKERS_PROCESSING_SCOPE` | `full` | `full`, `music`, `podcasts`, or `music-and-podcasts`; scoped modes gate enrichment only |
 | `WORKERS_IID_READ_ENABLED` | `false` | enable IID parse/classification reads after package and persistence compatibility is verified |
 | `WORKERS_IID_RESOLUTION_ENABLED` | `false` | independently enable IID provider resolution; keep off until IID reads are enabled and stable |
+
+When `WORKERS_PARSE_REMOTE_FETCH=true`, the parse worker fetches user-supplied URLs over HTTPS with private-network (`WORKERS_PARSE_ALLOW_PRIVATE_NETWORKS=false`) and plain-HTTP (`WORKERS_PARSE_ALLOW_HTTP=false`) guards enabled by default. Production operators should pair these application-level checks with container/network-level outbound egress allow-listing or disable remote parse fetching (`WORKERS_PARSE_REMOTE_FETCH=false`) in air-gapped or untrusted environments.
 
 The worker entrypoint statically imports `@0xintuition/iid`,
 `@0xintuition/iid-registry`, and `@0xintuition/iid-ladder` at the exact versions

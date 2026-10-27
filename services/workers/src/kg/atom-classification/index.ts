@@ -70,6 +70,7 @@ export async function runKgClassificationWorker(input: {
 		classificationMemoryCacheMaxEntries: input.config.classificationMemoryCacheMaxEntries,
 		classificationResolverCacheTtlMs: input.config.classificationResolverCacheTtlMs,
 		cacheHttpTimeoutMs: input.config.cacheHttpTimeoutMs,
+		cacheEnvVarName: 'WORKERS_CACHE_PROVIDER',
 		env: input.config.env,
 	});
 

@@ -1,20 +1,48 @@
 /**
  * Network address book for the Intuition protocol.
  *
- * Canonical (verifiable) deployments only — the devnet entry is loaded from
- * the state file the deployer writes (`devnet/deployments-devnet.json`), never
- * hardcoded, because devnet addresses change whenever the deploy sequence or
- * contracts version changes.
+ * Canonical deployment tables and chain IDs are re-exported from
+ * `@0xintuition/deployments`. The local devnet entry is loaded from the state
+ * file the deployer writes (`devnet/deployments-devnet.json`), never hardcoded,
+ * because devnet addresses change whenever the deploy sequence or contracts
+ * version changes.
  */
+import {
+	getContractAddressFromChainId,
+	getMultiVaultAddressFromChainId,
+	getTrustAddressFromChainId,
+	INTUITION_MAINNET_CHAIN_ID,
+	INTUITION_TESTNET_CHAIN_ID,
+	intuitionDeployments,
+	intuitionMainnet,
+	intuitionTestnet,
+	mergeAddressOverrides,
+	parseAddressOverrides,
+	resolveContractAddressSet,
+} from '@0xintuition/deployments';
 import type { Address } from 'viem';
+
+export {
+	getContractAddressFromChainId,
+	getMultiVaultAddressFromChainId,
+	getTrustAddressFromChainId,
+	INTUITION_MAINNET_CHAIN_ID,
+	INTUITION_TESTNET_CHAIN_ID,
+	intuitionDeployments,
+	intuitionMainnet,
+	intuitionTestnet,
+	mergeAddressOverrides,
+	parseAddressOverrides,
+	resolveContractAddressSet,
+};
 
 export const CHAIN_IDS = {
 	/** Local anvil devnet. */
 	anvil: 31_337,
 	/** Intuition Sepolia testnet (Caldera). */
-	intuitionSepolia: 13_579,
+	intuitionSepolia: INTUITION_TESTNET_CHAIN_ID,
 	/** Intuition mainnet (Caldera). */
-	intuition: 1155,
+	intuition: INTUITION_MAINNET_CHAIN_ID,
 } as const;
 
 export type IntuitionChainId = (typeof CHAIN_IDS)[keyof typeof CHAIN_IDS];
@@ -40,8 +68,17 @@ export type DeploymentAddresses = {
 };
 
 /**
- * Intuition Sepolia (13579) — source: docs/run-your-own-node.md, the public
- * testnet the indexer defaults document.
+ * Canonical Intuition Testnet (13579) MultiVault address from `@0xintuition/deployments`.
+ */
+export const CANONICAL_INTUITION_SEPOLIA_MULTIVAULT: Address = getMultiVaultAddressFromChainId(
+	INTUITION_TESTNET_CHAIN_ID
+);
+
+/**
+ * Intuition Sepolia (13579) smoke-indexing window deployment — source:
+ * `docs/run-your-own-node.md` and `scripts/smoke-index.sh` (blocks 9,030,416–9,030,916,
+ * 201 canonical events / 50 atoms). Kept alongside `CANONICAL_INTUITION_SEPOLIA_MULTIVAULT`
+ * so deterministic smoke-index runs continue targeting the historical window.
  */
 export const INTUITION_SEPOLIA: DeploymentAddresses = {
 	chainId: CHAIN_IDS.intuitionSepolia,

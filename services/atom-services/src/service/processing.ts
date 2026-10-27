@@ -17,6 +17,7 @@ import type {
 	processObservabilitySchema,
 } from '../contracts';
 import {
+	createCacheRuntime,
 	createClassificationRuntime,
 	createEnrichmentRuntime,
 	type ProcessingRuntimeOptions,
@@ -42,8 +43,12 @@ type ProcessingRuntime = {
 };
 
 export function createProcessingRuntime(options: ProcessingRuntimeOptions): ProcessingRuntime {
-	const { engine: classificationEngine } = createClassificationRuntime(options);
-	const { createEngine, presetSummary, cacheProvider, warnings } = createEnrichmentRuntime(options);
+	const cacheRuntime = createCacheRuntime(options);
+	const { engine: classificationEngine } = createClassificationRuntime(options, cacheRuntime);
+	const { createEngine, presetSummary, cacheProvider, warnings } = createEnrichmentRuntime(
+		options,
+		cacheRuntime
+	);
 
 	if (warnings.length > 0) {
 		console.warn('[atom-services] startup warnings', {

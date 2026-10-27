@@ -1,4 +1,5 @@
 import {
+	atomTypeSchema,
 	type ClassifiedAtomInput,
 	createIdentifierProviderPlan,
 	type EnrichmentIdentityCapability,
@@ -6,7 +7,9 @@ import {
 	type IdentifierProviderPlanEntry,
 	redactProviderDiagnostic,
 } from '@0xintuition/atom-enrichment';
+import { SCHEMA_ORG_CONTEXT } from '@0xintuition/schema-org';
 import { WorkerConfigurationError } from '../shared/errors';
+import { createLogger } from '../shared/logger';
 import {
 	getProcessingScopeDomains,
 	type ProcessingDomain,
@@ -31,18 +34,20 @@ export const WEBSITE_ARTIFACT_TYPE_ALLOWLIST = ['opengraph', 'favicon', 'brand']
 const warnedLegacyLadders = new WeakSet<IidLadderAdapter>();
 
 /** Prepare optional plugin policy at the worker's injected-adapter boundary. */
+const defaultIdentityWarn = createLogger({ component: 'enrichment-identity' }).warn;
+
 export function composeEnrichmentIdentityCapability(input: {
 	iidReadEnabled: boolean;
 	iidLadder?: IidLadderAdapter;
+	warn?: (message: string) => void;
 }): EnrichmentIdentityCapability | undefined {
 	const ladder = input.iidLadder;
 	if (!input.iidReadEnabled || !ladder) return undefined;
 	if (!ladder.resolveWikidataSchemaType) {
 		if (!warnedLegacyLadders.has(ladder)) {
 			warnedLegacyLadders.add(ladder);
-			console.warn(
-				'IID ladder has no Wikidata type resolver; enrichment identity capability is absent.'
-			);
+			const warn = input.warn ?? defaultIdentityWarn;
+			warn('IID ladder has no Wikidata type resolver; enrichment identity capability is absent.');
 		}
 		return undefined;
 	}
@@ -314,7 +319,7 @@ export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAt
 		atomType: resolveAtomType(plan.classificationResult.category),
 		jsonLd: {
 			...documentData,
-			'@context': resolveString(documentData['@context']) ?? 'https://schema.org',
+			'@context': resolveString(documentData['@context']) ?? SCHEMA_ORG_CONTEXT,
 			'@type':
 				plan.classificationResult.schemaType ?? resolveString(documentData['@type']) ?? 'Thing',
 			...(name ? { name } : {}),
@@ -475,23 +480,7 @@ function resolveHttpUrl(value: unknown): string | undefined {
 }
 
 function resolveAtomType(value: string | undefined): ClassifiedAtomInput['atomType'] {
-	const normalized = value?.toLowerCase();
-	switch (normalized) {
-		case 'person':
-		case 'place':
-		case 'thing':
-		case 'company':
-		case 'product':
-		case 'song':
-		case 'music-album':
-		case 'artist':
-		case 'podcast':
-		case 'software':
-		case 'unknown':
-			return normalized;
-		default:
-			return 'unknown';
-	}
+	return atomTypeSchema.safeParse(value?.toLowerCase()).data ?? 'unknown';
 }
 
 export function getArtifactTypeAllowListForEnrichmentPlan(

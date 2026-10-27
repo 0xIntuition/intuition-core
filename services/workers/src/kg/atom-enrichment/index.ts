@@ -69,6 +69,7 @@ export async function runKgEnrichmentWorker(input: {
 	const identity = composeEnrichmentIdentityCapability({
 		iidReadEnabled: input.config.iidReadEnabled,
 		iidLadder,
+		warn: (message) => input.logger.warn(message),
 	});
 	const enrichmentRuntime = createEnrichmentRuntime({
 		defaultPreset: input.config.defaultPreset,
@@ -77,6 +78,7 @@ export async function runKgEnrichmentWorker(input: {
 		classificationMemoryCacheMaxEntries: input.config.classificationMemoryCacheMaxEntries,
 		classificationResolverCacheTtlMs: input.config.classificationResolverCacheTtlMs,
 		cacheHttpTimeoutMs: input.config.cacheHttpTimeoutMs,
+		cacheEnvVarName: 'WORKERS_CACHE_PROVIDER',
 		env: input.config.env,
 	});
 

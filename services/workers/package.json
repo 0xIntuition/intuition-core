@@ -34,7 +34,8 @@
 		"zod": "catalog:",
 		"@0xintuition/iid": "0.1.0-alpha.0",
 		"@0xintuition/iid-registry": "0.1.0-alpha.0",
-		"@0xintuition/iid-ladder": "0.1.0-alpha.1"
+		"@0xintuition/iid-ladder": "0.1.0-alpha.1",
+		"@0xintuition/schema-org": "0.1.0-alpha.0"
 	},
 	"devDependencies": {
 		"@0xintuition/tsconfig": "workspace:*",
