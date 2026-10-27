@@ -9,8 +9,8 @@ import {
 	createOpenLibraryPlugin,
 	type EnrichmentPlugin,
 	type EnrichmentRequest,
-} from '../packages/atom-enrichment/src';
-import type { FetchLike } from '../packages/atom-enrichment/src/plugins/providers';
+} from '@0xintuition/atom-enrichment';
+import type { FetchLike } from '@0xintuition/atom-enrichment/providers';
 import { deriveIidClassificationResult } from '../services/workers/src/core/classification';
 import { evaluateEnrichmentCompletion } from '../services/workers/src/core/enrichment';
 import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';

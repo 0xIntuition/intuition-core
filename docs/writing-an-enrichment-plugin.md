@@ -6,7 +6,7 @@ The 36 built-in providers (OpenGraph, Wikipedia, Spotify, npm, arXiv, …) use
 the same interface you will.
 
 A good reference to read alongside this guide:
-[`packages/atom-enrichment/src/plugins/providers/npm`](../packages/atom-enrichment/src/plugins/providers/npm)
+[the npm provider](https://github.com/0xIntuition/packages/tree/main/packages/atom-enrichment/src/plugins/providers/npm)
 — a complete keyless provider in ~150 lines (registry lookup + weekly
 downloads → one artifact).
 
