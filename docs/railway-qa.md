@@ -56,8 +56,8 @@ The worker start commands are `bun src/index.ts kg-parse-worker`,
 `bun src/index.ts kg-enrichment-worker`. Railway overrides Docker ENTRYPOINT,
 so a bare worker mode is not a sufficient start command.
 
-Both PostgreSQL services need TimescaleDB; the knowledge graph also needs
-pgvector. Their separate persistent volumes mount at `/home/postgres/pgdata`,
+Both PostgreSQL services need TimescaleDB. The image also supplies pgvector
+for the optional search tier; embeddings are not enabled in this QA deployment. Their separate persistent volumes mount at `/home/postgres/pgdata`,
 with `PGDATA=/home/postgres/pgdata/data`. Redis uses an AOF on `/data`.
 Database passwords are independently generated and stored only in Railway.
 No database has a public TCP proxy.
@@ -110,7 +110,7 @@ Do not copy unrelated production secrets into this project.
 
 Each application source is set to the feature branch. Automatic deploy-on-push
 requires the Railway GitHub integration to have access to the repository. Until
-that authorization is connected, use `railway redeploy --from-source --yes` with
+that organization installation is unsuspended, use `railway redeploy --from-source --yes` with
 an explicit service and environment to deploy new commits. Service watch patterns
 limit rebuilds to its code, Dockerfile, and shared dependencies; documentation
 changes do not rebuild the stack. Check the deployment's commit and status in
