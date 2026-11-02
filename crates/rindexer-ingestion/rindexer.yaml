@@ -36,10 +36,12 @@ networks:
     chain_id: ${CHAIN_ID}
     rpc: "${INTUITION_RPC_URL}"
 
-# Disable built-in postgres storage - we use custom handlers
+# Persist rindexer's internal checkpoints in Postgres so restarts resume.
+# Custom handlers own the event tables; do not create a duplicate event schema.
 storage:
   postgres:
-    enabled: false
+    enabled: true
+    disable_create_tables: true
 
 contracts:
   - name: MultiVault
