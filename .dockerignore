@@ -39,3 +39,7 @@ scratch
 PR-*-review.md
 *.md
 !README.md
+
+# Do not ship local Explorer server output or Railway CLI metadata.
+**/.output
+.railway
