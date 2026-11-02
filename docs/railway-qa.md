@@ -57,7 +57,8 @@ The worker start commands are `bun src/index.ts kg-parse-worker`,
 so a bare worker mode is not a sufficient start command.
 
 Both PostgreSQL services need TimescaleDB. The image also supplies pgvector
-for the optional search tier; embeddings are not enabled in this QA deployment. Their separate persistent volumes mount at `/home/postgres/pgdata`,
+for the optional search tier; embeddings are not enabled in this QA deployment.
+Their separate persistent volumes mount at `/home/postgres/pgdata`,
 with `PGDATA=/home/postgres/pgdata/data`. Redis uses an AOF on `/data`.
 Database passwords are independently generated and stored only in Railway.
 No database has a public TCP proxy.
@@ -101,6 +102,8 @@ when proxied. Enable proxy trust only after verifying trusted header handling.
 QA enables `API_ATOM_SEMANTIC_READS_ENABLED`,
 `VITE_ATOM_SEMANTIC_READS_ENABLED`, `WORKERS_IID_READ_ENABLED`, and
 `WORKERS_IID_RESOLUTION_ENABLED`. Processing scope is `full`.
+The enrichment worker uses concurrency 1, a 30-second base retry delay, and
+ten maximum attempts to reduce bursts against keyless providers.
 Paid enrichment provider credentials and embedding credentials are not populated.
 Keyless providers run; credential-dependent providers remain unavailable until
 QA-specific credentials are added to `workers-enrichment` and `atom-services`.
@@ -110,7 +113,8 @@ Do not copy unrelated production secrets into this project.
 
 Each application source is set to the feature branch. Automatic deploy-on-push
 requires the Railway GitHub integration to have access to the repository. Until
-that organization installation is unsuspended, use `railway redeploy --from-source --yes` with
+that organization installation is unsuspended, use
+`railway redeploy --from-source --yes` with
 an explicit service and environment to deploy new commits. Service watch patterns
 limit rebuilds to its code, Dockerfile, and shared dependencies; documentation
 changes do not rebuild the stack. Check the deployment's commit and status in
@@ -140,3 +144,25 @@ it to mainnet. Verify each deployment reports a commit from `main`, then repeat
 the health and indexing checks above.
 
 The datastore services follow Docker images, so they have no Git branch to switch.
+
+## Verification record (2026-11-02)
+
+All eleven services reached Railway `SUCCESS`, and Explorer's seven backend
+readiness checks returned HTTP 200. Timescale applied 49 migrations through
+`050_add_atom_context_registered.sql`. The event store contained 1,609 events,
+including 174 atom creations, 126 triple creations, and one URI-context event.
+The API reported 174 atoms, 126 triples, and ten accounts; every atom completed
+parsing and classification.
+
+An indexer restart resumed from the saved block 9,375,160 (next block 9,375,161)
+with the event count unchanged. Anonymous API writes returned 401, and the API
+returned the configured Explorer CORS origin. The worker suite passed 196 tests;
+all nine workspace typechecks passed. No browser QA was performed.
+
+Enrichment is asynchronous. During the initial backfill, Wikidata returned 429
+responses and some synthetic test inputs had no applicable provider. These are
+recorded in atom enrichment status and do not make worker readiness fail.
+Keyless classification was also exercised directly through the private service.
+One upstream result classified Wikipedia's “Knowledge graph” article as a Person
+(the provider's heuristic matched “model” in its extract); classification quality
+for this case needs a fix in the published provider package.
