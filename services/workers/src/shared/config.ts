@@ -82,6 +82,8 @@ const workerConfigSchema = z
 
 export type WorkerConfig = {
 	nodeEnv: 'development' | 'test' | 'production';
+	/** Infrastructure credentials stay separate from the provider environment. */
+	databaseKgUrl: string | undefined;
 	workerId: string;
 	healthPort: number;
 	parseHealthPort: number;
@@ -163,6 +165,7 @@ export function loadWorkerConfig(
 
 	return {
 		nodeEnv: parsed.NODE_ENV,
+		databaseKgUrl: source.DATABASE_KG_URL?.trim() || undefined,
 		workerId:
 			source.WORKERS_ID?.trim() ||
 			`${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,

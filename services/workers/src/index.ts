@@ -40,9 +40,9 @@ async function main() {
 	}
 
 	if (mode?.startsWith('kg-')) {
-		assertKgEnv(config.env, mode);
+		assertDatabaseKgUrl(config.databaseKgUrl, mode);
 		const { createEnvKgConnection } = await import('@0xintuition/database-kg/client-env');
-		const connection = createEnvKgConnection(config.env);
+		const connection = createEnvKgConnection({ DATABASE_KG_URL: config.databaseKgUrl });
 		try {
 			const { runKgCommand } = await import('./kg/commands');
 			await runKgCommand(connection.db, [mode, ...args]);
@@ -106,7 +106,7 @@ async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
 	});
 
 	try {
-		assertKgEnv(config.env, workerMode);
+		assertDatabaseKgUrl(config.databaseKgUrl, workerMode);
 		await runSupervised({
 			name: workerMode,
 			signal: lifecycle.signal,
@@ -121,7 +121,7 @@ async function runKgWorkerMode(workerMode: KgWorkerMode): Promise<void> {
 				// command invocations do not pay the startup cost of loading the
 				// Drizzle schemas and database-kg client validators.
 				const { createEnvKgConnection } = await import('@0xintuition/database-kg/client-env');
-				const connection = createEnvKgConnection(config.env);
+				const connection = createEnvKgConnection({ DATABASE_KG_URL: config.databaseKgUrl });
 				// /readyz reflects "the worker can actually do work". The KG connection
 				// is created above; flipping ready only after that runs avoids reporting
 				// healthy while the connection setup throws (bad URL, validator error,
@@ -251,8 +251,8 @@ function collectRuntimeMetrics(
 	}
 }
 
-function assertKgEnv(env: Record<string, string | undefined>, kgMode: string): void {
-	if (!env.DATABASE_KG_URL || env.DATABASE_KG_URL.trim().length === 0) {
+function assertDatabaseKgUrl(databaseKgUrl: string | undefined, kgMode: string): void {
+	if (!databaseKgUrl) {
 		throw new WorkerConfigurationError(
 			`KG worker mode "${kgMode}" requires DATABASE_KG_URL to be set. Provide it in the worker environment (see example.env at the repo root) before starting the worker.`
 		);
