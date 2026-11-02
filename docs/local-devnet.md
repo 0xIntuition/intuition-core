@@ -188,11 +188,10 @@ The npm package doesn't yet export everything a from-scratch deployment needs;
 `packages/contracts/vendored/` fills the remaining gaps (see its README for
 provenance). Follow-up cleanup is:
 
-- Move the remaining `AtomWarden` + `WrappedTrust` consumers to the exports now
-  available in `@0xintuition/contracts-v2@1.1.0-alpha.0` and delete those
-  vendored copies.
 - Ship the OZ infra bytecodes (`TransparentUpgradeableProxy`,
-  `TimelockController`, `UpgradeableBeacon`) or a first-party deploy module.
+  `UpgradeableBeacon`) or a first-party deploy module.
 - Publish an EIP-170-compatible MultiVault artifact (or a reproducible build
   profile) alongside its library link references.
-- Add a `deployments` export (canonical addresses per chain).
+Canonical chain addresses already come from `@0xintuition/deployments`.
+`AtomWarden`, `WrappedTrust`, and `TimelockController` now use published ABI and
+bytecode exports from `@0xintuition/contracts-v2@1.1.0-alpha.1`.

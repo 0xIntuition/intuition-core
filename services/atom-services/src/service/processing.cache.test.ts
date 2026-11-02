@@ -9,7 +9,7 @@ import { createClassificationRuntime, createPresetFactories } from './runtime';
 
 describe('createProcessingRuntime cache provider wiring', () => {
 	it('uses upstash cache provider when credentials are configured and creates cache runtime once', () => {
-		const cacheSpy = spyOn(runtimeModule, 'createCacheRuntime');
+		const cacheSpy = spyOn(runtimeModule, 'createCoreProcessingRuntime');
 		try {
 			const runtime = createProcessingRuntime({
 				defaultPreset: 'default',

@@ -1,10 +1,26 @@
 [install]
-# Refuse to install package versions published less than 14 days ago.
-# Defense-in-depth against supply-chain attacks using compromised credentials.
+# Refuse third-party releases published less than 14 days ago.
 minimumReleaseAge = 1209600
-# Reviewed first-party exception (ENG-13313): @0xintuition/contracts-v2 is
-# exact-version pinned by its consumers and required for the OSS
-# contract-artifact integration. Keep this list intentionally narrow — any
-# change must also update the reviewed allowlist in
-# scripts/guard-supply-chain-policy.mjs.
-minimumReleaseAgeExcludes = ["@0xintuition/contracts-v2"]
+# First-party packages from the reviewed October 28, 2026 alpha release.
+# Keep consumers exactly pinned and this list in sync with
+# scripts/guard-supply-chain-policy.mjs; never exempt the entire scope.
+minimumReleaseAgeExcludes = [
+	"@0xintuition/atom-classification",
+	"@0xintuition/atom-enrichment",
+	"@0xintuition/atom-parser",
+	"@0xintuition/atom-runtime",
+	"@0xintuition/classifications",
+	"@0xintuition/contracts-v2",
+	"@0xintuition/curves",
+	"@0xintuition/deployments",
+	"@0xintuition/ids",
+	"@0xintuition/iid",
+	"@0xintuition/iid-ladder",
+	"@0xintuition/iid-registry",
+	"@0xintuition/iid-spec",
+	"@0xintuition/pipeline-runtime",
+	"@0xintuition/predicates",
+	"@0xintuition/primitives",
+	"@0xintuition/protocol",
+	"@0xintuition/schema-org",
+]

@@ -1,7 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import {
 	createEnrichmentEngine,
 	createIdentifierProviderPlan,
@@ -11,6 +8,7 @@ import {
 	type EnrichmentRequest,
 } from '@0xintuition/atom-enrichment';
 import type { FetchLike } from '@0xintuition/atom-enrichment/providers';
+import { useStubbedPublicDns } from '@0xintuition/atom-enrichment/testing';
 import { deriveIidClassificationResult } from '../services/workers/src/core/classification';
 import { evaluateEnrichmentCompletion } from '../services/workers/src/core/enrichment';
 import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
@@ -23,20 +21,15 @@ import {
 type IidModule = typeof import('@0xintuition/iid');
 type RegistryModule = typeof import('@0xintuition/iid-registry');
 
-const packagesRepository = process.env.INTUITION_PACKAGES_REPO
-	? resolve(process.env.INTUITION_PACKAGES_REPO)
-	: resolve(import.meta.dir, '../../packages');
-const iidEntry = join(packagesRepository, 'packages/iid/dist/index.js');
-const registryEntry = join(packagesRepository, 'packages/iid-registry/dist/index.js');
-const ladderEntry = join(packagesRepository, 'packages/iid-ladder/dist/index.js');
-const publicPackagesAvailable =
-	existsSync(iidEntry) && existsSync(registryEntry) && existsSync(ladderEntry);
-const describeWithPublicPackages = publicPackagesAvailable ? describe : describe.skip;
+useStubbedPublicDns();
 
+const iidEntry = '@0xintuition/iid';
+const registryEntry = '@0xintuition/iid-registry';
+const ladderEntry = '@0xintuition/iid-ladder';
 const PACKAGE_VERSION = '0.1.0-alpha.0';
 const NOW = '2026-08-12T12:00:00.000Z';
 
-describeWithPublicPackages('canonical IID semantic enrichment acceptance', () => {
+describe('canonical IID semantic enrichment acceptance', () => {
 	test('real ladder P31 closure resolves film and human and fails soft for unknown', async () => {
 		const adapter = await realLadder();
 		expect(adapter.resolveWikidataSchemaType?.(['Q11424'])).toBe('Movie');
@@ -157,7 +150,7 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 
 		const result = await semantic.engine.enrich(semantic.request);
 
-		expect(requestedUrl).toContain('query=isrc%3AUSUM71703861');
+		expect(requestedUrl).toContain('/ws/2/isrc/USUM71703861?');
 		expect(result.errors).toEqual([]);
 		expect(result.artifacts).toMatchObject([
 			{
@@ -171,17 +164,16 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 		expect(evaluateEnrichmentCompletion(result)).toEqual({ kind: 'complete' });
 	});
 
-	test('ISBN inspection plans OpenLibrary and executes the canonical Books API lookup', async () => {
+	test('ISBN inspection plans OpenLibrary and executes the canonical ISBN entity lookup', async () => {
 		let requestedUrl = '';
 		const openlibrary = createOpenLibraryPlugin({
 			fetch: jsonFetch(
 				{
-					'ISBN:9780684832722': {
-						key: '/books/OL7721520M',
-						title: 'The Sovereign Individual',
-						authors: [{ name: 'James Dale Davidson' }, { name: 'William Rees-Mogg' }],
-						publishers: [{ name: 'Scribner' }],
-					},
+					key: '/books/OL7721520M',
+					title: 'The Sovereign Individual',
+					authors: [{ name: 'James Dale Davidson' }, { name: 'William Rees-Mogg' }],
+					publishers: ['Scribner'],
+					isbn_13: ['9780684832722'],
 				},
 				200,
 				(url) => {
@@ -208,14 +200,14 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 
 		const result = await semantic.engine.enrich(semantic.request);
 
-		expect(requestedUrl).toContain('bibkeys=ISBN%3A9780684832722');
+		expect(requestedUrl).toContain('/isbn/9780684832722.json');
 		expect(result.errors).toEqual([]);
 		expect(result.artifacts).toMatchObject([
 			{
 				artifact_type: 'openlibrary',
 				data: {
-					isbn: '9780684832722',
-					olid: 'OL7721520M',
+					isbn13: ['9780684832722'],
+					editionOlid: 'OL7721520M',
 					title: 'The Sovereign Individual',
 				},
 			},
@@ -252,7 +244,10 @@ describeWithPublicPackages('canonical IID semantic enrichment acceptance', () =>
 			createOpenLibraryPlugin({ fetch: jsonFetch({}, 404) }),
 		]);
 		const terminalResult = await terminal.engine.enrich(terminal.request);
-		expect(terminalResult).toMatchObject({ artifacts: [], errors: [] });
+		expect(terminalResult).toMatchObject({
+			artifacts: [],
+			errors: [{ pluginId: 'openlibrary', retriable: false, details: { status: 404 } }],
+		});
 		expect(evaluateEnrichmentCompletion(terminalResult).kind).toBe('terminal_unresolved');
 
 		const invalidCapability = createIdentifierProviderPlan({
@@ -353,15 +348,18 @@ async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 }
 
 async function importModule<T>(entry: string): Promise<T> {
-	return (await import(pathToFileURL(entry).href)) as T;
+	return (await import(entry)) as T;
 }
 
 function jsonFetch(body: unknown, status = 200, inspect?: (url: string) => void): FetchLike {
-	return async (url) => {
+	const fetcher: FetchLike = async (url) => {
 		inspect?.(url);
 		return new Response(JSON.stringify(body), {
 			status,
 			headers: { 'content-type': 'application/json' },
 		});
 	};
+	// The published provider transport accepts explicitly pin-aware test adapters.
+	// This adapter returns fixtures only and never dials a network address.
+	return Object.assign(fetcher, { [Symbol.for('intuition.enrichment.pinAwareFetch')]: true });
 }

@@ -55,3 +55,7 @@ processes:
       timeout_seconds: 3
       failure_threshold: 24
     success_exit_codes: [130, 143]
+
+  explorer:
+    environment:
+      - "EXPLORER_INDEXING_ENABLED=true"

@@ -50,7 +50,7 @@ for (const name of ['ids', 'curves']) {
 		import.meta
 			.resolve(`@0xintuition/${name}`)
 			.startsWith(new URL(`./node_modules/@0xintuition/${name}/`, import.meta.url).href),
-		`${name} escaped the installed tarball`
+		`${name} escaped the isolated package`
 	);
 }
 
@@ -60,7 +60,7 @@ const functionItem = MultiVaultAbi.find(
 const eventItem = MultiVaultAbi.find(
 	(item) => item.type === 'event' && item.name === 'AtomContextRegistered'
 );
-assert(functionItem && eventItem, 'Train ABI is missing URI creation items');
+assert(functionItem && eventItem, 'Published ABI is missing URI creation items');
 const creator = '0x1111111111111111111111111111111111111111';
 const atoms = [
 	{ kind: 'string', input: 'Intuition URI conformance' },
@@ -163,7 +163,7 @@ process.stdout.write(
 			protocolVersion: protocolPackage.default.version,
 			exports: Object.keys(protocolPackage.default.exports).sort(),
 			deepImportRejected,
-			installedTarballsOnly: true,
+			installedPackagesOnly: true,
 		},
 		abi: { functionItem, eventItem },
 		selector: toFunctionSelector(functionItem),

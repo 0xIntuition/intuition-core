@@ -11,12 +11,9 @@ import { AtomWardenAbi, MultiVaultAbi, WrappedTrustAbi } from '../abis';
 import { CHAIN_IDS, INTUITION_SEPOLIA, parseDevnetState } from '../addresses';
 import { linkMultiVaultLibraryBytecode } from '../deploy/system';
 import {
-	AtomWardenArtifact,
 	MultiVaultSizeFitArtifact,
-	TimelockControllerArtifact,
 	TransparentUpgradeableProxyArtifact,
 	UpgradeableBeaconArtifact,
-	WrappedTrustArtifact,
 } from '../vendored';
 
 describe('abis', () => {
@@ -46,7 +43,7 @@ describe('abis', () => {
 		expect(functions).toContain('getAtomUriConfig');
 	});
 
-	test('vendored ABIs are surfaced', () => {
+	test('published protocol ABIs are surfaced', () => {
 		const atomWardenInitialize = AtomWardenAbi.find(
 			(i) => i.type === 'function' && i.name === 'initialize'
 		);
@@ -58,13 +55,7 @@ describe('abis', () => {
 });
 
 describe('vendored artifacts', () => {
-	const artifacts = [
-		TransparentUpgradeableProxyArtifact,
-		TimelockControllerArtifact,
-		UpgradeableBeaconArtifact,
-		AtomWardenArtifact,
-		WrappedTrustArtifact,
-	];
+	const artifacts = [TransparentUpgradeableProxyArtifact, UpgradeableBeaconArtifact];
 
 	test('every artifact has creation bytecode and a non-empty ABI', () => {
 		for (const artifact of artifacts) {
@@ -81,7 +72,7 @@ describe('vendored artifacts', () => {
 			zeroAddress
 		);
 		expect(isHex(linked)).toBe(true);
-		// Creation is slightly larger than runtime; the exact 20,379 B runtime is
+		// Creation is slightly larger than runtime; the exact 20,913 B runtime is
 		// asserted by the regeneration script before it writes the artifact.
 		expect((linked.length - 2) / 2).toBeLessThan(24_576);
 	});
@@ -102,7 +93,7 @@ describe('vendored artifacts', () => {
 
 	test('bytecode is stable (guards accidental vendored edits)', () => {
 		// Regenerate deliberately with scripts/regen-vendored.sh, then update
-		// these pins (compiled from @0xintuition/contracts-v2@1.1.0-alpha.0 + OZ 5.4.0).
+		// these pins (compiled from @0xintuition/contracts-v2@1.1.0-alpha.1 + OZ 5.4.0).
 		const hashes = Object.fromEntries(
 			artifacts.map((artifact) => [artifact.contractName, keccak256(artifact.bytecode)])
 		);
@@ -116,11 +107,8 @@ describe('vendored artifacts', () => {
 		expect(hashes).toEqual({
 			TransparentUpgradeableProxy:
 				'0x24a1dc4b18e0740872e78682f81be920c06d8625cd543aefc3d65150ae7c9203',
-			TimelockController: '0x295f5901c1ae5f2745efea24250154c118928b67537e11c33629729160fa6a7d',
 			UpgradeableBeacon: '0xd294f3707414f1a846cac6ca25db062b4dd427de5f5eabe04398182bd8f587bd',
-			AtomWarden: '0x2bf1f6ee2afce3b8593a26ad2b732b1e46a7a2a978d37e864aaf31a94cc34c73',
-			WrappedTrust: '0x8941ce5213265a502cd85b8b6819ae4982c640d837e097add799a0c011b972c5',
-			MultiVault: '0x88a9e4380c4238d54b04f01c20e4085efa7318dcac025c49257c7e62004e49c4',
+			MultiVault: '0x0a3d88148c3d643984b26d0f4dc03273bad3c8f16e99e0ddde326ee22a1bce16',
 		});
 	});
 });

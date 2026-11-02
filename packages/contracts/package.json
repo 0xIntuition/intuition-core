@@ -2,7 +2,7 @@
 	"name": "@0xintuition/contracts",
 	"private": true,
 	"type": "module",
-	"description": "Protocol surface for Intuition Core: re-exported ABIs, network address book, and the local devnet deployer — all derived from the pinned @0xintuition/contracts-v2 package.",
+	"description": "Protocol surface for Intuition Core: re-exported ABIs, network address book, and the local devnet deployer \u2014 all derived from the pinned @0xintuition/contracts-v2 package.",
 	"exports": {
 		".": "./src/index.ts",
 		"./abis": "./src/abis.ts",
@@ -32,7 +32,7 @@
 		"typescript": "catalog:"
 	},
 	"dependencies": {
-		"@0xintuition/contracts-v2": "1.1.0-alpha.0",
+		"@0xintuition/contracts-v2": "1.1.0-alpha.1",
 		"@0xintuition/deployments": "0.1.0-alpha.1",
 		"viem": "^2.23.2"
 	}

@@ -19,11 +19,11 @@ export function StatCard({
 				<span className="text-[11px] text-faint uppercase tracking-wider">{label}</span>
 				{icon}
 			</div>
-			{isLoading || value === undefined ? (
+			{isLoading ? (
 				<Skeleton className="mt-1.5 h-7 w-20" />
 			) : (
 				<div className="mt-0.5 font-semibold text-[26px] tabular-nums leading-snug">
-					{formatNumber(value)}
+					{value === undefined ? '—' : formatNumber(value)}
 				</div>
 			)}
 		</Card>

@@ -182,8 +182,8 @@ test('passes plugin canonical identity and semantic context at the runtime conve
 	expect(result.identityRungs).toEqual(ladderProjection);
 });
 
-test('runtime compaction carries provider fallback provenance', () => {
-	const classification = classificationResultSchema.parse({
+function provenanceFixture() {
+	return classificationResultSchema.parse({
 		ok: true,
 		status: 'complete',
 		contractVersion: 'cpkg-02',
@@ -222,6 +222,10 @@ test('runtime compaction carries provider fallback provenance', () => {
 			requestedServerTiers: [],
 		},
 	});
+}
+
+test('runtime compaction carries provider fallback provenance', () => {
+	const classification = provenanceFixture();
 	expect(
 		deriveClassificationResultFromRuntime({
 			classification,
@@ -229,4 +233,55 @@ test('runtime compaction carries provider fallback provenance', () => {
 			targetSource: 'raw_input',
 		})
 	).toMatchObject({ provider: 'imdb', fallbackStage: 'generic' });
+});
+
+test('runtime provenance prefers bounded atom metadata over canonical metadata', () => {
+	const classification = provenanceFixture();
+	classification.resolved!.atoms[0]!.metadata = {
+		provider: ' spotify-web-api ',
+		fallbackStage: 'resolved',
+	};
+	classification.resolved!.publishable = [
+		{
+			type: 'Movie',
+			data: {},
+			meta: { pluginId: 'spotify', provider: 'spotify', fetchedAt: '2026-01-01T00:00:00.000Z' },
+		},
+	];
+	const compact = deriveClassificationResultFromRuntime({
+		classification,
+		targetUrl: undefined,
+		targetSource: undefined,
+	});
+	expect(compact).toMatchObject({ provider: 'spotify-web-api', fallbackStage: 'resolved' });
+});
+
+test('runtime provenance falls back to resolver and domain metadata and rejects long fields', () => {
+	const classification = provenanceFixture();
+	classification.resolved!.atoms[0]!.metadata = {
+		provider: 'x'.repeat(129),
+		fallbackStage: 'x'.repeat(65),
+	};
+	classification.classification = {
+		type: 'url',
+		subtype: 'track',
+		confidence: 1,
+		domain: 'spotify',
+		meta: { platformResolver: { domain: ' spotify-web-api ', fallbackStage: 'generic' } },
+	};
+	const compact = () =>
+		deriveClassificationResultFromRuntime({
+			classification,
+			targetUrl: undefined,
+			targetSource: undefined,
+		});
+	expect(compact()).not.toHaveProperty('provider');
+	expect(compact()).not.toHaveProperty('fallbackStage');
+	classification.resolved!.atoms[0]!.metadata = {};
+	expect(compact()).toMatchObject({ provider: 'spotify-web-api', fallbackStage: 'generic' });
+	classification.classification!.meta.platformResolver = [];
+	expect(compact().provider).toBe('spotify');
+	expect(compact()).not.toHaveProperty('fallbackStage');
+	classification.classification!.domain = '';
+	expect(compact()).not.toHaveProperty('provider');
 });

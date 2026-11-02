@@ -28,7 +28,8 @@
 		"@0xintuition/atom-classification": "0.1.0-alpha.0",
 		"@0xintuition/atom-enrichment": "0.1.0-alpha.0",
 		"hono": "^4.11.6",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"@0xintuition/atom-runtime": "0.1.0-alpha.0"
 	},
 	"devDependencies": {
 		"@0xintuition/tsconfig": "workspace:*",

@@ -5,12 +5,9 @@
  */
 import type { Abi, Hex } from 'viem';
 
-import atomWarden from '../vendored/AtomWarden.json';
 import multiVaultSizeFit from '../vendored/MultiVaultSizeFit.json';
-import timelockController from '../vendored/TimelockController.json';
 import transparentUpgradeableProxy from '../vendored/TransparentUpgradeableProxy.json';
 import upgradeableBeacon from '../vendored/UpgradeableBeacon.json';
-import wrappedTrust from '../vendored/WrappedTrust.json';
 
 export type VendoredArtifact = {
 	contractName: string;
@@ -34,10 +31,7 @@ function artifact(raw: { contractName: string; abi: unknown; bytecode: string })
 }
 
 export const TransparentUpgradeableProxyArtifact = artifact(transparentUpgradeableProxy);
-export const TimelockControllerArtifact = artifact(timelockController);
 export const UpgradeableBeaconArtifact = artifact(upgradeableBeacon);
-export const AtomWardenArtifact = artifact(atomWarden);
-export const WrappedTrustArtifact = artifact(wrappedTrust);
 /** optimizer_runs=200 build whose runtime fits EIP-170 chains (see the JSON's note). */
 export const MultiVaultSizeFitArtifact: LinkableVendoredArtifact = {
 	contractName: multiVaultSizeFit.contractName,
