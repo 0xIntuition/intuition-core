@@ -30,6 +30,14 @@ and reports a maximum of five URIs, each up to 700 bytes. Its chain ID, bytecode
 and creation block were verified through RPC on 2026-11-02. This environment
 does not hold a signing key or deploy contracts.
 
+Core currently indexes the seven MultiVault events listed in
+`crates/rindexer-ingestion/rindexer.yaml`. The other protocol contracts on
+Intuition Sepolia and Base Sepolia are not separate ingestion sources for this
+Explorer deployment. Their published addresses come from the deployments package.
+The older `0xeBc49d356B7f64D888130D85CC6D17114a6843ec` address used by
+`scripts/smoke-index.sh` is a bounded historical test fixture, not the Railway
+QA contract.
+
 ## Services
 
 All services run in Railway's US East region with one replica and sleeping disabled.
@@ -153,6 +161,14 @@ readiness checks returned HTTP 200. Timescale applied 49 migrations through
 including 174 atom creations, 126 triple creations, and one URI-context event.
 The API reported 174 atoms, 126 triples, and ten accounts; every atom completed
 parsing and classification.
+
+An address audit at 20:06 UTC compared every stored event with RPC logs emitted
+by the approved MultiVault above, from its deployment block 9,345,311 through
+the snapshot's last event block 9,375,155. All 1,609 records matched by transaction
+hash, log index, block hash, block number, event type, and canonical status.
+There were no mismatches, duplicate event keys, or missing events in that range.
+The running indexer's rendered manifest also used this address and chain 13579.
+No database reset was necessary.
 
 An indexer restart resumed from the saved block 9,375,160 (next block 9,375,161)
 with the event count unchanged. Anonymous API writes returned 401, and the API
