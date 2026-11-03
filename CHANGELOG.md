@@ -8,6 +8,12 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ## Unreleased
 
+- Replace all local package tarballs and overrides with exact npm alpha releases from October 28, 2026; frozen installs now resolve the full public package dependency graph.
+- Use `@0xintuition/atom-runtime` for cache, provider preset, and engine composition. Core retains HTTP, persistence, queueing, and worker projection adapters.
+- Remove vendored AtomWarden, WrappedTrust, and TimelockController artifacts in favor of `@0xintuition/contracts-v2@1.1.0-alpha.1`; regenerate the size-fit MultiVault from that version.
+- Run IID and Node/Bun URI conformance against installed npm packages in CI without sibling checkouts or tarball inputs.
+- Preserve `MusicAlbum` and `MusicGroup` schema types while translating identity categories to the published enrichment `song` category; structured classification follows the package type registry. Keep Core's bounded provider provenance projection.
+
 - Spotify locale-prefixed links classify as the same resource as the plain link (reference-implementation fix of 2026-10-14).
 - Enrich from stored alias IIDs through the injected registry, retaining primary hints and recording alias conflicts; port the reference behavior from ENG-16544 (2026-10-08).
 - Add dry-run-first `kg-reenrich-missing-provider` with keyset batches, completed-only resets, and resume cursors; port the reference behavior from ENG-16544 (2026-10-08).
@@ -21,7 +27,7 @@ digests, schema or migration changes, config changes, and verification evidence.
 
 ### Added
 
-- Packed-tarball Node/Bun URI creation conformance, replay vectors, and API ingestion semantics documentation.
+- Published-package Node/Bun URI creation conformance, replay vectors, and API ingestion semantics documentation.
 
 - Typed Wikidata IID adapter conformance and colon-preserving path coverage, including dormant identity handoffs.
 

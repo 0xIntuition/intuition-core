@@ -76,9 +76,8 @@ The worker entrypoint statically imports `@0xintuition/iid`,
 pinned in `services/workers/package.json`. When `WORKERS_IID_READ_ENABLED` is on it
 checks the installed package manifests against those exact pins before starting and
 fails fast on a mismatch; with the flag off the legacy path runs and the check is
-skipped, so an installed-version drift cannot stop a node that never enabled IID reads. The committed lockfile
-will be regenerated after publication; prerelease verification uses local tarballs
-in an isolated scratch worktree.
+skipped, so an installed-version drift cannot stop a node that never enabled IID reads. The committed `bun.lock` resolves the exact published npm versions, including transitive
+first-party packages. No local package checkout or tarballs are required.
 
 `WORKERS_IID_READ_ENABLED` is a plain toggle: when enabled, the entrypoint supplies
 inspection, registry, and ladder bindings to every stage. The enrichment worker composes the capability

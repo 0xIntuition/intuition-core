@@ -17,17 +17,21 @@
 
 import {
 	AtomWalletFactoryAbi,
+	AtomWardenAbi,
 	BaseEmissionsControllerAbi,
 	BondingCurveRegistryAbi,
 	LinearCurveAbi,
 	MultiVaultLibAbi,
 	MultiVaultMigrationModeAbi,
 	SatelliteEmissionsControllerAbi,
+	TimelockControllerAbi,
 	TrustBondingAbi,
+	WrappedTrustAbi,
 } from '@0xintuition/contracts-v2/abis';
 import {
 	AtomWalletBytecode,
 	AtomWalletFactoryBytecode,
+	AtomWardenBytecode,
 	BaseEmissionsControllerBytecode,
 	BondingCurveRegistryBytecode,
 	LinearCurveBytecode,
@@ -37,7 +41,9 @@ import {
 	MultiVaultMigrationModeBytecode,
 	MultiVaultMigrationModeLinkReferences,
 	SatelliteEmissionsControllerBytecode,
+	TimelockControllerBytecode,
 	TrustBondingBytecode,
+	WrappedTrustBytecode,
 } from '@0xintuition/contracts-v2/bytecodes';
 import {
 	type Address,
@@ -60,12 +66,9 @@ import type { PrivateKeyAccount } from 'viem/accounts';
 
 import type { DeploymentAddresses } from '../addresses';
 import {
-	AtomWardenArtifact,
 	MultiVaultSizeFitArtifact,
-	TimelockControllerArtifact,
 	TransparentUpgradeableProxyArtifact,
 	UpgradeableBeaconArtifact,
-	WrappedTrustArtifact,
 } from '../vendored';
 import type { DeployTarget } from './config';
 
@@ -252,8 +255,8 @@ export async function deployIntuitionSystem(
 		wrappedTrust = await deployContract(
 			clients,
 			'WrappedTrust',
-			WrappedTrustArtifact.abi,
-			WrappedTrustArtifact.bytecode
+			WrappedTrustAbi,
+			WrappedTrustBytecode
 		);
 	}
 
@@ -261,8 +264,8 @@ export async function deployIntuitionSystem(
 	const baseTimelock = await deployContract(
 		clients,
 		'BaseEmissionsController upgrades TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 	const baseEmissionsImpl = await deployContract(
@@ -331,15 +334,15 @@ export async function deployIntuitionSystem(
 	const upgradesTimelock = await deployContract(
 		clients,
 		'Upgrades TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 	const parametersTimelock = await deployContract(
 		clients,
 		'Parameters TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 
@@ -373,8 +376,8 @@ export async function deployIntuitionSystem(
 	const atomWardenImpl = await deployContract(
 		clients,
 		'AtomWarden implementation',
-		AtomWardenArtifact.abi,
-		AtomWardenArtifact.bytecode
+		AtomWardenAbi,
+		AtomWardenBytecode
 	);
 	const atomWarden = await deployProxy(
 		clients,
@@ -550,7 +553,7 @@ export async function deployIntuitionSystem(
 		clients,
 		'AtomWarden.initialize(admin, MultiVault, claim policy)',
 		atomWarden,
-		AtomWardenArtifact.abi,
+		AtomWardenAbi,
 		'initialize',
 		[
 			admin,

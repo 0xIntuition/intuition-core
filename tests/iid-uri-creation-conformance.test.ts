@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { readFile, rm } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import type { Abi, AbiEvent, AbiFunction, Hex } from 'viem';
 import { kgAtomId } from '../packages/database-kg/src/actions/ids';
 import { atomContextRegisteredEvents } from '../packages/database-timescale/src/schemas/timescale/events';
@@ -10,18 +10,6 @@ import { coreRoot, kgDirectory, prepareConsumer } from './conformance/prepare-co
 const viem = await import(Bun.resolveSync('viem', kgDirectory));
 const { getTableColumns } = await import(Bun.resolveSync('drizzle-orm', kgDirectory));
 const installedIds = await import(Bun.resolveSync('@0xintuition/ids', kgDirectory));
-// D-C13-1: the train is an explicit input. Unset means skip; set means the suite
-// runs and any missing manifest, tarball or digest mismatch fails loudly.
-const trainDirectory =
-	process.env.INTUITION_TRAIN_TARBALLS === undefined
-		? undefined
-		: resolve(process.env.INTUITION_TRAIN_TARBALLS);
-const available = trainDirectory !== undefined;
-if (!available) {
-	console.info(
-		'SKIP C13: INTUITION_TRAIN_TARBALLS is not set; point it at a packed train directory (docs/conformance.md).'
-	);
-}
 // Node is part of the gate: resolve it from PATH or an explicit override, never a fixed path.
 const nodeBinary = process.env.INTUITION_CONFORMANCE_NODE ?? Bun.which('node');
 
@@ -43,7 +31,7 @@ type Golden = {
 		protocolVersion: string;
 		exports: string[];
 		deepImportRejected: boolean;
-		installedTarballsOnly: boolean;
+		installedPackagesOnly: boolean;
 	};
 	abi: { functionItem: AbiFunction; eventItem: AbiEvent };
 	selector: Hex;
@@ -88,7 +76,7 @@ const indexerEvent = indexer.find(
 	(item): item is AbiEvent => item.type === 'event' && item.name === 'AtomContextRegistered'
 )!;
 
-(available ? describe : describe.skip)('packed URI creation conformance', () => {
+describe('published URI creation conformance', () => {
 	let consumer: string | undefined;
 	let golden: Golden;
 	let nodeOutput: Buffer;
@@ -97,7 +85,6 @@ const indexerEvent = indexer.find(
 	let bunIdentity: RuntimeIdentity;
 
 	beforeAll(async () => {
-		if (!trainDirectory) throw new Error('INTUITION_TRAIN_TARBALLS is required inside the suite');
 		if (nodeBinary === '') {
 			throw new Error('INTUITION_CONFORMANCE_NODE is empty; supply a Node >= 22 executable');
 		}
@@ -117,9 +104,9 @@ const indexerEvent = indexer.find(
 		if (typeof bunIdentity.bun !== 'string' || bunIdentity.bun.length === 0) {
 			throw new Error(`Second runtime slot must report Bun; got ${JSON.stringify(bunIdentity)}`);
 		}
-		consumer = await prepareConsumer(trainDirectory);
+		consumer = await prepareConsumer();
 		const installEvidence = await readFile(join(consumer, 'install-evidence.txt'), 'utf8');
-		console.info(installEvidence.split('\n').find((line) => line.includes('packages installed')));
+		console.info(installEvidence.split('\n').find((line) => line.includes('packages isolated')));
 		const outputs = [nodeBinary as string, process.execPath].map((runtime) => {
 			const result = Bun.spawnSync([runtime, 'golden.mjs'], {
 				cwd: consumer,
@@ -146,11 +133,11 @@ const indexerEvent = indexer.find(
 		expect(golden.publicEntrypoints).toMatchObject({
 			exports: ['.', './contracts', './package.json'],
 			deepImportRejected: true,
-			installedTarballsOnly: true,
+			installedPackagesOnly: true,
 		});
 	});
 
-	test('train, vendored and indexer ABI shapes, selectors and topic0 agree', () => {
+	test('published, vendored and indexer ABI shapes, selectors and topic0 agree', () => {
 		expect(golden.abi.functionItem).toEqual(vendoredFunction);
 		expect(golden.abi.functionItem).toEqual(indexerFunction);
 		expect(golden.abi.eventItem).toEqual(vendoredEvent);
@@ -220,7 +207,7 @@ const indexerEvent = indexer.find(
 		}
 	});
 
-	test('packed ids agree with installed ids and Core on string, URL, raw bytes and JSON', () => {
+	test('published ids agree with installed ids and Core on string, URL, raw bytes and JSON', () => {
 		for (const vector of golden.vectors) {
 			for (const [index, atom] of vector.atoms.entries()) {
 				expect(vector.termIds[index]).toBe(installedIds.calculateAtomId(atom.input));

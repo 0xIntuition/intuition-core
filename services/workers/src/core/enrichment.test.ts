@@ -114,7 +114,7 @@ describe('KG enrichment core', () => {
 		['album', 'music-album', 'MusicAlbum'],
 		['artist', 'artist', 'MusicGroup'],
 	] as const) {
-		test(`carries Spotify ${kind} URL classification into enrichment without category loss`, async () => {
+		test(`carries Spotify ${kind} URL classification into enrichment with its schema type preserved`, async () => {
 			const url = `https://open.spotify.com/${kind}/abc123`;
 			const classification = await createClassificationEngine({
 				runtime: 'server',
@@ -137,11 +137,11 @@ describe('KG enrichment core', () => {
 			const input = buildClassifiedInputFromPlan(
 				deriveEnrichmentPlan({ rawInput: url, classificationResult, parseResult: null })
 			);
-			expect(input).toMatchObject({ atomType: category, jsonLd: { '@type': schemaType } });
+			expect(input).toMatchObject({ atomType: 'song', jsonLd: { '@type': schemaType } });
 			expect(classifiedAtomInputSchema.safeParse(input).success).toBe(true);
 		});
 
-		test(`structured ${schemaType} agrees with Spotify ${kind} URL classification`, async () => {
+		test(`structured ${schemaType} uses the published enrichment category for Spotify ${kind}`, async () => {
 			const url = `https://open.spotify.com/${kind}/abc123`;
 			const engine = createClassificationEngine({
 				runtime: 'server',
@@ -170,12 +170,16 @@ describe('KG enrichment core', () => {
 			expect(plan.classificationResult).toMatchObject({
 				status: 'recognized',
 				schemaType,
-				category,
+				category: 'song',
 			});
-			expect(plan.classificationResult.category).toBe(classification.resolved?.atoms[0]?.category);
+			expect(plan.classificationResult.schemaType).toBe(
+				classification.resolved?.atoms[0]?.schemaType
+			);
 			const definition = engine.listTypes().find((entry) => entry.type === schemaType);
-			expect(definition?.category).toBe(category);
-			expect(jsonLdTypeCategorySchema.safeParse(category).success).toBe(true);
+			expect(definition?.category).toBe('song');
+			expect(jsonLdTypeCategorySchema.safeParse(plan.classificationResult.category).success).toBe(
+				true
+			);
 		});
 	}
 

@@ -5,21 +5,22 @@
     "": {
       "name": "intuition-core",
       "dependencies": {
-        "@0xintuition/atom-classification": "file:./.tarballs/0xintuition-atom-classification-0.1.0-alpha.0.tgz",
-        "@0xintuition/atom-enrichment": "file:./.tarballs/0xintuition-atom-enrichment-0.1.0-alpha.0.tgz",
-        "@0xintuition/atom-parser": "file:./.tarballs/0xintuition-atom-parser-0.1.0-alpha.0.tgz",
-        "@0xintuition/classifications": "file:./.tarballs/0xintuition-classifications-0.1.0-alpha.1.tgz",
-        "@0xintuition/curves": "file:./.tarballs/0xintuition-curves-0.1.0-alpha.1.tgz",
-        "@0xintuition/deployments": "file:./.tarballs/0xintuition-deployments-0.1.0-alpha.1.tgz",
-        "@0xintuition/ids": "file:./.tarballs/0xintuition-ids-0.1.0-alpha.1.tgz",
-        "@0xintuition/iid": "file:./.tarballs/0xintuition-iid-0.1.0-alpha.0.tgz",
-        "@0xintuition/iid-ladder": "file:./.tarballs/0xintuition-iid-ladder-0.1.0-alpha.1.tgz",
-        "@0xintuition/iid-registry": "file:./.tarballs/0xintuition-iid-registry-0.1.0-alpha.0.tgz",
-        "@0xintuition/iid-spec": "file:./.tarballs/0xintuition-iid-spec-0.1.0-alpha.0.tgz",
-        "@0xintuition/pipeline-runtime": "file:./.tarballs/0xintuition-pipeline-runtime-0.1.0-alpha.0.tgz",
-        "@0xintuition/predicates": "file:./.tarballs/0xintuition-predicates-0.1.0-alpha.1.tgz",
-        "@0xintuition/protocol": "file:./.tarballs/0xintuition-protocol-4.0.0.tgz",
-        "@0xintuition/schema-org": "file:./.tarballs/0xintuition-schema-org-0.1.0-alpha.0.tgz",
+        "@0xintuition/atom-classification": "0.1.0-alpha.0",
+        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
+        "@0xintuition/atom-parser": "0.1.0-alpha.0",
+        "@0xintuition/atom-runtime": "0.1.0-alpha.0",
+        "@0xintuition/classifications": "0.1.0-alpha.1",
+        "@0xintuition/curves": "0.1.0-alpha.1",
+        "@0xintuition/deployments": "0.1.0-alpha.1",
+        "@0xintuition/ids": "0.1.0-alpha.1",
+        "@0xintuition/iid": "0.1.0-alpha.0",
+        "@0xintuition/iid-ladder": "0.1.0-alpha.0",
+        "@0xintuition/iid-registry": "0.1.0-alpha.0",
+        "@0xintuition/iid-spec": "0.1.0-alpha.0",
+        "@0xintuition/pipeline-runtime": "0.1.0-alpha.0",
+        "@0xintuition/predicates": "0.1.0-alpha.1",
+        "@0xintuition/protocol": "3.0.0-alpha.0",
+        "@0xintuition/schema-org": "0.1.0-alpha.1",
       },
       "devDependencies": {
         "@0xintuition/contracts": "workspace:*",
@@ -74,7 +75,7 @@
     "packages/contracts": {
       "name": "@0xintuition/contracts",
       "dependencies": {
-        "@0xintuition/contracts-v2": "1.1.0-alpha.0",
+        "@0xintuition/contracts-v2": "1.1.0-alpha.1",
         "@0xintuition/deployments": "0.1.0-alpha.1",
         "viem": "^2.23.2",
       },
@@ -145,6 +146,7 @@
       "dependencies": {
         "@0xintuition/atom-classification": "0.1.0-alpha.0",
         "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
+        "@0xintuition/atom-runtime": "0.1.0-alpha.0",
         "hono": "^4.11.6",
         "zod": "catalog:",
       },
@@ -165,9 +167,9 @@
         "@0xintuition/atom-services": "workspace:*",
         "@0xintuition/database-kg": "workspace:*",
         "@0xintuition/iid": "0.1.0-alpha.0",
-        "@0xintuition/iid-ladder": "0.1.0-alpha.1",
+        "@0xintuition/iid-ladder": "0.1.0-alpha.0",
         "@0xintuition/iid-registry": "0.1.0-alpha.0",
-        "@0xintuition/schema-org": "0.1.0-alpha.0",
+        "@0xintuition/schema-org": "0.1.0-alpha.1",
         "drizzle-orm": "0.45.1",
         "zod": "catalog:",
       },
@@ -182,23 +184,6 @@
       "name": "@0xintuition/tsconfig",
     },
   },
-  "overrides": {
-    "@0xintuition/atom-classification": "file:./.tarballs/0xintuition-atom-classification-0.1.0-alpha.0.tgz",
-    "@0xintuition/atom-enrichment": "file:./.tarballs/0xintuition-atom-enrichment-0.1.0-alpha.0.tgz",
-    "@0xintuition/atom-parser": "file:./.tarballs/0xintuition-atom-parser-0.1.0-alpha.0.tgz",
-    "@0xintuition/classifications": "file:./.tarballs/0xintuition-classifications-0.1.0-alpha.1.tgz",
-    "@0xintuition/curves": "file:./.tarballs/0xintuition-curves-0.1.0-alpha.1.tgz",
-    "@0xintuition/deployments": "file:./.tarballs/0xintuition-deployments-0.1.0-alpha.1.tgz",
-    "@0xintuition/ids": "file:./.tarballs/0xintuition-ids-0.1.0-alpha.1.tgz",
-    "@0xintuition/iid": "file:./.tarballs/0xintuition-iid-0.1.0-alpha.0.tgz",
-    "@0xintuition/iid-ladder": "file:./.tarballs/0xintuition-iid-ladder-0.1.0-alpha.1.tgz",
-    "@0xintuition/iid-registry": "file:./.tarballs/0xintuition-iid-registry-0.1.0-alpha.0.tgz",
-    "@0xintuition/iid-spec": "file:./.tarballs/0xintuition-iid-spec-0.1.0-alpha.0.tgz",
-    "@0xintuition/pipeline-runtime": "file:./.tarballs/0xintuition-pipeline-runtime-0.1.0-alpha.0.tgz",
-    "@0xintuition/predicates": "file:./.tarballs/0xintuition-predicates-0.1.0-alpha.1.tgz",
-    "@0xintuition/protocol": "file:./.tarballs/0xintuition-protocol-4.0.0.tgz",
-    "@0xintuition/schema-org": "file:./.tarballs/0xintuition-schema-org-0.1.0-alpha.0.tgz",
-  },
   "catalog": {
     "typescript": "^5.9.3",
     "zod": "4.1.12",
@@ -206,49 +191,53 @@
   "packages": {
     "@0xintuition/api": ["@0xintuition/api@workspace:services/api"],
 
-    "@0xintuition/atom-classification": ["@0xintuition/atom-classification@./.tarballs/0xintuition-atom-classification-0.1.0-alpha.0.tgz", { "dependencies": { "zod": "4.1.12" } }, "sha512-fWY6262/hrAOOhYxDyIxVX37HQTGwrTvJFKLuu9g65MxFOEJZBNbHdkpkrd5HaD9/mkBwiTIFracisUsKZ9rwA=="],
+    "@0xintuition/atom-classification": ["@0xintuition/atom-classification@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/atom-enrichment": "0.1.0-alpha.0", "@0xintuition/atom-parser": "0.1.0-alpha.0", "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-ladder": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "@0xintuition/predicates": "0.1.0-alpha.1", "@0xintuition/primitives": "0.1.0-alpha.1", "@0xintuition/schema-org": "0.1.0-alpha.1", "zod": "4.1.12" } }, "sha512-aIaFQKTfdy+64h0BrQwgIBU58xRPuRIOye+jWfpSBmMJhcP5IQ9ymLo1uuPHFek3pGGy7eu0t0kOmxVOn3D7kA=="],
 
-    "@0xintuition/atom-enrichment": ["@0xintuition/atom-enrichment@./.tarballs/0xintuition-atom-enrichment-0.1.0-alpha.0.tgz", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "zod": "4.1.12" } }, "sha512-ZSNTIhMYiP6Onc6Qf7ETmTajJMfgiY9hrKPcxiOFkYKrF/4X+RND0LTLH0wiGTpnAkK3NDrPeRSg2uPuXDXp9g=="],
+    "@0xintuition/atom-enrichment": ["@0xintuition/atom-enrichment@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-ladder": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "@0xintuition/protocol": "3.0.0-alpha.0", "@0xintuition/schema-org": "0.1.0-alpha.1", "zod": "4.1.12" } }, "sha512-ark9V5rXcuHzkZWcN8aR7bCiCGbjR2JfwRPdRVCV0QmS/Cqbpqq7/sm4zNdZ9ZGKScUl5SRgZr1/Ka/4nWjN7Q=="],
 
-    "@0xintuition/atom-parser": ["@0xintuition/atom-parser@./.tarballs/0xintuition-atom-parser-0.1.0-alpha.0.tgz", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0", "multiformats": "^13.3.2", "viem": "^2.23.2" } }, "sha512-QDe585XGcznty1Kj9Lj/C+dn2HBB7pZ18V5H/3oAVmY6xYApGkQt1NwFF7M0gM8jRsYp9KGC+g021UU9XJFKGQ=="],
+    "@0xintuition/atom-parser": ["@0xintuition/atom-parser@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0", "multiformats": "^13.3.2", "viem": "^2.23.2" } }, "sha512-3cBkCXYLiR/uDFIkZ9ckJLoO/e15zt3uGGRuUOaHYrkJ/JG1gXM0V9l7scDNX4NxLwjblXgAEfEceZ1umsXMDw=="],
 
     "@0xintuition/atom-rules-engine": ["@0xintuition/atom-rules-engine@workspace:packages/atom-rules-engine"],
 
+    "@0xintuition/atom-runtime": ["@0xintuition/atom-runtime@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/atom-classification": "0.1.0-alpha.0", "@0xintuition/atom-enrichment": "0.1.0-alpha.0", "@0xintuition/atom-parser": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "zod": "4.1.12" } }, "sha512-Q/6Gr0Xhhrh8QJOzewPXFWdyddoLyQuLvEFZAXY4Vz+WxxNeYGjl7GaWRBqABrjLnHWedvWFSdjlTbd71WZJIQ=="],
+
     "@0xintuition/atom-services": ["@0xintuition/atom-services@workspace:services/atom-services"],
 
-    "@0xintuition/classifications": ["@0xintuition/classifications@./.tarballs/0xintuition-classifications-0.1.0-alpha.1.tgz", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-TQQwVIxgoGz8aZQK5ctu5ouwHFn64hHrSDiKQgFv8dKV01IVJT+OWLIwPMuooN8pNJa+6wpWAAyFqmTFW4/14Q=="],
+    "@0xintuition/classifications": ["@0xintuition/classifications@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-PFEdeBg+bWNoFOXwFmoUdMtIR0KuCJAmNzye6KgfMt7W8Esi560cSoCjxZtSD457ftPq6YlWmNzCHVwxbOw/Dw=="],
 
     "@0xintuition/contracts": ["@0xintuition/contracts@workspace:packages/contracts"],
 
-    "@0xintuition/contracts-v2": ["@0xintuition/contracts-v2@1.1.0-alpha.0", "", { "dependencies": { "@account-abstraction/contracts": "^0.8.0", "@openzeppelin-v4/contracts": "npm:@openzeppelin/contracts@^4.9.6", "@openzeppelin-v4/contracts-upgradeable": "npm:@openzeppelin/contracts-upgradeable@^4.9.6", "@openzeppelin/contracts": "5.4.0", "@openzeppelin/contracts-upgradeable": "5.4.0", "@prb/math": "^4.1.0", "solady": "^0.1.26" } }, "sha512-vt9GFaFXYAeigLyl/4i6hPpLO4NBrZDyWJrM2M7aHuQ39/qSpxqMmIzetoAtpBWWx4AzM5wccUsXJvVST02saA=="],
+    "@0xintuition/contracts-v2": ["@0xintuition/contracts-v2@1.1.0-alpha.1", "", { "dependencies": { "@account-abstraction/contracts": "0.8.0", "@openzeppelin-v4/contracts": "npm:@openzeppelin/contracts@4.9.6", "@openzeppelin-v4/contracts-upgradeable": "npm:@openzeppelin/contracts-upgradeable@4.9.6", "@openzeppelin/contracts": "5.4.0", "@openzeppelin/contracts-upgradeable": "5.4.0", "@prb/math": "4.1.0", "solady": "0.1.26" } }, "sha512-SyeZAbsc/IuFgxt5wx0XywrqnVspssFwhf+PHkbUD8KAjZfI3fnEXvI+K07sprOXTYm87jDslV02j3x6NSSaDg=="],
 
-    "@0xintuition/curves": ["@0xintuition/curves@./.tarballs/0xintuition-curves-0.1.0-alpha.1.tgz", {}, "sha512-P+YRVbG4vcXQwcKjWnl/W8t05Z4KCzHHrqmvXXulzUn0xZedk03+Ap7E+FkUwIH1P/A/Q+fBO98kk8PrMF5vFQ=="],
+    "@0xintuition/curves": ["@0xintuition/curves@0.1.0-alpha.1", "", {}, "sha512-6qdaUpTP03D2J3+KD5uY4DnfWXSF5TYyWlnWU0MOjWn0SI7GngGZUjiFduk6yqgUNQH66F5KkA0Hd4Ku1Q34ZA=="],
 
     "@0xintuition/database-kg": ["@0xintuition/database-kg@workspace:packages/database-kg"],
 
     "@0xintuition/database-timescale": ["@0xintuition/database-timescale@workspace:packages/database-timescale"],
 
-    "@0xintuition/deployments": ["@0xintuition/deployments@./.tarballs/0xintuition-deployments-0.1.0-alpha.1.tgz", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-vKs29njGmPE+YQRVIpYvpHI2FJp6MaJi/faXsAgfLPfpYdoUKe/Il+4tJVW7lMBwHwFWmd+SVmdC1zRE076lMw=="],
+    "@0xintuition/deployments": ["@0xintuition/deployments@0.1.0-alpha.1", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-qPXUFMaS9wMk6OwGqlDCqfXkcV96gEGoa/nOXXahzW6pQBw8M+ay5FrR9NyWxzAN25Zt1LRVIWKl1mrLzBLWpA=="],
 
     "@0xintuition/explorer": ["@0xintuition/explorer@workspace:apps/explorer"],
 
-    "@0xintuition/ids": ["@0xintuition/ids@./.tarballs/0xintuition-ids-0.1.0-alpha.1.tgz", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-1mjtqfDq2qV+gwbZq5LpfK67HSSwvZlNQqJ03beEHzq+ziCsJBxbGibenvdNaOcj9gotoxatGS89QZOXJfzrWA=="],
+    "@0xintuition/ids": ["@0xintuition/ids@0.1.0-alpha.1", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-5DMo4dXcdQBXcYMYKPvPkRcbW2Ag6xtulSasmV6XOcg9xNmR/jlEgPpaDo64sDivQYTTvv5zcCI1k7Q+gM8Qng=="],
 
-    "@0xintuition/iid": ["@0xintuition/iid@./.tarballs/0xintuition-iid-0.1.0-alpha.0.tgz", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-jxlRk3fZcylD7bVFBA11Z3mi2uGr2NvKi9eG4sztXw0NEjxPhYyVj+zmybCpVz0TItGDAMtuUooSHy5O9Rg9ig=="],
+    "@0xintuition/iid": ["@0xintuition/iid@0.1.0-alpha.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-To4LHtyKsvWuUCGjSPPjy7/XiuP/bKkq1+906uA5+JpMM5VxzRQl8JEHmInAv0KQN1yLKxbpRurVCKC/VvyCyg=="],
 
-    "@0xintuition/iid-ladder": ["@0xintuition/iid-ladder@./.tarballs/0xintuition-iid-ladder-0.1.0-alpha.1.tgz", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" } }, "sha512-SuQ4ns0tWsd4aZ4dOP4ut+uy+1XKBM90ivB+HbMyaAlJ/V54udRqdYuRvbLxpnk3qPWR8QRIMWoHmGPY67Qsvw=="],
+    "@0xintuition/iid-ladder": ["@0xintuition/iid-ladder@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" } }, "sha512-B+OtgfzGoNTzRNC25V6KhxsFtN0J7igibO2Jm14Y8u2FT1aJU+mM6OfBH1C9DDDazxlxvfarAsgWelRD8Bz7VA=="],
 
-    "@0xintuition/iid-registry": ["@0xintuition/iid-registry@./.tarballs/0xintuition-iid-registry-0.1.0-alpha.0.tgz", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-7EXjLnMtevFUYSVso3uq47XKYHKVxL7k9fXLE+wFBlf8nMo1mfgO4aYQ8VIrrY0tzV+r6/+hVBds39iY5x4LgA=="],
+    "@0xintuition/iid-registry": ["@0xintuition/iid-registry@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-5uiX1rCRfW7A8Kr+BHzJd0v58bC25V65jhTNhndUXhy8i6a3Gor8TDSX/ZDQZehl6ZEdedMJPz1j1PbUX5PUrA=="],
 
-    "@0xintuition/iid-spec": ["@0xintuition/iid-spec@./.tarballs/0xintuition-iid-spec-0.1.0-alpha.0.tgz", {}, "sha512-JuO09Y5qYVtvcSplYYWg/WkMmpYy7toNE6kLgUauc3tTtEpvHw9nAEVxkRljzK0KubDZCkK8z63TnZcd1DBEWw=="],
+    "@0xintuition/iid-spec": ["@0xintuition/iid-spec@0.1.0-alpha.0", "", {}, "sha512-snocBVY6HbDrh+Bg9s4hzq1ELOTHFtARHoEJjdEWVjDwsT6rCJ2egZoqzd5tnzcF6jhM4pb6/497UBtaiK/9bA=="],
 
-    "@0xintuition/pipeline-runtime": ["@0xintuition/pipeline-runtime@./.tarballs/0xintuition-pipeline-runtime-0.1.0-alpha.0.tgz", {}, "sha512-rtVJ/Z4o6inC73PDMrx0Hdwo6ji1Vx9PDrgvpQm2rXnD1FLXg2HOPsmDUPWFfcN9Kz1TNx4rzZM3r2u/yndYxw=="],
+    "@0xintuition/pipeline-runtime": ["@0xintuition/pipeline-runtime@0.1.0-alpha.0", "", {}, "sha512-hV6On4R809pCHFj/SiedKh9ru61haiwv7pUV2M7wJgfpHTw+w/s6JleB8DiU9vVUyBWA6NTKa3pnlruxTzFo2w=="],
 
-    "@0xintuition/predicates": ["@0xintuition/predicates@./.tarballs/0xintuition-predicates-0.1.0-alpha.1.tgz", { "dependencies": { "@0xintuition/ids": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-mZXNmLcFTynNsRXsF7hNpcpteoky9jRGVtktLpM/W43Ub2z0FU1pekDASW/EqnxvellGvyMKbhtfX4xjSo3BLQ=="],
+    "@0xintuition/predicates": ["@0xintuition/predicates@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/ids": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-8NcYPbRuZVFrZQubJStuTrRWf481Cg2jLMVSUG7jPm8XTK+fPsW5TIJhloUrKaDBIDGYnVzVfpUUO7+Rw9p99w=="],
 
-    "@0xintuition/protocol": ["@0xintuition/protocol@./.tarballs/0xintuition-protocol-4.0.0.tgz", { "dependencies": { "@0xintuition/deployments": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-eBal2+jplgORn55fxUJTBWhesq3jBLFKNJbmzS0r47mMKWQPSdIdBFMZrFZ9s6SNKz6g9vGqd7nWYAoqiBbhQQ=="],
+    "@0xintuition/primitives": ["@0xintuition/primitives@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/ids": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/predicates": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-xi3q1sbqIlYlL1FJ74gGkxUPIUT/v+7Hp95OUR0oauFNbqn0YuBbGuXJtuTtL84l9eg/IWUHejyaK1s/wFq2Ow=="],
 
-    "@0xintuition/schema-org": ["@0xintuition/schema-org@./.tarballs/0xintuition-schema-org-0.1.0-alpha.0.tgz", {}, "sha512-ceP8p7w6xf9jQQKz+WXci9QiF62Ov/O8DL+y0XZz4rN8m48VydDIu5/gEZkbeWt+liZdg/uSrwzWYLrTS2s3kQ=="],
+    "@0xintuition/protocol": ["@0xintuition/protocol@3.0.0-alpha.0", "", { "dependencies": { "@0xintuition/deployments": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-kjrMRltJZkruG9NnHbkMJ3GG4uBkbt96125MJJJYV6XOeYaW3DpDqrcd+PsBGkWiTiEVuq6l6LiMuuP0M7XEMg=="],
+
+    "@0xintuition/schema-org": ["@0xintuition/schema-org@0.1.0-alpha.1", "", {}, "sha512-0Al4HRh3IfQewcCA00/3JjVZL+MGEz+1QxD4Y0uk84iklcY5lDeZy7YKrlz30KUUH64rbt+TqXEFWH3OYHwbXQ=="],
 
     "@0xintuition/tsconfig": ["@0xintuition/tsconfig@workspace:tooling/typescript"],
 
@@ -448,7 +437,7 @@
 
     "@poppinss/exception": ["@poppinss/exception@1.2.3", "", {}, "sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw=="],
 
-    "@prb/math": ["@prb/math@4.2.1", "", {}, "sha512-6uPhPJwhadzVTfaT8fPEX/GINc49hKQwdLpuf9oWI3WUn9SpICOCX5EJvylgKv+M1YiHdDOu1U3OuxjM+5oonQ=="],
+    "@prb/math": ["@prb/math@4.1.0", "", {}, "sha512-ef5Xrlh3BeX4xT5/Wi810dpEPq2bYPndRxgFIaKSU1F/Op/s8af03kyom+mfU7gEpvfIZ46xu8W0duiHplbBMg=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-rc.3", "", {}, "sha512-eybk3TjzzzV97Dlj5c+XrBFW57eTNhzod66y9HrBlzJ6NsCrWCp/2kaPS3K9wJmurBC0Tdw4yPjXKZqlznim3Q=="],
 
@@ -1622,7 +1611,13 @@
 
     "@isaacs/cliui/string-width/emoji-regex": ["emoji-regex@9.2.2", "", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
 
+    "@tanstack/router-generator/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
+
+    "@tanstack/router-plugin/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
+
     "@tanstack/router-plugin/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, "sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA=="],
+
+    "@tanstack/start-plugin-core/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
 
     "archiver-utils/glob/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 

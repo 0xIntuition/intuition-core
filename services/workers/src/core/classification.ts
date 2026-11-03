@@ -5,7 +5,6 @@ import {
 	createTypeProfilesPlugin,
 	type JsonLdTypeDefinition,
 } from '@0xintuition/atom-classification';
-import { resolveClassificationProvenance } from '@0xintuition/atom-enrichment/handoff';
 import type {
 	IdentityClassificationDecision,
 	IdentityProviderPlan,
@@ -144,11 +143,14 @@ export function deriveClassificationResultFromRuntime(input: {
 				})
 			: undefined;
 
+	const provenance = classificationProvenance(input.classification);
+
 	return {
 		...(identityRungs ? { identityRungs } : {}),
 		status: 'recognized',
 		source: 'raw_input',
-		...resolveClassificationProvenance(input.classification),
+		...(provenance?.provider ? { provider: provenance.provider } : {}),
+		...(provenance?.fallbackStage ? { fallbackStage: provenance.fallbackStage } : {}),
 		...(normalizedType ? { schemaType: normalizedType } : {}),
 		...(resolved.category ? { category: resolved.category } : {}),
 		knownType: !!definition,
@@ -265,4 +267,33 @@ function stringIdentifiers(value: unknown): Record<string, string> | undefined {
 	return Object.fromEntries(
 		Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
 	);
+}
+
+/** Core's persisted provenance keeps specific provider attribution and bounded fields. */
+function classificationProvenance(result: ClassificationResult) {
+	const metadata = result.resolved?.atoms?.[0]?.metadata;
+	const value = result.classification?.meta?.platformResolver;
+	const resolver =
+		value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: undefined;
+	const canonical = result.resolved?.publishable?.[0] ?? result.resolved?.classifications?.[0];
+	const provider = firstProvenanceString(
+		128,
+		metadata?.provider,
+		resolver?.domain,
+		canonical?.meta.provider,
+		result.classification?.domain
+	);
+	const fallbackStage = firstProvenanceString(64, metadata?.fallbackStage, resolver?.fallbackStage);
+	return { provider, fallbackStage };
+}
+
+function firstProvenanceString(limit: number, ...values: unknown[]): string | undefined {
+	for (const value of values) {
+		if (typeof value !== 'string') continue;
+		const trimmed = value.trim();
+		if (trimmed) return trimmed.length <= limit ? trimmed : undefined;
+	}
+	return undefined;
 }

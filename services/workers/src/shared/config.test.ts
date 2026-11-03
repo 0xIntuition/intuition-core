@@ -47,6 +47,7 @@ describe('worker config', () => {
 	test('copies only allow-listed provider and cache keys into config.env', () => {
 		const config = loadWorkerConfig({
 			DATABASE_URL: 'postgres://secret',
+			DATABASE_KG_URL: '  postgresql://worker:secret@database/knowledge_graph  ',
 			ADMIN_API_KEY: 'super-secret-admin-key',
 			UNRELATED_SECRET: 'should-not-leak',
 			SPOTIFY_CLIENT_ID: 'spotify-id',
@@ -58,8 +59,15 @@ describe('worker config', () => {
 			UPSTASH_REDIS_REST_TOKEN: 'upstash-token',
 		});
 		expect(config.env.DATABASE_URL).toBeUndefined();
+		expect(config.env.DATABASE_KG_URL).toBeUndefined();
+		expect(config.databaseKgUrl).toBe('postgresql://worker:secret@database/knowledge_graph');
 		expect(config.env.ADMIN_API_KEY).toBeUndefined();
 		expect(config.env.UNRELATED_SECRET).toBeUndefined();
 		expect(PROCESSING_SECRET_ENV_KEYS).toContain('SPOTIFY_CLIENT_ID');
+	});
+
+	test('treats a missing or blank database connection as unconfigured', () => {
+		expect(loadWorkerConfig({}).databaseKgUrl).toBeUndefined();
+		expect(loadWorkerConfig({ DATABASE_KG_URL: '  ' }).databaseKgUrl).toBeUndefined();
 	});
 });

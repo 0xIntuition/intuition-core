@@ -487,12 +487,15 @@ Details: **[docs/local-devnet.md](./docs/local-devnet.md)**.
 | **workers** | `services/workers` | lease-based parse → classify → enrich over every new atom |
 | **api** | `services/api` | REST reads + key-gated, attributed writes |
 | **atom-services** | `services/atom-services` | stateless `POST /v1/classify` · `/v1/enrich` · `/v1/process` |
-| **atom intelligence** | published `@0xintuition/atom-parser`, `atom-classification`, `atom-enrichment`; local `packages/atom-rules-engine` | shared parsing/classification/enrichment runtimes, with Core worker orchestration and rules |
+| **atom intelligence** | published `@0xintuition/atom-parser`, `atom-classification`, `atom-enrichment`, `atom-runtime` | shared parsing/classification/enrichment runtimes, orchestrated by Core workers |
 | **data layer** | `packages/database-*`, `migrations/` | schemas + versioned, auto-applied migrations |
 | **protocol surface** | `packages/contracts` | pinned [`@0xintuition/contracts-v2`](https://www.npmjs.com/package/@0xintuition/contracts-v2) ABIs, address book, devnet deployer |
 | **explorer** | `apps/explorer` | dashboard + data explorer — service health, pipeline status, atoms/triples/artifacts; the reference API consumer |
 
 Deep dive: **[docs/architecture.md](./docs/architecture.md)**.
+
+See **[local packages and npm dependencies](./packages/README.md)** for the five
+Core-owned workspaces and the published implementations they consume.
 
 ## The query API
 

@@ -2,12 +2,8 @@
 # =============================================================================
 # Regenerate packages/contracts/vendored/*.json
 #
-# The devnet deployer needs five artifacts that @0xintuition/contracts-v2 does
-# not export: the OpenZeppelin proxy infrastructure (TransparentUpgradeableProxy,
-# TimelockController, UpgradeableBeacon) and two protocol contracts whose
-# ABIs/bytecodes are missing from the package exports (AtomWarden, WrappedTrust
-# — their *source* ships in the package's ./src/* export, so we compile from
-# that, never from a git clone).
+# Only the OpenZeppelin proxy infrastructure and the size-fit MultiVault build
+# remain vendored. Protocol bytecodes and TimelockController come from npm.
 #
 # Compiler settings mirror intuition-contracts-v2 foundry.toml exactly
 # (solc 0.8.29, optimizer_runs 10000, evm cancun, bytecode_hash "none" — the
@@ -56,14 +52,6 @@ cat > foundry.toml <<EOF
   ]
 EOF
 
-# Transitive import closure of AtomWarden.sol + WrappedTrust.sol (verify with
-# the import walker in the header of vendored/README.md when bumping versions).
-cp "$CONTRACTS_V2/src/WrappedTrust.sol" src/
-cp "$CONTRACTS_V2/src/protocol/wallet/AtomWarden.sol" src/protocol/wallet/
-for f in IAtomWallet IAtomWarden IMultiVault IMultiVaultCore; do
-	cp "$CONTRACTS_V2/src/interfaces/$f.sol" src/interfaces/
-done
-
 cat > src/VendoredInfra.sol <<'EOF'
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.29;
@@ -71,7 +59,6 @@ pragma solidity 0.8.29;
 // Force compilation of OpenZeppelin infrastructure contracts whose artifacts
 // the deployer needs but @0xintuition/contracts-v2 does not export.
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 EOF
 
@@ -85,10 +72,7 @@ const path = require("node:path");
 const [outDir, ozVersion, pkgVersion] = process.argv.slice(2);
 const contracts = {
 	TransparentUpgradeableProxy: `@openzeppelin/contracts@${ozVersion}`,
-	TimelockController: `@openzeppelin/contracts@${ozVersion}`,
 	UpgradeableBeacon: `@openzeppelin/contracts@${ozVersion}`,
-	AtomWarden: `@0xintuition/contracts-v2@${pkgVersion} src/protocol/wallet/AtomWarden.sol`,
-	WrappedTrust: `@0xintuition/contracts-v2@${pkgVersion} src/WrappedTrust.sol`,
 };
 for (const [name, source] of Object.entries(contracts)) {
 	const artifact = JSON.parse(fs.readFileSync(`out/${name}.sol/${name}.json`, "utf8"));

@@ -5,6 +5,7 @@ import {
 	type EnrichmentIdentityCapability,
 	type EnrichmentRunResult,
 	type IdentifierProviderPlanEntry,
+	normalizeResolvedClassificationInput,
 	redactProviderDiagnostic,
 } from '@0xintuition/atom-enrichment';
 import { SCHEMA_ORG_CONTEXT } from '@0xintuition/schema-org';
@@ -316,7 +317,10 @@ export function buildClassifiedInputFromPlan(plan: EnrichmentPlan): ClassifiedAt
 	};
 
 	return {
-		atomType: resolveAtomType(plan.classificationResult.category),
+		atomType: resolveAtomType(
+			plan.classificationResult.category,
+			plan.classificationResult.schemaType
+		),
 		jsonLd: {
 			...documentData,
 			'@context': resolveString(documentData['@context']) ?? SCHEMA_ORG_CONTEXT,
@@ -479,8 +483,20 @@ function resolveHttpUrl(value: unknown): string | undefined {
 	}
 }
 
-function resolveAtomType(value: string | undefined): ClassifiedAtomInput['atomType'] {
-	return atomTypeSchema.safeParse(value?.toLowerCase()).data ?? 'unknown';
+function resolveAtomType(
+	value: string | undefined,
+	schemaType: string | undefined
+): ClassifiedAtomInput['atomType'] {
+	const category = atomTypeSchema.safeParse(value?.toLowerCase());
+	if (category.success) return category.data;
+	if (!schemaType) return 'unknown';
+	// Identity categories (e.g. artist/music-album) are broader than the
+	// published enrichment enum. Delegate that translation to its public handoff.
+	return (
+		normalizeResolvedClassificationInput({
+			resolved: { classifications: [{ type: schemaType ?? 'Thing', data: {}, meta: {} }] },
+		})?.atomType ?? 'unknown'
+	);
 }
 
 export function getArtifactTypeAllowListForEnrichmentPlan(

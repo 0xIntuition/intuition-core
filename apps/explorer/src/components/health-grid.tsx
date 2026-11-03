@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { SkeletonRows } from './ui/primitives';
+import { ErrorNote, SkeletonRows } from './ui/primitives';
 
 type ServiceStatus = {
 	name: string;
@@ -26,6 +26,10 @@ export function HealthGrid() {
 		},
 		refetchInterval: 10_000,
 	});
+
+	if (query.isError) {
+		return <ErrorNote error="Unable to check service health. Reload this page to try again." />;
+	}
 
 	if (!query.data) {
 		return (

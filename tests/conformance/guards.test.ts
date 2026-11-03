@@ -9,7 +9,6 @@ function probe(overrides: Record<string, string>) {
 			cwd: coreRoot,
 			env: {
 				...process.env,
-				INTUITION_TRAIN_TARBALLS: `${coreRoot}/.tarballs`,
 				INTUITION_CONFORMANCE_NODE: Bun.which('node') ?? '',
 				...overrides,
 			},
@@ -20,12 +19,6 @@ function probe(overrides: Record<string, string>) {
 	);
 	return { exitCode: result.exitCode, output: `${result.stdout}\n${result.stderr}` };
 }
-
-test('empty-but-set train fails with the variable and missing manifest named', () => {
-	const result = probe({ INTUITION_TRAIN_TARBALLS: '' });
-	expect(result.exitCode).not.toBe(0);
-	expect(result.output).toMatch(/INTUITION_TRAIN_TARBALLS.*MANIFEST\.txt/);
-}, 65_000);
 
 test('empty Node override fails instead of falling back to PATH', () => {
 	const result = probe({ INTUITION_CONFORMANCE_NODE: '' });

@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
 import { inspectionFixture } from '../services/workers/src/core/testing/iid-fixtures';
 import { toCompactParseResultMaybe } from '../services/workers/src/kg/processing';
@@ -20,16 +18,15 @@ type Vector = {
 	typing?: string;
 };
 
-const packagesRepository = process.env.INTUITION_PACKAGES_REPO
-	? resolve(process.env.INTUITION_PACKAGES_REPO)
-	: resolve(import.meta.dir, '../../packages');
-const iidEntry = join(packagesRepository, 'packages/iid/dist/index.js');
-const corpus = join(packagesRepository, 'packages/iid-spec/conformance');
-const describeWithPublicPackages =
-	existsSync(iidEntry) && existsSync(corpus) ? describe : describe.skip;
+const iidEntry = '@0xintuition/iid';
 
 function vectors(kind: string): Vector[] {
-	const data = JSON.parse(readFileSync(join(corpus, `${kind}.json`), 'utf8')) as {
+	const data = JSON.parse(
+		readFileSync(
+			Bun.resolveSync(`@0xintuition/iid-spec/conformance/${kind}.json`, import.meta.dir),
+			'utf8'
+		)
+	) as {
 		vectors: Vector[];
 	};
 	return data.vectors.filter((vector) => {
@@ -64,7 +61,7 @@ async function inspectThroughCore(module: IidModule, iid: string) {
 	});
 }
 
-describeWithPublicPackages('typed Wikidata inspection conformance', () => {
+describe('typed Wikidata inspection conformance', () => {
 	test('exercises a nontrivial corpus, including bare, typed and colon-bearing wd values', () => {
 		// Coverage is counted ONLY from the field each corpus's assertion reads (canonicalization:
 		// the expected canonical, falling back to raw for rejected inputs; validation: iid; parse:
@@ -187,5 +184,5 @@ describeWithPublicPackages('typed Wikidata inspection conformance', () => {
 });
 
 async function importModule<T>(entry: string): Promise<T> {
-	return (await import(pathToFileURL(entry).href)) as T;
+	return (await import(entry)) as T;
 }

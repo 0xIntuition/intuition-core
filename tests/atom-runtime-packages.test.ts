@@ -11,14 +11,36 @@ import {
 	createMockRequest,
 } from '@0xintuition/atom-enrichment/testing';
 import { parseAtom } from '@0xintuition/atom-parser/parse';
+import rootManifest from '../package.json';
 import { toCompactParseResult } from '../services/workers/src/core/parse';
 import { toCompactParseResultMaybe } from '../services/workers/src/kg/processing';
 
 describe('published atom runtime consumer contract', () => {
+	test.each(
+		Object.entries(rootManifest.dependencies)
+	)('%s resolves the exact registry pin %s', async (name, version) => {
+		expect(version).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
+		const manifest = JSON.parse(
+			await readFile(fileURLToPath(import.meta.resolve(`${name}/package.json`)), 'utf8')
+		);
+		expect(manifest.name).toBe(name);
+		expect(manifest.version).toBe(version);
+	});
+
+	test('lockfile contains registry artifacts without local package overrides', async () => {
+		const lock = await readFile(new URL('../bun.lock', import.meta.url), 'utf8');
+		expect(lock).not.toMatch(/\.tarballs|\.train-packages|file:/);
+		expect(rootManifest).not.toHaveProperty('overrides');
+		for (const [name, version] of Object.entries(rootManifest.dependencies)) {
+			expect(lock).toContain(`"${name}": ["${name}@${version}", "",`);
+		}
+	});
+
 	test.each([
 		'atom-parser',
 		'atom-classification',
 		'atom-enrichment',
+		'atom-runtime',
 	])('%s resolves compiled public exports at the pinned version', async (name) => {
 		const specifier = `@0xintuition/${name}`;
 		const manifest = JSON.parse(

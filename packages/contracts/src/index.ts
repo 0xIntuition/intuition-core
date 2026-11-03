@@ -9,10 +9,7 @@ export {
 	type MultiVaultRindexerEvent,
 } from './multivault';
 export {
-	AtomWardenArtifact,
-	TimelockControllerArtifact,
 	TransparentUpgradeableProxyArtifact,
 	UpgradeableBeaconArtifact,
 	type VendoredArtifact,
-	WrappedTrustArtifact,
 } from './vendored';

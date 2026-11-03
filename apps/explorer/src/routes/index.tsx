@@ -8,7 +8,7 @@ import { HealthGrid } from '@/components/health-grid';
 import { PageHeader } from '@/components/layout/app-shell';
 import { PipelineBars } from '@/components/pipeline-bars';
 import { StatCard } from '@/components/stat-card';
-import { Card, CardHeader, EmptyState, SkeletonRows } from '@/components/ui/primitives';
+import { Card, CardHeader, EmptyState, ErrorNote, SkeletonRows } from '@/components/ui/primitives';
 import { api } from '@/lib/api';
 import { atomDisplayImage, atomDisplayLabel } from '@/lib/atom-presentation';
 import { formatRelativeTime } from '@/lib/format';
@@ -46,6 +46,10 @@ function DashboardPage() {
 				title="Dashboard"
 			/>
 
+			{stats.isError || pipeline.isError || recentAtoms.isError || recentEvents.isError ? (
+				<ErrorNote error="Unable to load node data. Check the service health below and confirm Explore is connected to the Core API, then reload this page." />
+			) : null}
+
 			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				<StatCard
 					icon={<Boxes className="size-4 text-faint" />}
@@ -80,7 +84,13 @@ function DashboardPage() {
 				</Card>
 				<Card>
 					<CardHeader hint="parse → classify → enrich" title="Worker pipeline" />
-					<PipelineBars stats={pipeline.data?.data} />
+					{pipeline.isError ? (
+						<EmptyState>
+							Pipeline data is unavailable. Check the API service and reload this page.
+						</EmptyState>
+					) : (
+						<PipelineBars stats={pipeline.data?.data} />
+					)}
 				</Card>
 			</div>
 
@@ -96,6 +106,10 @@ function DashboardPage() {
 					/>
 					{recentAtoms.isLoading ? (
 						<SkeletonRows count={6} itemClassName="h-9 w-full" />
+					) : recentAtoms.isError ? (
+						<EmptyState>
+							Atoms could not be loaded. Check the API service and reload this page.
+						</EmptyState>
 					) : recentAtoms.data && recentAtoms.data.data.length > 0 ? (
 						<ul className="divide-y divide-border/60">
 							{recentAtoms.data.data.map((atom) => (
@@ -140,7 +154,13 @@ function DashboardPage() {
 							</span>
 						}
 					/>
-					<EventsList events={recentEvents.data?.data} isLoading={recentEvents.isLoading} />
+					{recentEvents.isError ? (
+						<EmptyState>
+							Activity could not be loaded. Check the API service and reload this page.
+						</EmptyState>
+					) : (
+						<EventsList events={recentEvents.data?.data} isLoading={recentEvents.isLoading} />
+					)}
 				</Card>
 			</div>
 		</>
