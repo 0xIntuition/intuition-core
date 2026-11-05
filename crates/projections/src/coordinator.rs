@@ -97,8 +97,8 @@ fn create_pg_projection(
                 total_shards,
             ),
         )),
-        // Dual projectors manage their own kg_pool internally via with_kg_pool().
-        // The PgWorker passes the legacy pool; kg writes happen inside process_parsed_batch.
+        // Dual projectors own their KG pool internally. The PgWorker passes the
+        // legacy pool; KG writes happen inside process_parsed_batch.
         "vault_state:dual" => {
             let mut proj = projection::dual::vault_state::VaultStateDualProjection::new(
                 shard_id.unwrap_or(0),
@@ -117,6 +117,10 @@ fn create_pg_projection(
             }
             Some(Box::new(proj))
         }
+        "atom_context:dual" => kg_pool.map(|kp| {
+            Box::new(projection::dual::atom_context::AtomContextDualProjection::new(kp.clone()))
+                as Box<dyn PgProjection>
+        }),
         _ => None,
     }
 }
@@ -775,6 +779,17 @@ mod tests {
         let proj = create_pg_projection("vault_holders_index:dual", None, 1, None);
         assert!(proj.is_some());
         assert_eq!(proj.unwrap().name(), "vault_holders_index:dual");
+    }
+
+    #[tokio::test]
+    async fn pg_factory_requires_kg_pool_for_atom_context_dual() {
+        assert!(create_pg_projection("atom_context:dual", None, 1, None).is_none());
+
+        let kg_pool = sqlx::PgPool::connect_lazy("postgres://localhost/kg")
+            .expect("lazy connect must not fail");
+        let proj = create_pg_projection("atom_context:dual", None, 1, Some(&kg_pool));
+        assert!(proj.is_some());
+        assert_eq!(proj.unwrap().name(), "atom_context:dual");
     }
 
     #[test]

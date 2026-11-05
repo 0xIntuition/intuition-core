@@ -144,6 +144,7 @@ impl PgProjection for VaultHoldersIndexDualProjection {
                     process_redeem_typed(&mut legacy_tx, kg_tx_opt.as_mut(), metadata, data).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::SharePriceChanged { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {

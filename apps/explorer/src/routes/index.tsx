@@ -8,10 +8,10 @@ import { HealthGrid } from '@/components/health-grid';
 import { PageHeader } from '@/components/layout/app-shell';
 import { PipelineBars } from '@/components/pipeline-bars';
 import { StatCard } from '@/components/stat-card';
-import { Card, CardHeader, EmptyState, SkeletonRows } from '@/components/ui/primitives';
+import { Card, CardHeader, EmptyState, ErrorNote, SkeletonRows } from '@/components/ui/primitives';
 import { api } from '@/lib/api';
-import { formatRelativeTime, previewData } from '@/lib/format';
-import { extractImageFromRecord } from '@/lib/images';
+import { atomDisplayImage, atomDisplayLabel } from '@/lib/atom-presentation';
+import { formatRelativeTime } from '@/lib/format';
 
 export const Route = createFileRoute('/')({
 	component: DashboardPage,
@@ -45,6 +45,10 @@ function DashboardPage() {
 				description="Your node at a glance — data volumes, worker pipeline, and service health."
 				title="Dashboard"
 			/>
+
+			{stats.isError || pipeline.isError || recentAtoms.isError || recentEvents.isError ? (
+				<ErrorNote error="Unable to load node data. Check the service health below and confirm Explore is connected to the Core API, then reload this page." />
+			) : null}
 
 			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				<StatCard
@@ -80,7 +84,13 @@ function DashboardPage() {
 				</Card>
 				<Card>
 					<CardHeader hint="parse → classify → enrich" title="Worker pipeline" />
-					<PipelineBars stats={pipeline.data?.data} />
+					{pipeline.isError ? (
+						<EmptyState>
+							Pipeline data is unavailable. Check the API service and reload this page.
+						</EmptyState>
+					) : (
+						<PipelineBars stats={pipeline.data?.data} />
+					)}
 				</Card>
 			</div>
 
@@ -96,6 +106,10 @@ function DashboardPage() {
 					/>
 					{recentAtoms.isLoading ? (
 						<SkeletonRows count={6} itemClassName="h-9 w-full" />
+					) : recentAtoms.isError ? (
+						<EmptyState>
+							Atoms could not be loaded. Check the API service and reload this page.
+						</EmptyState>
 					) : recentAtoms.data && recentAtoms.data.data.length > 0 ? (
 						<ul className="divide-y divide-border/60">
 							{recentAtoms.data.data.map((atom) => (
@@ -105,9 +119,9 @@ function DashboardPage() {
 										params={{ atomId: atom.id }}
 										to="/atoms/$atomId"
 									>
-										<AtomThumb id={atom.id} imageUrl={extractImageFromRecord(atom.dataResolved)} />
+										<AtomThumb id={atom.id} imageUrl={atomDisplayImage(atom)} />
 										<span className="min-w-0 flex-1 truncate text-[13px]">
-											{previewData(atom.data, 64) || atom.id}
+											{atomDisplayLabel(atom, 64)}
 										</span>
 										<ClassificationBadge type={atom.classificationType} />
 										<PipelineCells
@@ -140,7 +154,13 @@ function DashboardPage() {
 							</span>
 						}
 					/>
-					<EventsList events={recentEvents.data?.data} isLoading={recentEvents.isLoading} />
+					{recentEvents.isError ? (
+						<EmptyState>
+							Activity could not be loaded. Check the API service and reload this page.
+						</EmptyState>
+					) : (
+						<EventsList events={recentEvents.data?.data} isLoading={recentEvents.isLoading} />
+					)}
 				</Card>
 			</div>
 		</>

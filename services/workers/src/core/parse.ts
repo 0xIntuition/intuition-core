@@ -1,9 +1,17 @@
 import type { ParseResult } from '@0xintuition/atom-parser/types';
+import type { NormalizedAtomIdentity, SemanticContractProvenance } from './identity-contract';
 
 export type CompactParseResult = {
-	kind: ParseResult['kind'];
+	// IID is a Core persistence kind produced only by the public inspection
+	// adapter; the legacy atom parser remains limited to ParseResult['kind'].
+	kind: ParseResult['kind'] | 'iid';
 	normalizedInput: string;
 	canonicalId?: string;
+	identity?: NormalizedAtomIdentity;
+	iidFallback?: {
+		reason: 'malformed' | 'unknown-scheme' | 'noncanonical';
+		provenance: SemanticContractProvenance;
+	};
 	remote?: {
 		finalUrl?: string;
 		contentType?: string;
@@ -154,4 +162,55 @@ export function toCompactParseResult(result: ParseResult): CompactParseResult {
 		canonicalId: result.normalizedInput,
 		hints: result.kind === 'plain_string' ? { trimmed: result.trimmed } : undefined,
 	};
+}
+
+/**
+ * Builds the parse-stage search projection from understood parser output.
+ *
+ * A `plain_string` result is authoritative parser output, so retaining its
+ * normalized value preserves legacy search behavior. IID payloads require
+ * resolved presentation data and are never promoted verbatim. This helper does
+ * not inspect prefixes or attempt to recognize IID grammar.
+ */
+export function resolveParseSearchText(result: CompactParseResult): string {
+	if (result.kind === 'iid') {
+		return '';
+	}
+
+	const structuredData = toRecordMaybe(result.structuredDocument?.data);
+	const name = resolveDisplayString(structuredData?.name);
+	const description = resolveDisplayString(structuredData?.description);
+	const identityCandidates =
+		result.kind === 'json' ? [] : [result.canonicalId, result.normalizedInput];
+
+	return Array.from(
+		new Set(
+			[name, description, ...identityCandidates].filter(
+				(value): value is string => typeof value === 'string' && value.trim().length > 0
+			)
+		)
+	)
+		.join(' ')
+		.slice(0, 20_000);
+}
+
+function resolveDisplayString(value: unknown): string | undefined {
+	if (typeof value === 'string' && value.trim().length > 0) {
+		return value.trim();
+	}
+
+	if (Array.isArray(value)) {
+		const first = value.find(
+			(entry): entry is string => typeof entry === 'string' && entry.trim().length > 0
+		);
+		return first?.trim();
+	}
+
+	return undefined;
+}
+
+function toRecordMaybe(value: unknown): Record<string, unknown> | undefined {
+	return value !== null && typeof value === 'object' && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: undefined;
 }

@@ -60,7 +60,7 @@ the workers, artifacts land in `kg.artifacts` and on the atom's API response.
 Workers select a plugin bundle via `WORKERS_DEFAULT_PRESET` (default:
 `default`). The default preset covers the keyless web/media/knowledge plugins
 plus any keyed plugin whose credentials are present. See
-`packages/atom-enrichment/src/presets/` for bundle composition.
+[the public enrichment presets](https://github.com/0xIntuition/packages/tree/main/packages/atom-enrichment/src/presets) for bundle composition.
 
 ## Adding your own source
 

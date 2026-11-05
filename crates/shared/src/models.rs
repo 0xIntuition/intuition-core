@@ -144,6 +144,18 @@ pub struct AtomCreatedRecord {
     pub atom_wallet: String,
 }
 
+/// Parsed payload from an `AtomContextRegistered` event's `event_data` column.
+///
+/// `uris` preserves contract order, duplicates, and exact byte values as
+/// `0x`-prefixed opaque strings. Readers must not decode or normalize them.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AtomContextRegisteredRecord {
+    pub registrant: String,
+    /// Keccak256 hash of the atom term, stored as a `0x`-prefixed hex string.
+    pub term_id: String,
+    pub uris: Vec<String>,
+}
+
 /// Parsed payload from a `TripleCreated` event's `event_data` column.
 ///
 /// All ID fields (`term_id`, `subject_id`, `predicate_id`, `object_id`) are

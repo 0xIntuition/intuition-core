@@ -9,6 +9,7 @@ export const timescaleFileGroups = [
 			'redemption_fact',
 			'fee_transfer_fact',
 			'atom_created_events',
+			'atom_context_registered_events',
 			'triple_created_events',
 			'deposited_events',
 			'redeemed_events',
@@ -60,3 +61,12 @@ export const timescaleFileGroups = [
 ] as const;
 
 export type TimescaleFileGroup = (typeof timescaleFileGroups)[number];
+
+/** JSONB columns whose application-level shape is part of the public schema. */
+export const timescaleJsonColumnTypes: Readonly<Record<string, Readonly<Record<string, string>>>> =
+	{
+		atom_context_registered_events: {
+			// Contract order, duplicates, and opaque 0x byte strings are preserved.
+			uris: 'string[]',
+		},
+	};

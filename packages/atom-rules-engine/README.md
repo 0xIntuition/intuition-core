@@ -2,6 +2,8 @@
 
 Shared atom presentation selection engine.
 
+> **Status in `intuition-core`:** Standalone presentation variant selector (`DecisionVariantId` + `RuleCatalogEntry`) with unit tests (`__tests__/rules-engine.test.ts`), but **no active runtime caller in `intuition-core` today** (`services/*`, `apps/*`, `crates/*`, `scripts/*`). Candidate for extraction to `0xIntuition/packages` or `intuition-v2` in a follow-up.
+
 ## Purpose
 
 This package decides which presentation key an atom should resolve to based on:

@@ -1,7 +1,6 @@
 //! Graph feature flags for the SurrealDB -> Postgres migration.
 //!
-//! Mirrors the TypeScript helpers in `packages/graph-flags/src/graph-flags.ts`.
-//! Reads the same environment variables and supports the same formats:
+//! Reads environment variables and supports the following formats:
 //! - CSV lists: `GRAPH_DB_WRITES_ENABLED=posts,follows`
 //! - Wildcards: `GRAPH_DB_READS_ENABLED=*` or `=all`
 //! - Booleans: `GRAPH_SEARCH_ENABLED=true`

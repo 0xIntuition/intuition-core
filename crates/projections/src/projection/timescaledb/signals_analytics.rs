@@ -73,6 +73,7 @@ impl PgProjection for SignalsAnalyticsProjection {
                     insert_redemption_signal_typed(&mut tx, metadata, data).await
                 }
                 ParsedEvent::AtomCreated { .. }
+                | ParsedEvent::AtomContextRegistered { .. }
                 | ParsedEvent::TripleCreated { .. }
                 | ParsedEvent::SharePriceChanged { .. }
                 | ParsedEvent::ProtocolFeeAccrued { .. } => {

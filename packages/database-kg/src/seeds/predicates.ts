@@ -1,3 +1,6 @@
+import { calculateAtomId } from '@0xintuition/ids';
+import { createIpfsUri } from '@0xintuition/predicates';
+
 /**
  * Baseline predicates for the knowledge graph.
  *
@@ -12,11 +15,16 @@
  * grandfathered. See
  * the enshrined-predicates architecture notes.
  */
-// Resolved literal of TRUSTED_IN_THE_CONTEXT_OF_STACK_PREDICATE_IPFS_ATOM_ID from
-// the private @0xintuition/stacks package. Identity-sensitive: this is the
-// canonical ipfs atom id for the enshrined stack predicate — do not change.
-const TRUSTED_IN_THE_CONTEXT_OF_STACK_PREDICATE_IPFS_ATOM_ID =
-	'0x0840db4575bf6bdb49b66c21dc40cb4cbb5e1b26bd239d7f56b126c14e452c07';
+// Canonical IPFS CID for the enshrined `trusted-in-the-context-of` stack predicate.
+// Derived via @0xintuition/predicates `createIpfsUri` + @0xintuition/ids `calculateAtomId`.
+export const TRUSTED_IN_THE_CONTEXT_OF_PREDICATE_CID =
+	'bafkreiddr2xcndrxhusfh7ozezlgsnyoekhhveb4uby4vasabh2ywxcv74';
+export const TRUSTED_IN_THE_CONTEXT_OF_PREDICATE_IPFS_URI = createIpfsUri(
+	TRUSTED_IN_THE_CONTEXT_OF_PREDICATE_CID
+);
+export const TRUSTED_IN_THE_CONTEXT_OF_STACK_PREDICATE_IPFS_ATOM_ID: string = calculateAtomId(
+	TRUSTED_IN_THE_CONTEXT_OF_PREDICATE_IPFS_URI
+);
 
 export const BASELINE_PREDICATES = [
 	{

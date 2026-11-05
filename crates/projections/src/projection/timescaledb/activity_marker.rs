@@ -209,7 +209,9 @@ impl PgProjection for ActivityMarkerProjection {
                 ParsedEvent::Redeemed { metadata, data } => {
                     handle_redeemed_typed(&mut tx, metadata, data).await
                 }
-                ParsedEvent::SharePriceChanged { .. } | ParsedEvent::ProtocolFeeAccrued { .. } => {
+                ParsedEvent::AtomContextRegistered { .. }
+                | ParsedEvent::SharePriceChanged { .. }
+                | ParsedEvent::ProtocolFeeAccrued { .. } => {
                     // Filtered by event_types().
                     continue;
                 }

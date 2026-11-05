@@ -1,4 +1,5 @@
 # Dependencies
+.train-packages/
 node_modules
 .pnp
 .pnp.js

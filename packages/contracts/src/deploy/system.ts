@@ -9,31 +9,41 @@
  * profiles in `config.ts` cover the local anvil devnet (31337) and fresh
  * self-owned instances on Intuition Sepolia (13579).
  *
- * The published bytecode is the production build (optimizer_runs=10000);
- * MultiVault's runtime exceeds EIP-170, which the Intuition chains permit by
- * raising the code-size cap — a local anvil must therefore run with
+ * The published bytecode is the production build (optimizer_runs=10000) and
+ * must be linked to a separately deployed MultiVaultLib. The default local
+ * deployment uses MultiVaultMigrationMode, so Anvil must run with
  * `--disable-code-size-limit`.
  */
 
 import {
 	AtomWalletFactoryAbi,
+	AtomWardenAbi,
 	BaseEmissionsControllerAbi,
 	BondingCurveRegistryAbi,
 	LinearCurveAbi,
+	MultiVaultLibAbi,
 	MultiVaultMigrationModeAbi,
 	SatelliteEmissionsControllerAbi,
+	TimelockControllerAbi,
 	TrustBondingAbi,
+	WrappedTrustAbi,
 } from '@0xintuition/contracts-v2/abis';
 import {
 	AtomWalletBytecode,
 	AtomWalletFactoryBytecode,
+	AtomWardenBytecode,
 	BaseEmissionsControllerBytecode,
 	BondingCurveRegistryBytecode,
 	LinearCurveBytecode,
 	MultiVaultBytecode,
+	MultiVaultLibBytecode,
+	MultiVaultLinkReferences,
 	MultiVaultMigrationModeBytecode,
+	MultiVaultMigrationModeLinkReferences,
 	SatelliteEmissionsControllerBytecode,
+	TimelockControllerBytecode,
 	TrustBondingBytecode,
+	WrappedTrustBytecode,
 } from '@0xintuition/contracts-v2/bytecodes';
 import {
 	type Address,
@@ -45,6 +55,7 @@ import {
 	getAddress,
 	type Hex,
 	http,
+	isHex,
 	keccak256,
 	type PublicClient,
 	stringToBytes,
@@ -55,16 +66,35 @@ import type { PrivateKeyAccount } from 'viem/accounts';
 
 import type { DeploymentAddresses } from '../addresses';
 import {
-	AtomWardenArtifact,
 	MultiVaultSizeFitArtifact,
-	TimelockControllerArtifact,
 	TransparentUpgradeableProxyArtifact,
 	UpgradeableBeaconArtifact,
-	WrappedTrustArtifact,
 } from '../vendored';
 import type { DeployTarget } from './config';
 
 const MIGRATOR_ROLE = keccak256(stringToBytes('MIGRATOR_ROLE'));
+const MULTIVAULT_LIB_FQN = 'src/libraries/MultiVaultLib.sol:MultiVaultLib';
+
+/** Link a package-generated MultiVault bytecode artifact to its deployed library. */
+export function linkMultiVaultLibraryBytecode(
+	bytecode: string,
+	linkReferences: Readonly<Record<string, string>>,
+	libraryAddress: Address
+): Hex {
+	const placeholder = linkReferences[MULTIVAULT_LIB_FQN];
+	if (!placeholder) {
+		throw new Error(`missing link reference for ${MULTIVAULT_LIB_FQN}`);
+	}
+	if (!bytecode.includes(placeholder)) {
+		throw new Error(`MultiVault bytecode does not contain link placeholder ${placeholder}`);
+	}
+
+	const linked = bytecode.replaceAll(placeholder, libraryAddress.slice(2).toLowerCase());
+	if (!isHex(linked) || linked.includes('__$')) {
+		throw new Error('MultiVault bytecode remains invalid after library linking');
+	}
+	return linked;
+}
 
 /** Minimal viem chain for any deploy target. */
 export function targetChain(target: DeployTarget, rpcUrl: string): Chain {
@@ -89,7 +119,7 @@ export type DeploySystemOptions = {
 	/**
 	 * Use the plain MultiVault bytecode as the proxy implementation instead of
 	 * the production-faithful MultiVaultMigrationMode (escape hatch; both pass
-	 * the createAtoms acceptance test).
+	 * the URI-backed atom acceptance test).
 	 */
 	plainMultiVaultImplementation?: boolean;
 	log?: (message: string) => void;
@@ -225,8 +255,8 @@ export async function deployIntuitionSystem(
 		wrappedTrust = await deployContract(
 			clients,
 			'WrappedTrust',
-			WrappedTrustArtifact.abi,
-			WrappedTrustArtifact.bytecode
+			WrappedTrustAbi,
+			WrappedTrustBytecode
 		);
 	}
 
@@ -234,8 +264,8 @@ export async function deployIntuitionSystem(
 	const baseTimelock = await deployContract(
 		clients,
 		'BaseEmissionsController upgrades TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 	const baseEmissionsImpl = await deployContract(
@@ -267,40 +297,52 @@ export async function deployIntuitionSystem(
 		})
 	);
 
-	log('==> [3/4] MultiVault proxy implementation');
-	// EIP-170 chains cannot take the production optimizer_runs=10000 bytecode
-	// (MultiVault runtime 27,666 B; MigrationMode 30,926 B) — deploy the
-	// size-fit plain-MultiVault build instead (runtime 24,033 B; MigrationMode
-	// does not fit even at 200 runs, and plain MultiVault is a strict subset
-	// that the proxy would be upgraded to anyway).
+	log('==> [3/4] MultiVault library + proxy implementation');
+	const multiVaultLib = await deployContract(
+		clients,
+		'MultiVaultLib',
+		MultiVaultLibAbi,
+		MultiVaultLibBytecode
+	);
+	// EIP-170 targets use the verified size-fit plain-MultiVault build.
+	// MultiVaultMigrationMode does not fit under the cap, and plain MultiVault
+	// is the steady-state implementation the migration proxy upgrades to.
 	const useMigrationMode = !(options.target.eip170 || options.plainMultiVaultImplementation);
 	const multiVaultImplementation = options.target.eip170
 		? await deployContract(
 				clients,
 				'MultiVault implementation (size-fit, optimizer_runs=200)',
 				MultiVaultSizeFitArtifact.abi,
-				MultiVaultSizeFitArtifact.bytecode
+				linkMultiVaultLibraryBytecode(
+					MultiVaultSizeFitArtifact.bytecode,
+					MultiVaultLinkReferences,
+					multiVaultLib
+				)
 			)
 		: await deployContract(
 				clients,
 				useMigrationMode ? 'MultiVaultMigrationMode implementation' : 'MultiVault implementation',
 				MultiVaultMigrationModeAbi,
-				useMigrationMode ? MultiVaultMigrationModeBytecode : MultiVaultBytecode
+				linkMultiVaultLibraryBytecode(
+					useMigrationMode ? MultiVaultMigrationModeBytecode : MultiVaultBytecode,
+					useMigrationMode ? MultiVaultMigrationModeLinkReferences : MultiVaultLinkReferences,
+					multiVaultLib
+				)
 			);
 
 	log('==> [4/4] IntuitionDeployAndSetup (full system)');
 	const upgradesTimelock = await deployContract(
 		clients,
 		'Upgrades TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 	const parametersTimelock = await deployContract(
 		clients,
 		'Parameters TimelockController',
-		TimelockControllerArtifact.abi,
-		TimelockControllerArtifact.bytecode,
+		TimelockControllerAbi,
+		TimelockControllerBytecode,
 		[cfg.timelockMinDelay, [admin], [admin], zeroAddress]
 	);
 
@@ -334,8 +376,8 @@ export async function deployIntuitionSystem(
 	const atomWardenImpl = await deployContract(
 		clients,
 		'AtomWarden implementation',
-		AtomWardenArtifact.abi,
-		AtomWardenArtifact.bytecode
+		AtomWardenAbi,
+		AtomWardenBytecode
 	);
 	const atomWarden = await deployProxy(
 		clients,
@@ -509,11 +551,21 @@ export async function deployIntuitionSystem(
 	);
 	await write(
 		clients,
-		'AtomWarden.initialize(admin, MultiVault)',
+		'AtomWarden.initialize(admin, MultiVault, claim policy)',
 		atomWarden,
-		AtomWardenArtifact.abi,
+		AtomWardenAbi,
 		'initialize',
-		[admin, multiVault]
+		[
+			admin,
+			multiVault,
+			cfg.atomWardenClaimWindow,
+			cfg.atomWardenMinFeeThreshold,
+			cfg.atomWardenSignatureThreshold,
+			cfg.atomWardenMaxValidAfter,
+			cfg.atomWardenMaxValidUntil,
+			cfg.atomWardenMaxClaimsPerWindow,
+			cfg.atomWardenClaimCapWindow,
+		]
 	);
 	await write(
 		clients,
@@ -539,6 +591,7 @@ export async function deployIntuitionSystem(
 		chainId: options.target.chainId,
 		WrappedTrust: wrappedTrust,
 		BaseEmissionsController: baseEmissionsController,
+		MultiVaultLib: multiVaultLib,
 		MultiVaultImplementation: multiVaultImplementation,
 		MultiVault: multiVault,
 		AtomWalletFactory: atomWalletFactory,

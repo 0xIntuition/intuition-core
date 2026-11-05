@@ -1,7 +1,7 @@
 import {
 	normalizePersistedEnrichmentArtifacts,
 	normalizeProcessEnrichmentArtifacts,
-} from '@0xintuition/types/enrichment';
+} from './artifacts';
 import type { AnyNormalizedArtifact, PersistedArtifactInput, ProcessArtifactInput } from './types';
 
 export function normalizePersistedArtifacts(

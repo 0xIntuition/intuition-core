@@ -7,7 +7,26 @@ import { fileURLToPath } from 'node:url';
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const minReleaseAgeSeconds = 1_209_600;
-const reviewedMinimumReleaseAgeExcludes = new Set(['@0xintuition/contracts-v2']);
+const reviewedMinimumReleaseAgeExcludes = new Set([
+	'@0xintuition/atom-classification',
+	'@0xintuition/atom-enrichment',
+	'@0xintuition/atom-parser',
+	'@0xintuition/atom-runtime',
+	'@0xintuition/classifications',
+	'@0xintuition/contracts-v2',
+	'@0xintuition/curves',
+	'@0xintuition/deployments',
+	'@0xintuition/ids',
+	'@0xintuition/iid',
+	'@0xintuition/iid-ladder',
+	'@0xintuition/iid-registry',
+	'@0xintuition/iid-spec',
+	'@0xintuition/pipeline-runtime',
+	'@0xintuition/predicates',
+	'@0xintuition/primitives',
+	'@0xintuition/protocol',
+	'@0xintuition/schema-org',
+]);
 const reviewedOidcPublishJobs = new Map([
 	['.github/workflows/publish-images.yml', 'attest-and-verify'],
 ]);
@@ -27,6 +46,7 @@ const ignoredDirectories = new Set([
 	'.git',
 	'.next',
 	'.turbo',
+	'.train-packages',
 	'.vercel',
 	'build',
 	'coverage',
@@ -227,6 +247,12 @@ const checkPackageManifests = () => {
 
 		for (const sectionName of dependencySections) {
 			for (const [name, version] of getDependencyEntries(manifest, sectionName)) {
+				if (
+					reviewedMinimumReleaseAgeExcludes.has(name) &&
+					!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)
+				) {
+					addFailure(packagePath, `${sectionName}.${name} must use an exact registry version`);
+				}
 				if (dependencyGitPattern.test(version)) {
 					addFailure(packagePath, `${sectionName}.${name} uses a Git dependency (${version})`);
 				}

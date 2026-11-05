@@ -24,6 +24,7 @@ WORKDIR /app
 # Manifests first for dependency-layer caching. All workspace members must be
 # present for cargo to load the workspace, even though we only build one.
 COPY Cargo.toml ./
+COPY Cargo.lock ./
 COPY crates/shared/Cargo.toml ./crates/shared/
 COPY crates/rindexer-ingestion/Cargo.toml ./crates/rindexer-ingestion/
 COPY crates/projections/Cargo.toml ./crates/projections/
@@ -36,17 +37,17 @@ RUN mkdir -p crates/shared/src && echo "" > crates/shared/src/lib.rs \
     && mkdir -p crates/curves/src && echo "" > crates/curves/src/lib.rs
 
 # Build dependencies only (cached layer)
-RUN cargo build --release -p rindexer-ingestion || true
+RUN cargo build --locked --release -p rindexer-ingestion
 
 # Real sources, then rebuild.
 COPY crates/shared ./crates/shared
 COPY crates/curves ./crates/curves
 COPY crates/rindexer-ingestion ./crates/rindexer-ingestion
 RUN touch crates/shared/src/lib.rs crates/curves/src/lib.rs crates/rindexer-ingestion/src/main.rs \
-    && cargo build --release -p rindexer-ingestion
+	&& cargo build --locked --release -p rindexer-ingestion
 
 # Runtime stage
-FROM debian:trixie-slim
+FROM debian:trixie-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258
 
 ARG VERSION=dev
 ARG VCS_REF=unknown
@@ -68,12 +69,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     libnss3 \
     gettext-base \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 indexer
 
 COPY --from=builder /app/target/release/rindexer-ingestion /usr/local/bin/
 COPY crates/rindexer-ingestion/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/run-timescale-migrations.sh /run-migrations.sh
+COPY migrations/timescale/ /migrations/
 
 RUN mkdir -p /rindexer/abi
 COPY crates/rindexer-ingestion/rindexer.yaml /rindexer/rindexer.yaml.tpl

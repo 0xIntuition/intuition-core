@@ -38,6 +38,13 @@ export type DeployConfig = {
 	entryFee: bigint;
 	exitFee: bigint;
 	protocolFee: bigint;
+	atomWardenClaimWindow: bigint;
+	atomWardenMinFeeThreshold: bigint;
+	atomWardenSignatureThreshold: bigint;
+	atomWardenMaxValidAfter: bigint;
+	atomWardenMaxValidUntil: bigint;
+	atomWardenMaxClaimsPerWindow: bigint;
+	atomWardenClaimCapWindow: bigint;
 	bondingEpochLength: bigint;
 	bondingSystemUtilizationLowerBound: bigint;
 	bondingPersonalUtilizationLowerBound: bigint;
@@ -66,6 +73,14 @@ const NETWORK_AGNOSTIC = {
 	entryFee: 50n, // 0.5%
 	exitFee: 75n, // 0.75%
 	protocolFee: 125n, // 1.25%
+	// IntuitionDeployAndSetup.s.sol defaults for a fresh AtomWarden.
+	atomWardenClaimWindow: ONE_DAY * 365n,
+	atomWardenMinFeeThreshold: 0n,
+	atomWardenSignatureThreshold: 1n,
+	atomWardenMaxValidAfter: 3600n,
+	atomWardenMaxValidUntil: ONE_DAY,
+	atomWardenMaxClaimsPerWindow: 0n, // cap disabled
+	atomWardenClaimCapWindow: ONE_DAY,
 	bondingSystemUtilizationLowerBound: 5000n, // 50%
 	bondingPersonalUtilizationLowerBound: 2500n, // 25%
 	bondingStartOffsetSeconds: 100n, // block.timestamp + 100 for fresh instances
@@ -114,9 +129,8 @@ export type DeployTarget = {
 	 */
 	canonicalWrappedTrust?: Address;
 	/**
-	 * Chain enforces the EIP-170 24,576-byte runtime cap → the MultiVault
-	 * implementation must be the size-fit build (the production
-	 * optimizer_runs=10000 bytecode only deploys on raised-cap chains).
+	 * Chain enforces the EIP-170 24,576-byte runtime cap → use the verified
+	 * size-fit plain-MultiVault build instead of MultiVaultMigrationMode.
 	 */
 	eip170: boolean;
 	/** State file name under devnet/. */

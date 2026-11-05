@@ -14,6 +14,8 @@ Environment:
   API_URL                   API base URL (default: discovered from Compose)
   SMOKE_TIMEOUT_SECONDS     Health/worker timeout (default: 180)
   SMOKE_BUILD=0             Reuse existing Docker images instead of rebuilding
+  SMOKE_EXPECT_SEMANTIC_READS=1
+                            Assert the default-off additive atom read envelope
   KEEP_SMOKE_STACK=1        Leave containers and volumes running after the test
 USAGE
 }
@@ -33,6 +35,7 @@ esac
 PROJECT_NAME=${SMOKE_PROJECT_NAME:-intuition-core-smoke}
 API_URL=${API_URL:-}
 TIMEOUT_SECONDS=${SMOKE_TIMEOUT_SECONDS:-180}
+EXPECT_SEMANTIC_READS=${SMOKE_EXPECT_SEMANTIC_READS:-0}
 PREDICATE_ID=0x0840db4575bf6bdb49b66c21dc40cb4cbb5e1b26bd239d7f56b126c14e452c07
 SMOKE_ACCOUNT=0x0000000000000000000000000000000000000001
 AUTH_HEADER_FILE=
@@ -78,6 +81,15 @@ validate_positive_integer() {
 		"" | *[!0-9]*) fail "$name must be a positive integer" ;;
 	esac
 	[ "$value" -gt 0 ] || fail "$name must be greater than 0"
+}
+
+validate_boolean_integer() {
+	name=$1
+	value=$2
+	case "$value" in
+		0 | 1) ;;
+		*) fail "$name must be 0 or 1" ;;
+	esac
 }
 
 json_get() {
@@ -180,10 +192,24 @@ wait_for_atom_processing() {
 	fail "atom $atom_id did not finish processing: classificationType=$classification_type parse=$parse_status classification=$classification_status enrichment=$enrichment_status"
 }
 
+verify_semantic_atom_view() {
+	output=$1
+	raw_type=$(json_file_get "$output" data.raw.type)
+	classification_type=$(json_file_get "$output" data.classification.type)
+	resolution_status=$(json_file_get "$output" data.resolution.status)
+	[ "$raw_type" = "http_uri" ] || fail "expected semantic raw type http_uri, got $raw_type"
+	[ -n "$classification_type" ] || fail "expected semantic classification type"
+	case "$resolution_status" in
+		pending | processing | resolved | retryable | terminal | skipped | failed) ;;
+		*) fail "expected a recognized semantic resolution status, got $resolution_status" ;;
+	esac
+}
+
 need bun
 need curl
 need docker
 validate_positive_integer SMOKE_TIMEOUT_SECONDS "$TIMEOUT_SECONDS"
+validate_boolean_integer SMOKE_EXPECT_SEMANTIC_READS "$EXPECT_SEMANTIC_READS"
 
 printf 'Starting Docker Compose project %s\n' "$PROJECT_NAME"
 compose --profile indexing down -v --remove-orphans >/dev/null 2>&1 || true
@@ -223,6 +249,10 @@ api_post /api/atoms '{"input":"Intuition Core smoke test object"}' "$object_body
 object_id=$(json_file_get "$object_body" data.id)
 
 wait_for_atom_processing "$subject_id" "$atom_body"
+if [ "$EXPECT_SEMANTIC_READS" = "1" ]; then
+	printf 'Verifying additive semantic atom read envelope\n'
+	verify_semantic_atom_view "$atom_body"
+fi
 
 printf 'Creating triple\n'
 api_post /api/triples \

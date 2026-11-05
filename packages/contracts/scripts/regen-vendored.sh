@@ -2,12 +2,8 @@
 # =============================================================================
 # Regenerate packages/contracts/vendored/*.json
 #
-# The devnet deployer needs five artifacts that @0xintuition/contracts-v2 does
-# not export: the OpenZeppelin proxy infrastructure (TransparentUpgradeableProxy,
-# TimelockController, UpgradeableBeacon) and two protocol contracts whose
-# ABIs/bytecodes are missing from the package exports (AtomWarden, WrappedTrust
-# — their *source* ships in the package's ./src/* export, so we compile from
-# that, never from a git clone).
+# Only the OpenZeppelin proxy infrastructure and the size-fit MultiVault build
+# remain vendored. Protocol bytecodes and TimelockController come from npm.
 #
 # Compiler settings mirror intuition-contracts-v2 foundry.toml exactly
 # (solc 0.8.29, optimizer_runs 10000, evm cancun, bytecode_hash "none" — the
@@ -56,14 +52,6 @@ cat > foundry.toml <<EOF
   ]
 EOF
 
-# Transitive import closure of AtomWarden.sol + WrappedTrust.sol (verify with
-# the import walker in the header of vendored/README.md when bumping versions).
-cp "$CONTRACTS_V2/src/WrappedTrust.sol" src/
-cp "$CONTRACTS_V2/src/protocol/wallet/AtomWarden.sol" src/protocol/wallet/
-for f in IAtomWallet IAtomWarden IMultiVault IMultiVaultCore; do
-	cp "$CONTRACTS_V2/src/interfaces/$f.sol" src/interfaces/
-done
-
 cat > src/VendoredInfra.sol <<'EOF'
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.29;
@@ -71,7 +59,6 @@ pragma solidity 0.8.29;
 // Force compilation of OpenZeppelin infrastructure contracts whose artifacts
 // the deployer needs but @0xintuition/contracts-v2 does not export.
 import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 EOF
 
@@ -85,10 +72,7 @@ const path = require("node:path");
 const [outDir, ozVersion, pkgVersion] = process.argv.slice(2);
 const contracts = {
 	TransparentUpgradeableProxy: `@openzeppelin/contracts@${ozVersion}`,
-	TimelockController: `@openzeppelin/contracts@${ozVersion}`,
 	UpgradeableBeacon: `@openzeppelin/contracts@${ozVersion}`,
-	AtomWarden: `@0xintuition/contracts-v2@${pkgVersion} src/protocol/wallet/AtomWarden.sol`,
-	WrappedTrust: `@0xintuition/contracts-v2@${pkgVersion} src/WrappedTrust.sol`,
 };
 for (const [name, source] of Object.entries(contracts)) {
 	const artifact = JSON.parse(fs.readFileSync(`out/${name}.sol/${name}.json`, "utf8"));
@@ -105,14 +89,13 @@ for (const [name, source] of Object.entries(contracts)) {
 JS
 
 # ── Stage 2: size-fit MultiVault (optimizer_runs=200) ───────────────────────
-# EIP-170 chains (Intuition Sepolia enforces the 24,576-byte runtime cap; the
-# canonical impl there is 23,926 B) cannot take the package's production
-# optimizer_runs=10000 bytecode. Recompile plain MultiVault at 200 runs — the
-# proxy's steady-state implementation; MultiVaultMigrationMode does not fit
-# even at 200 runs.
+# EIP-170 chains (including Intuition Sepolia) use a separately verified
+# optimizer_runs=200 build of plain MultiVault. MultiVaultMigrationMode does
+# not fit under the cap. Both package and size-fit MultiVault bytecodes contain
+# a MultiVaultLib link placeholder which the deployer resolves at runtime.
 SIZEFIT_DIR="$PKG_DIR/.vendor-build-sizefit"
 rm -rf "$SIZEFIT_DIR"
-mkdir -p "$SIZEFIT_DIR/src/interfaces" "$SIZEFIT_DIR/src/protocol"
+mkdir -p "$SIZEFIT_DIR/src/interfaces" "$SIZEFIT_DIR/src/libraries" "$SIZEFIT_DIR/src/protocol"
 cd "$SIZEFIT_DIR"
 
 echo '{ "name": "sizefit-build", "private": true }' > package.json
@@ -132,14 +115,14 @@ cat > foundry.toml <<EOF
   remappings = [
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
     "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
-    "solady/=node_modules/solady/",
+    "solady/=node_modules/solady/src/",
   ]
 EOF
 
 # Transitive import closure of MultiVault.sol.
-for f in interfaces/IAtomWallet interfaces/IAtomWalletFactory interfaces/IBondingCurveRegistry \
-	interfaces/IMultiVault interfaces/IMultiVaultCore interfaces/ITrustBonding \
-	protocol/MultiVault protocol/MultiVaultCore; do
+for f in interfaces/IAtomWallet interfaces/IAtomWalletFactory interfaces/IBaseCurve \
+	interfaces/IBondingCurveRegistry interfaces/IMultiVault interfaces/IMultiVaultCore \
+	interfaces/ITrustBonding libraries/MultiVaultLib protocol/MultiVault protocol/MultiVaultCore; do
 	cp "$CONTRACTS_V2/src/$f.sol" "src/$f.sol"
 done
 
@@ -158,7 +141,7 @@ const lean = {
 	contractName: "MultiVault",
 	source: `@0xintuition/contracts-v2@${pkgVersion} src/protocol/MultiVault.sol (size-fit build)`,
 	compiler: { solc: "0.8.29", optimizerRuns: 200, evmVersion: "cancun", bytecodeHash: "none" },
-	note: `optimizer_runs=200 so the runtime (${runtimeBytes} B) fits EIP-170 chains like Intuition Sepolia; the package-published production build (optimizer_runs=10000, 27,666 B runtime) only deploys on chains with a raised code-size cap.`,
+	note: `optimizer_runs=200 so the runtime (${runtimeBytes} B) fits EIP-170 chains like Intuition Sepolia; deploy only after linking the separately deployed MultiVaultLib address.`,
 	abi: artifact.abi,
 	bytecode: artifact.bytecode.object,
 };

@@ -1,8 +1,10 @@
-import { MultiVaultAbi, MultiVaultBytecode } from '@0xintuition/contracts-v2';
+import { MultiVaultBytecode } from '@0xintuition/contracts-v2';
+import { MultiVaultAbi } from './abis';
 
 export const MULTIVAULT_CONTRACT_NAME = 'MultiVault' as const;
 export const MULTIVAULT_RINDEXER_EVENTS = [
 	'AtomCreated',
+	'AtomContextRegistered',
 	'TripleCreated',
 	'Deposited',
 	'Redeemed',

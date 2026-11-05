@@ -7,8 +7,7 @@ npm package through this workspace package:
 - **`./multivault`** — MultiVault constants for the indexer boundary
   (`MULTIVAULT_RINDEXER_EVENTS`, canonical ABI JSON used by the drift test).
 - **`./abis`** — viem-typed ABIs for every protocol contract (single import
-  point; includes `AtomWardenAbi`/`WrappedTrustAbi` from the vendored
-  artifacts the package doesn't export yet).
+  point; sourced from the published deployments and contracts packages).
 - **`./addresses`** — network address book (Intuition Sepolia `13579`) and the
   devnet state-file loader (`devnet/deployments-devnet.json`).
 - **`./deploy`** — the local devnet deployer: replays the canonical

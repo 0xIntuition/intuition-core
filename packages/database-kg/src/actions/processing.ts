@@ -4,7 +4,8 @@ import { nodes } from '../schema';
 import { createArtifacts, hashArtifactPayload } from './artifacts';
 import { invalidInput, notFound } from './errors';
 import { normalizeProtocolTermId } from './ids';
-import { inKgTransaction, type KgActionDb } from './types';
+import { isStoredIdentityRungProjection, reconcileNodeIdentifiers } from './node-identifiers';
+import { inKgTransaction, type KgActionDb, type KgNodeRawType } from './types';
 
 export type NodeProcessingStage = 'parse' | 'classification' | 'enrichment';
 
@@ -28,6 +29,10 @@ export type NodeProcessingPromotedFields = {
 	dataResolved?: unknown;
 	searchText?: string;
 	classificationType?: string;
+	/** Refined storage lane; the parse worker may promote an indexed string to IID. */
+	rawType?: KgNodeRawType;
+	/** Canonical IID cluster key. Invalid or non-IID inputs must leave this unset. */
+	iid?: string;
 };
 
 export type NodeProcessingPrerequisite = {
@@ -254,6 +259,12 @@ export async function completeNodeProcessingStage(
 	if (input.promotedFields?.classificationType !== undefined) {
 		patch.classificationType = input.promotedFields.classificationType;
 	}
+	if (input.promotedFields?.rawType !== undefined) {
+		patch.rawType = input.promotedFields.rawType;
+	}
+	if (input.promotedFields?.iid !== undefined) {
+		patch.iid = input.promotedFields.iid;
+	}
 
 	const [node] = await db
 		.update(nodes)
@@ -266,6 +277,23 @@ export async function completeNodeProcessingStage(
 	}
 
 	return node;
+}
+
+/** Guarded classification completion and aliases commit together. */
+export async function completeNodeClassificationWithIdentity(
+	db: KgActionDb,
+	input: Parameters<typeof completeNodeProcessingStage>[1] & {
+		stage: 'classification';
+		identityRungs?: unknown;
+	}
+) {
+	return inKgTransaction(db, async (tx) => {
+		const node = await completeNodeProcessingStage(tx, input);
+		if (isStoredIdentityRungProjection(input.identityRungs)) {
+			await reconcileNodeIdentifiers(tx, node.id, input.identityRungs, node.iid);
+		}
+		return node;
+	});
 }
 
 export async function failNodeProcessingStage(
@@ -763,6 +791,7 @@ export async function completeNodeEnrichmentStageWithArtifacts(
 		targetUrl?: string | null;
 		traceId?: string | null;
 		artifacts: NodeEnrichmentArtifactInput[];
+		promotedFields?: NodeProcessingPromotedFields;
 		timings?: unknown;
 		errors?: unknown;
 		skipped?: unknown;
@@ -779,6 +808,7 @@ export async function completeNodeEnrichmentStageWithArtifacts(
 			stage: 'enrichment',
 			nodeId: input.nodeId,
 			runId: input.runId,
+			promotedFields: input.promotedFields,
 		});
 
 		return { node, artifactIds };

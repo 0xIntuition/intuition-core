@@ -1,15 +1,42 @@
 #![allow(non_snake_case)]
 use super::super::super::typings::be_v_3_indexer::events::multi_vault::{
-    no_extensions, AtomCreatedEvent, DepositedEvent, MultiVaultEventType, RedeemedEvent,
-    SharePriceChangedEvent, TripleCreatedEvent,
+    no_extensions, AtomContextRegisteredEvent, AtomCreatedEvent, DepositedEvent,
+    MultiVaultEventType, ProtocolFeeAccruedEvent, RedeemedEvent, SharePriceChangedEvent,
+    TripleCreatedEvent,
 };
 use alloy::primitives::{I256, U256, U64};
 use rindexer::{
     event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info,
-    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    EthereumSqlTypeWrapper, PgType,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
+
+async fn atom_context_registered_handler(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
+    let handler = AtomContextRegisteredEvent::handler(
+        |results, context| async move {
+            if results.is_empty() {
+                return Ok(());
+            }
+
+            rindexer_info!(
+                "MultiVault::AtomContextRegistered - INDEXED - {} events",
+                results.len(),
+            );
+
+            Ok(())
+        },
+        no_extensions(),
+    )
+    .await;
+
+    MultiVaultEventType::AtomContextRegistered(handler)
+        .register(manifest_path, registry)
+        .await;
+}
 
 async fn atom_created_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     let handler = AtomCreatedEvent::handler(
@@ -19,8 +46,7 @@ async fn atom_created_handler(manifest_path: &PathBuf, registry: &mut EventCallb
             }
 
             rindexer_info!(
-                "MultiVault::AtomCreated - {} - {} events",
-                "INDEXED".green(),
+                "MultiVault::AtomCreated - INDEXED - {} events",
                 results.len(),
             );
 
@@ -42,11 +68,7 @@ async fn deposited_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 return Ok(());
             }
 
-            rindexer_info!(
-                "MultiVault::Deposited - {} - {} events",
-                "INDEXED".green(),
-                results.len(),
-            );
+            rindexer_info!("MultiVault::Deposited - INDEXED - {} events", results.len(),);
 
             Ok(())
         },
@@ -59,6 +81,32 @@ async fn deposited_handler(manifest_path: &PathBuf, registry: &mut EventCallback
         .await;
 }
 
+async fn protocol_fee_accrued_handler(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
+    let handler = ProtocolFeeAccruedEvent::handler(
+        |results, context| async move {
+            if results.is_empty() {
+                return Ok(());
+            }
+
+            rindexer_info!(
+                "MultiVault::ProtocolFeeAccrued - INDEXED - {} events",
+                results.len(),
+            );
+
+            Ok(())
+        },
+        no_extensions(),
+    )
+    .await;
+
+    MultiVaultEventType::ProtocolFeeAccrued(handler)
+        .register(manifest_path, registry)
+        .await;
+}
+
 async fn redeemed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     let handler = RedeemedEvent::handler(
         |results, context| async move {
@@ -66,11 +114,7 @@ async fn redeemed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackR
                 return Ok(());
             }
 
-            rindexer_info!(
-                "MultiVault::Redeemed - {} - {} events",
-                "INDEXED".green(),
-                results.len(),
-            );
+            rindexer_info!("MultiVault::Redeemed - INDEXED - {} events", results.len(),);
 
             Ok(())
         },
@@ -94,8 +138,7 @@ async fn share_price_changed_handler(
             }
 
             rindexer_info!(
-                "MultiVault::SharePriceChanged - {} - {} events",
-                "INDEXED".green(),
+                "MultiVault::SharePriceChanged - INDEXED - {} events",
                 results.len(),
             );
 
@@ -118,8 +161,7 @@ async fn triple_created_handler(manifest_path: &PathBuf, registry: &mut EventCal
             }
 
             rindexer_info!(
-                "MultiVault::TripleCreated - {} - {} events",
-                "INDEXED".green(),
+                "MultiVault::TripleCreated - INDEXED - {} events",
                 results.len(),
             );
 
@@ -134,9 +176,13 @@ async fn triple_created_handler(manifest_path: &PathBuf, registry: &mut EventCal
         .await;
 }
 pub async fn multi_vault_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+    atom_context_registered_handler(manifest_path, registry).await;
+
     atom_created_handler(manifest_path, registry).await;
 
     deposited_handler(manifest_path, registry).await;
+
+    protocol_fee_accrued_handler(manifest_path, registry).await;
 
     redeemed_handler(manifest_path, registry).await;
 
