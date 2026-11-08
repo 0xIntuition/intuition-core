@@ -208,6 +208,11 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+    # Coolify-only extension: bounded-range indexing finishes and exits 0.
+    # Keep it out of the aggregate application health status. Check its exit
+    # code/logs independently; remove this option for continuously monitored
+    # unbounded indexing. Coolify strips this field before invoking Compose.
+    exclude_from_hc: true
     # The indexer exits 0 after a bounded block range; do not restart it then.
     restart: on-failure
 
