@@ -7,9 +7,10 @@ without changing the regular local-development Compose files.
 
 The upstream `docker-compose.yml` uses `include:` to load
 `docker-compose.datastores.yml`. Docker Compose supports `include:`, but on
-Coolify **4.0.0-beta.463** the generated deployable Compose was observed to
-contain `api`, `migrate`, workers and their `depends_on` references **without**
-`postgres-kg`, `timescale`, or `redis`. Only Anvil's optional volume was shown.
+Coolify **4.0.0-beta.463** and **4.4.7** (tested 2026-11-08), the generated
+deployable Compose was observed to contain `api`, `migrate`, workers and their
+`depends_on` references **without** `postgres-kg`, `timescale`, or `redis`.
+Only Anvil's optional named volume was shown.
 In that state the stack cannot start successfully. This file declares the
 services and named volumes directly so that Coolify can parse the entire stack.
 
@@ -116,6 +117,28 @@ Verify network parameters against the applicable contract deployment before
 indexing mainnet or a different chain. An indexer with a nonempty end block
 is expected to stop after completing the range; `restart: on-failure` avoids
 restarting it after a successful bounded run.
+
+## Coolify aggregate status and one-shot jobs
+
+`migrate` and `timescale-migrate` intentionally exit with code 0 and use
+`restart: "no"`, which Coolify 4.4.7 treats as excluded from aggregate health.
+For **bounded-range** indexing, `indexer` also exits 0 after finishing, but
+uses `restart: on-failure` to retry genuine process failures. To avoid showing
+`Degraded` merely because this expected job has exited, it explicitly sets
+`exclude_from_hc: true`, a **Coolify-specific** extension removed before
+Docker Compose is invoked. This setting is not portable to plain Compose.
+
+This exclusion affects Coolify's aggregate status only: **it does not prove
+that indexing succeeded or monitor future indexer failures**. Inspect indexer
+logs and its exit code, verify `/api/stats`, and independently alert on
+indexing completeness. For a continuously running/unbounded indexer, remove
+`exclude_from_hc` and configure appropriate monitoring instead.
+
+The health-exclusion change is based on the published Coolify 4.4.7 parser and
+status-aggregation code, but **has not yet been verified by a redeployment**
+on the live operator stack. See:
+[Coolify's Compose parsing](https://github.com/coollabsio/coolify/blob/v4.4.7/bootstrap/helpers/parsers.php)
+and [status aggregation](https://github.com/coollabsio/coolify/blob/v4.4.7/app/Actions/Shared/ComplexStatusCheck.php).
 
 ## Storage, updates and backups
 
