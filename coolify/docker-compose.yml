@@ -1,0 +1,236 @@
+# Intuition Core - standalone Coolify deployment (published-image mode)
+#
+# This file intentionally does not use Compose `include:`. Some Coolify versions
+# parse only the top-level file, omitting the included datastore services.
+#
+# It follows the upstream Compose service topology and uses the verified
+# v0.1.0-rc.2 OCI images. Override all image references together when upgrading
+# or publishing your own fork; this Compose file does NOT build local source.
+# See coolify/README.md for usage, scope, upgrade and backup instructions.
+#
+# Required in Coolify: CORE_KG_DB_PASSWORD, CORE_TS_DB_PASSWORD.
+# Generate separate hex-only passwords (e.g. `openssl rand -hex 32`) so that
+# interpolating them into PostgreSQL connection URIs is safe.
+
+x-images:
+  api: &api-image ${INTUITION_CORE_API_IMAGE:-ghcr.io/0xintuition/intuition-core-api@sha256:870a7af8d5dbb27dde88ceedb453266e879459daa1e30a7f5a11f42953e67f2d}
+  atom-services: &atom-services-image ${INTUITION_CORE_ATOM_SERVICES_IMAGE:-ghcr.io/0xintuition/intuition-core-atom-services@sha256:73f4ab3e0bb7ad0de0d7be5cfd8325b756a3289daeb71cca1261e8eda07d3f01}
+  workers: &workers-image ${INTUITION_CORE_WORKERS_IMAGE:-ghcr.io/0xintuition/intuition-core-workers@sha256:1d45e071da5a6ca02819a8020950ea9bc71688968ab24ceab16c86f463670b02}
+  ingestion: &ingestion-image ${INTUITION_CORE_RINDEXER_INGESTION_IMAGE:-ghcr.io/0xintuition/intuition-core-rindexer-ingestion@sha256:1c328b7c761f97771a4ae8990e0533451b678d3b6b48ff55125364b23cf3b9fa}
+  projections: &projections-image ${INTUITION_CORE_PROJECTIONS_IMAGE:-ghcr.io/0xintuition/intuition-core-projections@sha256:1469003657881d1ff8ef431720631e894eca74af7e102c738881039d349b6080}
+  timescale-migrations: &timescale-migrations-image ${INTUITION_CORE_TIMESCALE_MIGRATIONS_IMAGE:-ghcr.io/0xintuition/intuition-core-timescale-migrations@sha256:d89aae195ea66c2d591982fbf9b8c192090253264150272dc76a8ed7393e573f}
+
+services:
+  # Knowledge graph database. The upstream schema uses TimescaleDB, pgvector
+  # and PostGIS, so plain postgres:17 is NOT a compatible replacement.
+  postgres-kg:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: intuition
+      POSTGRES_PASSWORD: ${CORE_KG_DB_PASSWORD:?Set CORE_KG_DB_PASSWORD in Coolify}
+      POSTGRES_DB: intuition_kg
+    volumes:
+      - postgres_kg_data:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intuition -d intuition_kg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # TimescaleDB event store and Redis are only needed when indexing is enabled.
+  timescale:
+    image: timescale/timescaledb-ha:pg17
+    profiles: [indexing]
+    environment:
+      POSTGRES_USER: intuition
+      POSTGRES_PASSWORD: ${CORE_TS_DB_PASSWORD:?Set CORE_TS_DB_PASSWORD in Coolify}
+      POSTGRES_DB: intuition_timescale
+    volumes:
+      - timescale_data:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intuition -d intuition_timescale"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    profiles: [indexing]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot knowledge graph migrations, before the API and workers start.
+  migrate:
+    image: *api-image
+    working_dir: /repo/packages/database-kg
+    environment:
+      DATABASE_KG_URL: postgresql://intuition:${CORE_KG_DB_PASSWORD:?Set CORE_KG_DB_PASSWORD in Coolify}@postgres-kg:5432/intuition_kg
+    depends_on:
+      postgres-kg:
+        condition: service_healthy
+    command: ["bun", "src/migrate.ts"]
+    restart: "no"
+
+  # One-shot Timescale event-store migrations (only when indexing).
+  timescale-migrate:
+    image: *timescale-migrations-image
+    profiles: [indexing]
+    environment:
+      DATABASE_URL: postgresql://intuition:${CORE_TS_DB_PASSWORD:?Set CORE_TS_DB_PASSWORD in Coolify}@timescale:5432/intuition_timescale
+    depends_on:
+      timescale:
+        condition: service_healthy
+    restart: "no"
+
+  # The only public-facing service should be the API, via a Coolify Domain
+  # pointing at its INTERNAL port 3000. No host ports are published here.
+  api:
+    image: *api-image
+    environment:
+      DATABASE_KG_URL: postgresql://intuition:${CORE_KG_DB_PASSWORD:?Set CORE_KG_DB_PASSWORD in Coolify}@postgres-kg:5432/intuition_kg
+      API_PORT: "3000"
+      API_AUTH: ${API_AUTH:-public-read}
+      API_ALLOWED_ORIGINS: ${API_ALLOWED_ORIGINS:-}
+      API_RATE_LIMIT_RPM: ${API_RATE_LIMIT_RPM:-120}
+      API_ATOM_SEMANTIC_READS_ENABLED: ${API_ATOM_SEMANTIC_READS_ENABLED:-false}
+    expose:
+      - "3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Stateless classify/enrich endpoint, internal to the Compose network.
+  atom-services:
+    image: *atom-services-image
+    environment:
+      ATOM_SERVICES_PORT: "4010"
+      ATOM_SERVICES_AUTH_TOKEN: ${ATOM_SERVICES_AUTH_TOKEN:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_MARKET: ${SPOTIFY_MARKET:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      BRANDFETCH_API_KEY: ${BRANDFETCH_API_KEY:-}
+      PODCAST_INDEX_API_KEY: ${PODCAST_INDEX_API_KEY:-}
+      PODCAST_INDEX_API_SECRET: ${PODCAST_INDEX_API_SECRET:-}
+      CANOPY_API_KEY: ${CANOPY_API_KEY:-}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL:-}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN:-}
+    expose:
+      - "4010"
+    restart: unless-stopped
+
+  workers-parse:
+    image: *workers-image
+    command: ["kg-parse-worker"]
+    environment: &worker-environment
+      DATABASE_KG_URL: postgresql://intuition:${CORE_KG_DB_PASSWORD:?Set CORE_KG_DB_PASSWORD in Coolify}@postgres-kg:5432/intuition_kg
+      WORKERS_PROCESSING_SCOPE: ${WORKERS_PROCESSING_SCOPE:-full}
+      WORKERS_PARSE_REMOTE_FETCH: ${WORKERS_PARSE_REMOTE_FETCH:-true}
+      WORKERS_PARSE_ALLOW_PRIVATE_NETWORKS: "false"
+      WORKERS_PARSE_ALLOW_HTTP: "false"
+      WORKERS_IID_READ_ENABLED: ${WORKERS_IID_READ_ENABLED:-false}
+      WORKERS_IID_RESOLUTION_ENABLED: ${WORKERS_IID_RESOLUTION_ENABLED:-false}
+      WORKERS_HEALTHCHECK_PORT: "4110"
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_MARKET: ${SPOTIFY_MARKET:-}
+      ETHERSCAN_API_KEY: ${ETHERSCAN_API_KEY:-}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      BRANDFETCH_API_KEY: ${BRANDFETCH_API_KEY:-}
+      PODCAST_INDEX_API_KEY: ${PODCAST_INDEX_API_KEY:-}
+      PODCAST_INDEX_API_SECRET: ${PODCAST_INDEX_API_SECRET:-}
+      CANOPY_API_KEY: ${CANOPY_API_KEY:-}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL:-}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  workers-classification:
+    image: *workers-image
+    command: ["kg-classification-worker"]
+    environment:
+      <<: *worker-environment
+      WORKERS_HEALTHCHECK_PORT: "4112"
+    depends_on:
+      workers-parse:
+        condition: service_started
+    restart: unless-stopped
+
+  workers-enrichment:
+    image: *workers-image
+    command: ["kg-enrichment-worker"]
+    environment:
+      <<: *worker-environment
+      WORKERS_HEALTHCHECK_PORT: "4111"
+    depends_on:
+      workers-parse:
+        condition: service_started
+    restart: unless-stopped
+
+  # Opt-in: set COMPOSE_PROFILES=indexing (plus all chain settings) in Coolify.
+  indexer:
+    image: *ingestion-image
+    profiles: [indexing]
+    environment:
+      DATABASE_URL: postgresql://intuition:${CORE_TS_DB_PASSWORD:?Set CORE_TS_DB_PASSWORD in Coolify}@timescale:5432/intuition_timescale
+      REDIS_URL: redis://redis:6379
+      INTUITION_RPC_URL: ${INTUITION_RPC_URL:-}
+      CHAIN_ID: ${CHAIN_ID:-}
+      MULTIVAULT_CONTRACT_ADDRESS: ${MULTIVAULT_CONTRACT_ADDRESS:-}
+      MULTIVAULT_START_BLOCK: ${MULTIVAULT_START_BLOCK:-}
+      MULTIVAULT_END_BLOCK: ${MULTIVAULT_END_BLOCK:-}
+      RINDEXER_HEALTH_PORT: "8080"
+      METRICS_PORT: "9091"
+    depends_on:
+      timescale-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # The indexer exits 0 after a bounded block range; do not restart it then.
+    restart: on-failure
+
+  projections:
+    image: *projections-image
+    profiles: [indexing]
+    environment:
+      DATABASE_URL: postgresql://intuition:${CORE_TS_DB_PASSWORD:?Set CORE_TS_DB_PASSWORD in Coolify}@timescale:5432/intuition_timescale
+      DATABASE_KG_URL: postgresql://intuition:${CORE_KG_DB_PASSWORD:?Set CORE_KG_DB_PASSWORD in Coolify}@postgres-kg:5432/intuition_kg
+      SURREAL_DB_URL: ""
+      PROJECTIONS_METRICS_PORT: "9092"
+      USE_TYPED_READER: ${USE_TYPED_READER:-true}
+      DISABLED_PROJECTIONS: ${DISABLED_PROJECTIONS:-funnel_tracker,user_activity_batch,vault_state:dual,vault_holders_index:dual}
+    depends_on:
+      timescale-migrate:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+# Named volumes are managed by Coolify/Docker Compose. Do not rename or
+# remove them once data is present. Backups are still required.
+volumes:
+  postgres_kg_data:
+  timescale_data:
+  redis_data:
