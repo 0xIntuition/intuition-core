@@ -171,40 +171,6 @@ stack or the Explorer web UI. The devnet deployer is source-built and uses a
 bind mount, while the Explorer is a separate application. Use upstream
 instructions to run those components if needed.
 
-## Validate locally before opening a pull request
-
-With Docker Compose v2 and `sed` installed, run from the repository root.
-**No Docker daemon is required** for these configuration-only checks.
-
-This file intentionally uses Coolify's non-standard `exclude_from_hc: true`
-field on the bounded indexer. Coolify consumes and strips this field before
-passing the Compose definition to Docker; **plain Docker Compose does not
-recognize it**. The checks below strip that *one Coolify-only setting from
-the input stream*, without changing the tracked source file:
-
-```sh
-# Base profile (no indexing).
-sed '/^[[:space:]]*exclude_from_hc: true[[:space:]]*$/d' coolify/docker-compose.yml | \
-  CORE_KG_DB_PASSWORD=0123456789abcdef CORE_TS_DB_PASSWORD=fedcba9876543210 \
-  docker compose -f - config --quiet
-
-# Optional indexing profile.
-sed '/^[[:space:]]*exclude_from_hc: true[[:space:]]*$/d' coolify/docker-compose.yml | \
-  CORE_KG_DB_PASSWORD=0123456789abcdef CORE_TS_DB_PASSWORD=fedcba9876543210 \
-  docker compose -f - --profile indexing config --quiet
-```
-
-The values above are fake test-only PostgreSQL passwords. Passing these
-checks verifies standard Compose configuration only; it **does not verify
-Coolify's handling of `exclude_from_hc`** or test a deployment. Check
-**Coolify's deployable Compose** after saving the original file. A live
-deployment with migrations, health checks, indexing and a subsequent redeploy
-is needed to demonstrate end-to-end success.
-
-See [Coolify's Compose guide](https://coolify.io/docs/applications/builds/docker-compose),
-[Docker's Compose extension rules](https://docs.docker.com/reference/compose-file/extension/)
-and [the `-f -` stdin option](https://docs.docker.com/reference/cli/docker/compose/).
-
 ## References
 
 - [Intuition Core's normal Compose](../docker-compose.yml)
