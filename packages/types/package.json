@@ -18,7 +18,7 @@
 		"typescript": "catalog:"
 	},
 	"dependencies": {
-		"@0xintuition/atom-enrichment": "0.1.0-alpha.0",
+		"@0xintuition/atom-enrichment": "0.1.0",
 		"zod": "catalog:"
 	}
 }

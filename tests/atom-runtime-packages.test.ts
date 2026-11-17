@@ -46,7 +46,9 @@ describe('published atom runtime consumer contract', () => {
 		const manifest = JSON.parse(
 			await readFile(fileURLToPath(import.meta.resolve(`${specifier}/package.json`)), 'utf8')
 		);
-		expect(manifest.version).toBe('0.1.0-alpha.0');
+		expect(manifest.version).toBe(
+			rootManifest.dependencies[specifier as keyof typeof rootManifest.dependencies]
+		);
 		expect(manifest.private).toBe(false);
 		const entry = await realpath(fileURLToPath(import.meta.resolve(specifier)));
 		expect(entry).toEndWith('/dist/index.js');

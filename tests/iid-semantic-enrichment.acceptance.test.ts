@@ -9,6 +9,7 @@ import {
 } from '@0xintuition/atom-enrichment';
 import type { FetchLike } from '@0xintuition/atom-enrichment/providers';
 import { useStubbedPublicDns } from '@0xintuition/atom-enrichment/testing';
+import rootManifest from '../package.json';
 import { deriveIidClassificationResult } from '../services/workers/src/core/classification';
 import { evaluateEnrichmentCompletion } from '../services/workers/src/core/enrichment';
 import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
@@ -26,7 +27,6 @@ useStubbedPublicDns();
 const iidEntry = '@0xintuition/iid';
 const registryEntry = '@0xintuition/iid-registry';
 const ladderEntry = '@0xintuition/iid-ladder';
-const PACKAGE_VERSION = '0.1.0-alpha.0';
 const NOW = '2026-08-12T12:00:00.000Z';
 
 describe('canonical IID semantic enrichment acceptance', () => {
@@ -267,7 +267,7 @@ async function realLadder() {
 	const module = await importModule<typeof import('@0xintuition/iid-ladder')>(ladderEntry);
 	const publicIid = await importModule<IidModule>(iidEntry);
 	return ladderFixture(
-		{ ...module, packageVersion: PACKAGE_VERSION },
+		{ ...module, packageVersion: rootManifest.dependencies[ladderEntry] },
 		{ inspect: publicIid.inspectIntuitionId }
 	);
 }
@@ -277,7 +277,7 @@ async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 	const publicRegistry = await importModule<RegistryModule>(registryEntry);
 	const inspectionAdapter = inspectionFixture({
 		inspectIntuitionId: publicIid.inspectIntuitionId,
-		packageVersion: PACKAGE_VERSION,
+		packageVersion: rootManifest.dependencies[iidEntry],
 	});
 	const parsed = await parseAtomWithIidRead({
 		rawInput: iid,
@@ -295,13 +295,13 @@ async function inspectAndPlan(iid: string, plugins: EnrichmentPlugin[]) {
 		classificationForIid: publicRegistry.classificationForIid,
 		providersForIid: publicRegistry.providersForIid,
 		identifierHintsForIid: publicRegistry.identifierHintsForIid,
-		packageVersion: PACKAGE_VERSION,
+		packageVersion: rootManifest.dependencies[registryEntry],
 	});
 	const resolution = registryAdapter.resolve(parsed.result.identity);
 	const module = await importModule<typeof import('@0xintuition/iid-ladder')>(ladderEntry);
 	const classification = deriveIidClassificationResult({
 		ladder: ladderFixture(
-			{ ...module, packageVersion: PACKAGE_VERSION },
+			{ ...module, packageVersion: rootManifest.dependencies[ladderEntry] },
 			{ inspect: publicIid.inspectIntuitionId }
 		),
 		identity: parsed.result.identity,

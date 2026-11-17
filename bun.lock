@@ -5,22 +5,22 @@
     "": {
       "name": "intuition-core",
       "dependencies": {
-        "@0xintuition/atom-classification": "0.1.0-alpha.0",
-        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
-        "@0xintuition/atom-parser": "0.1.0-alpha.0",
-        "@0xintuition/atom-runtime": "0.1.0-alpha.0",
-        "@0xintuition/classifications": "0.1.0-alpha.1",
-        "@0xintuition/curves": "0.1.0-alpha.1",
-        "@0xintuition/deployments": "0.1.0-alpha.1",
-        "@0xintuition/ids": "0.1.0-alpha.1",
-        "@0xintuition/iid": "0.1.0-alpha.0",
-        "@0xintuition/iid-ladder": "0.1.0-alpha.0",
-        "@0xintuition/iid-registry": "0.1.0-alpha.0",
-        "@0xintuition/iid-spec": "0.1.0-alpha.0",
-        "@0xintuition/pipeline-runtime": "0.1.0-alpha.0",
-        "@0xintuition/predicates": "0.1.0-alpha.1",
-        "@0xintuition/protocol": "3.0.0-alpha.0",
-        "@0xintuition/schema-org": "0.1.0-alpha.1",
+        "@0xintuition/atom-classification": "0.1.0",
+        "@0xintuition/atom-enrichment": "0.1.0",
+        "@0xintuition/atom-parser": "0.1.0",
+        "@0xintuition/atom-runtime": "0.1.0",
+        "@0xintuition/classifications": "0.1.0",
+        "@0xintuition/curves": "0.1.0",
+        "@0xintuition/deployments": "0.1.0",
+        "@0xintuition/ids": "0.1.0",
+        "@0xintuition/iid": "0.1.0",
+        "@0xintuition/iid-ladder": "0.1.0",
+        "@0xintuition/iid-registry": "0.1.0",
+        "@0xintuition/iid-spec": "0.1.0",
+        "@0xintuition/pipeline-runtime": "0.1.0",
+        "@0xintuition/predicates": "0.1.0",
+        "@0xintuition/protocol": "4.0.0",
+        "@0xintuition/schema-org": "0.1.0",
       },
       "devDependencies": {
         "@0xintuition/contracts": "workspace:*",
@@ -64,7 +64,7 @@
       "name": "@0xintuition/atom-rules-engine",
       "version": "0.0.0",
       "dependencies": {
-        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
+        "@0xintuition/atom-enrichment": "0.1.0",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -76,7 +76,7 @@
       "name": "@0xintuition/contracts",
       "dependencies": {
         "@0xintuition/contracts-v2": "1.1.0-alpha.1",
-        "@0xintuition/deployments": "0.1.0-alpha.1",
+        "@0xintuition/deployments": "0.1.0",
         "viem": "^2.23.2",
       },
       "devDependencies": {
@@ -88,8 +88,8 @@
     "packages/database-kg": {
       "name": "@0xintuition/database-kg",
       "dependencies": {
-        "@0xintuition/ids": "0.1.0-alpha.1",
-        "@0xintuition/predicates": "0.1.0-alpha.1",
+        "@0xintuition/ids": "0.1.0",
+        "@0xintuition/predicates": "0.1.0",
         "drizzle-orm": "0.45.1",
         "postgres": "^3.4.7",
         "viem": "^2.23.2",
@@ -119,7 +119,7 @@
       "name": "@0xintuition/types",
       "version": "0.0.0",
       "dependencies": {
-        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
+        "@0xintuition/atom-enrichment": "0.1.0",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -144,9 +144,9 @@
       "name": "@0xintuition/atom-services",
       "version": "0.0.0",
       "dependencies": {
-        "@0xintuition/atom-classification": "0.1.0-alpha.0",
-        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
-        "@0xintuition/atom-runtime": "0.1.0-alpha.0",
+        "@0xintuition/atom-classification": "0.1.0",
+        "@0xintuition/atom-enrichment": "0.1.0",
+        "@0xintuition/atom-runtime": "0.1.0",
         "hono": "^4.11.6",
         "zod": "catalog:",
       },
@@ -161,15 +161,15 @@
       "name": "@0xintuition/workers",
       "version": "0.0.0",
       "dependencies": {
-        "@0xintuition/atom-classification": "0.1.0-alpha.0",
-        "@0xintuition/atom-enrichment": "0.1.0-alpha.0",
-        "@0xintuition/atom-parser": "0.1.0-alpha.0",
+        "@0xintuition/atom-classification": "0.1.0",
+        "@0xintuition/atom-enrichment": "0.1.0",
+        "@0xintuition/atom-parser": "0.1.0",
         "@0xintuition/atom-services": "workspace:*",
         "@0xintuition/database-kg": "workspace:*",
-        "@0xintuition/iid": "0.1.0-alpha.0",
-        "@0xintuition/iid-ladder": "0.1.0-alpha.0",
-        "@0xintuition/iid-registry": "0.1.0-alpha.0",
-        "@0xintuition/schema-org": "0.1.0-alpha.1",
+        "@0xintuition/iid": "0.1.0",
+        "@0xintuition/iid-ladder": "0.1.0",
+        "@0xintuition/iid-registry": "0.1.0",
+        "@0xintuition/schema-org": "0.1.0",
         "drizzle-orm": "0.45.1",
         "zod": "catalog:",
       },
@@ -191,53 +191,53 @@
   "packages": {
     "@0xintuition/api": ["@0xintuition/api@workspace:services/api"],
 
-    "@0xintuition/atom-classification": ["@0xintuition/atom-classification@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/atom-enrichment": "0.1.0-alpha.0", "@0xintuition/atom-parser": "0.1.0-alpha.0", "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-ladder": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "@0xintuition/predicates": "0.1.0-alpha.1", "@0xintuition/primitives": "0.1.0-alpha.1", "@0xintuition/schema-org": "0.1.0-alpha.1", "zod": "4.1.12" } }, "sha512-aIaFQKTfdy+64h0BrQwgIBU58xRPuRIOye+jWfpSBmMJhcP5IQ9ymLo1uuPHFek3pGGy7eu0t0kOmxVOn3D7kA=="],
+    "@0xintuition/atom-classification": ["@0xintuition/atom-classification@0.1.0", "", { "dependencies": { "@0xintuition/atom-enrichment": "^0.1.0", "@0xintuition/atom-parser": "^0.1.0", "@0xintuition/classifications": "^0.1.0", "@0xintuition/iid": "^0.1.0", "@0xintuition/iid-ladder": "^0.1.0", "@0xintuition/iid-registry": "^0.1.0", "@0xintuition/pipeline-runtime": "^0.1.0", "@0xintuition/predicates": "^0.1.0", "@0xintuition/primitives": "^0.1.0", "@0xintuition/schema-org": "^0.1.0", "zod": "4.1.12" } }, "sha512-7WCDQDkqF1slCeEczDXpbnf4xXFFjfjAvo2abPe9sro16ZVdQ0hCYWwu2qkOoIhvCPCeA9JE9JmI6kxqMhGkyg=="],
 
-    "@0xintuition/atom-enrichment": ["@0xintuition/atom-enrichment@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-ladder": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "@0xintuition/protocol": "3.0.0-alpha.0", "@0xintuition/schema-org": "0.1.0-alpha.1", "zod": "4.1.12" } }, "sha512-ark9V5rXcuHzkZWcN8aR7bCiCGbjR2JfwRPdRVCV0QmS/Cqbpqq7/sm4zNdZ9ZGKScUl5SRgZr1/Ka/4nWjN7Q=="],
+    "@0xintuition/atom-enrichment": ["@0xintuition/atom-enrichment@0.1.0", "", { "dependencies": { "@0xintuition/classifications": "^0.1.0", "@0xintuition/iid": "^0.1.0", "@0xintuition/iid-ladder": "^0.1.0", "@0xintuition/iid-registry": "^0.1.0", "@0xintuition/pipeline-runtime": "^0.1.0", "@0xintuition/protocol": "^4.0.0", "@0xintuition/schema-org": "^0.1.0", "zod": "4.1.12" } }, "sha512-12KC4UKw9E2ScV74eyi5rNISFKweoZBFUWjWklkKf+HmmHoZqnt4S469vGvHVAX2Fb36s3NuML71eIi7tv4uMg=="],
 
-    "@0xintuition/atom-parser": ["@0xintuition/atom-parser@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0", "multiformats": "^13.3.2", "viem": "^2.23.2" } }, "sha512-3cBkCXYLiR/uDFIkZ9ckJLoO/e15zt3uGGRuUOaHYrkJ/JG1gXM0V9l7scDNX4NxLwjblXgAEfEceZ1umsXMDw=="],
+    "@0xintuition/atom-parser": ["@0xintuition/atom-parser@0.1.0", "", { "dependencies": { "@0xintuition/iid": "^0.1.0", "multiformats": "^13.3.2", "viem": "^2.23.2" } }, "sha512-1eyJFReKbhs9hT5tSZv+By/EBw7JwUeDmX5XB38GQUjd5UJy5MYDt9NLI9H1Up6JA97Y2PD3ZcSTMIVhy8dPnQ=="],
 
     "@0xintuition/atom-rules-engine": ["@0xintuition/atom-rules-engine@workspace:packages/atom-rules-engine"],
 
-    "@0xintuition/atom-runtime": ["@0xintuition/atom-runtime@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/atom-classification": "0.1.0-alpha.0", "@0xintuition/atom-enrichment": "0.1.0-alpha.0", "@0xintuition/atom-parser": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/pipeline-runtime": "0.1.0-alpha.0", "zod": "4.1.12" } }, "sha512-Q/6Gr0Xhhrh8QJOzewPXFWdyddoLyQuLvEFZAXY4Vz+WxxNeYGjl7GaWRBqABrjLnHWedvWFSdjlTbd71WZJIQ=="],
+    "@0xintuition/atom-runtime": ["@0xintuition/atom-runtime@0.1.0", "", { "dependencies": { "@0xintuition/atom-classification": "^0.1.0", "@0xintuition/atom-enrichment": "^0.1.0", "@0xintuition/atom-parser": "^0.1.0", "@0xintuition/iid-registry": "^0.1.0", "@0xintuition/pipeline-runtime": "^0.1.0", "zod": "4.1.12" } }, "sha512-WV7/hQ2sBLdVi/IKSRHRkj7dnvig+JJ6kPUO0uRY2eKgY7yMIjZoBlud01cpdkTZuz5+oMieu36s5g6PSLD74w=="],
 
     "@0xintuition/atom-services": ["@0xintuition/atom-services@workspace:services/atom-services"],
 
-    "@0xintuition/classifications": ["@0xintuition/classifications@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-PFEdeBg+bWNoFOXwFmoUdMtIR0KuCJAmNzye6KgfMt7W8Esi560cSoCjxZtSD457ftPq6YlWmNzCHVwxbOw/Dw=="],
+    "@0xintuition/classifications": ["@0xintuition/classifications@0.1.0", "", { "dependencies": { "@0xintuition/iid": "^0.1.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-fMlDkJpcIikWSQJDnyKBqm2kEOaXIGPBJDbElQAtjdTa3UtoLCp9Vh/9/OndB3uu2c9OcFMPjrub6g5DrlNUqw=="],
 
     "@0xintuition/contracts": ["@0xintuition/contracts@workspace:packages/contracts"],
 
     "@0xintuition/contracts-v2": ["@0xintuition/contracts-v2@1.1.0-alpha.1", "", { "dependencies": { "@account-abstraction/contracts": "0.8.0", "@openzeppelin-v4/contracts": "npm:@openzeppelin/contracts@4.9.6", "@openzeppelin-v4/contracts-upgradeable": "npm:@openzeppelin/contracts-upgradeable@4.9.6", "@openzeppelin/contracts": "5.4.0", "@openzeppelin/contracts-upgradeable": "5.4.0", "@prb/math": "4.1.0", "solady": "0.1.26" } }, "sha512-SyeZAbsc/IuFgxt5wx0XywrqnVspssFwhf+PHkbUD8KAjZfI3fnEXvI+K07sprOXTYm87jDslV02j3x6NSSaDg=="],
 
-    "@0xintuition/curves": ["@0xintuition/curves@0.1.0-alpha.1", "", {}, "sha512-6qdaUpTP03D2J3+KD5uY4DnfWXSF5TYyWlnWU0MOjWn0SI7GngGZUjiFduk6yqgUNQH66F5KkA0Hd4Ku1Q34ZA=="],
+    "@0xintuition/curves": ["@0xintuition/curves@0.1.0", "", {}, "sha512-xfpPBtLgXs+iKkTUPQn6sG6xfqNGLiz5ljWAv6pBizQ+AtlDVF0VIPmzudPPgtKyjCnjrTDryEdX5CmxbXxA9g=="],
 
     "@0xintuition/database-kg": ["@0xintuition/database-kg@workspace:packages/database-kg"],
 
     "@0xintuition/database-timescale": ["@0xintuition/database-timescale@workspace:packages/database-timescale"],
 
-    "@0xintuition/deployments": ["@0xintuition/deployments@0.1.0-alpha.1", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-qPXUFMaS9wMk6OwGqlDCqfXkcV96gEGoa/nOXXahzW6pQBw8M+ay5FrR9NyWxzAN25Zt1LRVIWKl1mrLzBLWpA=="],
+    "@0xintuition/deployments": ["@0xintuition/deployments@0.1.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-NC8Ch/JxmloqEQkFURo157/1+5w8q8IyWos7ckonUin3Hug48oqDKIFGiK75Mh4V5+O5oi6lD/F263Mpn/heKQ=="],
 
     "@0xintuition/explorer": ["@0xintuition/explorer@workspace:apps/explorer"],
 
-    "@0xintuition/ids": ["@0xintuition/ids@0.1.0-alpha.1", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-5DMo4dXcdQBXcYMYKPvPkRcbW2Ag6xtulSasmV6XOcg9xNmR/jlEgPpaDo64sDivQYTTvv5zcCI1k7Q+gM8Qng=="],
+    "@0xintuition/ids": ["@0xintuition/ids@0.1.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-e9cercwZcy5U+7g2/62NuEu6aowDjBVNrljvntDtNA0sygpcKwtvtFt6rhWGvIdJKxQLuKHCjCQmXAMOCAjo9g=="],
 
-    "@0xintuition/iid": ["@0xintuition/iid@0.1.0-alpha.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-To4LHtyKsvWuUCGjSPPjy7/XiuP/bKkq1+906uA5+JpMM5VxzRQl8JEHmInAv0KQN1yLKxbpRurVCKC/VvyCyg=="],
+    "@0xintuition/iid": ["@0xintuition/iid@0.1.0", "", { "peerDependencies": { "viem": "^2.0.0" } }, "sha512-bQ+uiKtdXyTS8wzcYz9ltTiZG9FIHb3iHO26eXWekuzoKhMNNSp+LOVCABAebfFX0XsDdxOUCk15j4OtCdmkqQ=="],
 
-    "@0xintuition/iid-ladder": ["@0xintuition/iid-ladder@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/iid": "0.1.0-alpha.0" } }, "sha512-B+OtgfzGoNTzRNC25V6KhxsFtN0J7igibO2Jm14Y8u2FT1aJU+mM6OfBH1C9DDDazxlxvfarAsgWelRD8Bz7VA=="],
+    "@0xintuition/iid-ladder": ["@0xintuition/iid-ladder@0.1.0", "", { "dependencies": { "@0xintuition/iid": "^0.1.0" } }, "sha512-mPyKLTaqP5Q94Gvkqh4NNticIV/oT1/wAiloGhKEjAxYMafyW0cRGmd7czHeaU6j/fLiz65fS/IFHAeazhiIYg=="],
 
-    "@0xintuition/iid-registry": ["@0xintuition/iid-registry@0.1.0-alpha.0", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-5uiX1rCRfW7A8Kr+BHzJd0v58bC25V65jhTNhndUXhy8i6a3Gor8TDSX/ZDQZehl6ZEdedMJPz1j1PbUX5PUrA=="],
+    "@0xintuition/iid-registry": ["@0xintuition/iid-registry@0.1.0", "", { "dependencies": { "@0xintuition/classifications": "^0.1.0", "@0xintuition/iid": "^0.1.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-1P+m12pm304UssXYJWW+pb68EbkgcB8hmInFTRVp7KO7ArW2bS4hG7itPMUYU6MdKi1dbqpwhSwsrrajQHhtng=="],
 
-    "@0xintuition/iid-spec": ["@0xintuition/iid-spec@0.1.0-alpha.0", "", {}, "sha512-snocBVY6HbDrh+Bg9s4hzq1ELOTHFtARHoEJjdEWVjDwsT6rCJ2egZoqzd5tnzcF6jhM4pb6/497UBtaiK/9bA=="],
+    "@0xintuition/iid-spec": ["@0xintuition/iid-spec@0.1.0", "", {}, "sha512-alNFBdjDA9muG6heXkqCaXSy7LSofPruyZPzauShncW8HXasfaymzzVJ6lxRtIUjau0i8QKZ93mJXLnywy6t6A=="],
 
-    "@0xintuition/pipeline-runtime": ["@0xintuition/pipeline-runtime@0.1.0-alpha.0", "", {}, "sha512-hV6On4R809pCHFj/SiedKh9ru61haiwv7pUV2M7wJgfpHTw+w/s6JleB8DiU9vVUyBWA6NTKa3pnlruxTzFo2w=="],
+    "@0xintuition/pipeline-runtime": ["@0xintuition/pipeline-runtime@0.1.0", "", {}, "sha512-3Kwwc1sL/XbQV0NdjT7CoCwFZWEChI8vz7d293pxqXTTFEcEah4dfdH/t8zbHAujOD0+69PXUGuilkpNg3kmLg=="],
 
-    "@0xintuition/predicates": ["@0xintuition/predicates@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/ids": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-8NcYPbRuZVFrZQubJStuTrRWf481Cg2jLMVSUG7jPm8XTK+fPsW5TIJhloUrKaDBIDGYnVzVfpUUO7+Rw9p99w=="],
+    "@0xintuition/predicates": ["@0xintuition/predicates@0.1.0", "", { "dependencies": { "@0xintuition/ids": "^0.1.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-MwL5qaHc5T0APiSJ4mp+gnvHEtG5wtiT2dW6XkPZ15zziRFH6otxotAHGeyHM57wMsCVLm0+V6PisS4Ifz8JBg=="],
 
-    "@0xintuition/primitives": ["@0xintuition/primitives@0.1.0-alpha.1", "", { "dependencies": { "@0xintuition/classifications": "0.1.0-alpha.1", "@0xintuition/ids": "0.1.0-alpha.1", "@0xintuition/iid": "0.1.0-alpha.0", "@0xintuition/iid-registry": "0.1.0-alpha.0", "@0xintuition/predicates": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-xi3q1sbqIlYlL1FJ74gGkxUPIUT/v+7Hp95OUR0oauFNbqn0YuBbGuXJtuTtL84l9eg/IWUHejyaK1s/wFq2Ow=="],
+    "@0xintuition/primitives": ["@0xintuition/primitives@0.1.0", "", { "dependencies": { "@0xintuition/classifications": "^0.1.0", "@0xintuition/ids": "^0.1.0", "@0xintuition/iid": "^0.1.0", "@0xintuition/iid-registry": "^0.1.0", "@0xintuition/predicates": "^0.1.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-nBOoT2v/uLO+p7aKgExgr6i/MUZy9TV14iVsE0YbhP3hvez/gChwD36mgowtY2ya9Q6UmlzAYKXKfUHlkoThow=="],
 
-    "@0xintuition/protocol": ["@0xintuition/protocol@3.0.0-alpha.0", "", { "dependencies": { "@0xintuition/deployments": "0.1.0-alpha.1" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-kjrMRltJZkruG9NnHbkMJ3GG4uBkbt96125MJJJYV6XOeYaW3DpDqrcd+PsBGkWiTiEVuq6l6LiMuuP0M7XEMg=="],
+    "@0xintuition/protocol": ["@0xintuition/protocol@4.0.0", "", { "dependencies": { "@0xintuition/deployments": "^0.1.0" }, "peerDependencies": { "viem": "^2.0.0" } }, "sha512-GW+Kb4W5ECDvve4EXl2C/ZzRwIBJZqS2Df+bCtomGWn7BJFdC6WagJQhdo6HIP+ZV/vDflkPhsjx+oBEHfsPSw=="],
 
-    "@0xintuition/schema-org": ["@0xintuition/schema-org@0.1.0-alpha.1", "", {}, "sha512-0Al4HRh3IfQewcCA00/3JjVZL+MGEz+1QxD4Y0uk84iklcY5lDeZy7YKrlz30KUUH64rbt+TqXEFWH3OYHwbXQ=="],
+    "@0xintuition/schema-org": ["@0xintuition/schema-org@0.1.0", "", {}, "sha512-Z5tr18lDM31WUPvKMHAOsLRmNDLZTAwqx0EZYLhl9sLnOaIstKz5Mxce5310vRNfiJBsOmkM5kqE1F7kVsgfzQ=="],
 
     "@0xintuition/tsconfig": ["@0xintuition/tsconfig@workspace:tooling/typescript"],
 
@@ -1611,13 +1611,7 @@
 
     "@isaacs/cliui/string-width/emoji-regex": ["emoji-regex@9.2.2", "", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
 
-    "@tanstack/router-generator/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
-
-    "@tanstack/router-plugin/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
-
     "@tanstack/router-plugin/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, "sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA=="],
-
-    "@tanstack/start-plugin-core/@tanstack/router-utils/diff": ["diff@8.0.4", "", {}, "sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="],
 
     "archiver-utils/glob/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 

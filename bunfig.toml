@@ -1,7 +1,7 @@
 [install]
 # Refuse third-party releases published less than 14 days ago.
 minimumReleaseAge = 1209600
-# First-party packages from the reviewed October 28, 2026 alpha release.
+# First-party packages from the published Intuition release.
 # Keep consumers exactly pinned and this list in sync with
 # scripts/guard-supply-chain-policy.mjs; never exempt the entire scope.
 minimumReleaseAgeExcludes = [
