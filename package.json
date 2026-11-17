@@ -58,21 +58,21 @@
 		"node": ">=20"
 	},
 	"dependencies": {
-		"@0xintuition/atom-classification": "0.1.0-alpha.0",
-		"@0xintuition/atom-enrichment": "0.1.0-alpha.0",
-		"@0xintuition/atom-parser": "0.1.0-alpha.0",
-		"@0xintuition/atom-runtime": "0.1.0-alpha.0",
-		"@0xintuition/classifications": "0.1.0-alpha.1",
-		"@0xintuition/curves": "0.1.0-alpha.1",
-		"@0xintuition/deployments": "0.1.0-alpha.1",
-		"@0xintuition/ids": "0.1.0-alpha.1",
-		"@0xintuition/iid": "0.1.0-alpha.0",
-		"@0xintuition/iid-ladder": "0.1.0-alpha.0",
-		"@0xintuition/iid-registry": "0.1.0-alpha.0",
-		"@0xintuition/iid-spec": "0.1.0-alpha.0",
-		"@0xintuition/pipeline-runtime": "0.1.0-alpha.0",
-		"@0xintuition/predicates": "0.1.0-alpha.1",
-		"@0xintuition/protocol": "3.0.0-alpha.0",
-		"@0xintuition/schema-org": "0.1.0-alpha.1"
+		"@0xintuition/atom-classification": "0.1.0",
+		"@0xintuition/atom-enrichment": "0.1.0",
+		"@0xintuition/atom-parser": "0.1.0",
+		"@0xintuition/atom-runtime": "0.1.0",
+		"@0xintuition/classifications": "0.1.0",
+		"@0xintuition/curves": "0.1.0",
+		"@0xintuition/deployments": "0.1.0",
+		"@0xintuition/ids": "0.1.0",
+		"@0xintuition/iid": "0.1.0",
+		"@0xintuition/iid-ladder": "0.1.0",
+		"@0xintuition/iid-registry": "0.1.0",
+		"@0xintuition/iid-spec": "0.1.0",
+		"@0xintuition/pipeline-runtime": "0.1.0",
+		"@0xintuition/predicates": "0.1.0",
+		"@0xintuition/protocol": "4.0.0",
+		"@0xintuition/schema-org": "0.1.0"
 	}
 }

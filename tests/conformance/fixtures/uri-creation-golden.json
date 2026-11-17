@@ -1,6 +1,6 @@
 {
 	"publicEntrypoints": {
-		"protocolVersion": "3.0.0-alpha.0",
+		"protocolVersion": "4.0.0",
 		"exports": [".", "./contracts", "./package.json"],
 		"deepImportRejected": true,
 		"installedPackagesOnly": true

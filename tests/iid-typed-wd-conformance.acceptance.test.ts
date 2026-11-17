@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+import rootManifest from '../package.json';
 import { parseAtomWithIidRead } from '../services/workers/src/core/iid-inspection';
 import { inspectionFixture } from '../services/workers/src/core/testing/iid-fixtures';
 import { toCompactParseResultMaybe } from '../services/workers/src/kg/processing';
@@ -43,7 +44,7 @@ function vectors(kind: string): Vector[] {
 async function inspectThroughCore(module: IidModule, iid: string) {
 	const adapter = inspectionFixture({
 		inspectIntuitionId: module.inspectIntuitionId,
-		packageVersion: '0.1.0-alpha.0',
+		packageVersion: rootManifest.dependencies[iidEntry],
 	});
 	return parseAtomWithIidRead({
 		rawInput: iid,
