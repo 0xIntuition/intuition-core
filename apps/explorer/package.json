@@ -41,6 +41,6 @@
 		"@vitejs/plugin-react": "5.2.0",
 		"tailwindcss": "^4.1.0",
 		"typescript": "catalog:",
-		"vite": "7.3.2"
+		"vite": "7.3.8"
 	}
 }
